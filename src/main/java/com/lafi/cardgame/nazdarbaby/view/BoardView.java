@@ -31,9 +31,15 @@ public class BoardView extends ParameterizedView {
 	static final String ROUTE_LOCATION = "board";
 
 	private static final String NEW_GAME_LABEL = "New game";
+
 	private static final String FONT_WEIGHT_STYLE = "fontWeight";
 	private static final String BOLD = "bold";
+
 	private static final String BORDER_STYLE = "border";
+	private static final String ONE_PX_SOLID = "1px solid ";
+	public static final String BLUE_COLOR = "blue";
+	public static final String GREEN_COLOR = "green";
+
 	private static final String NEXT_BUTTON_TEXT = "Next";
 	private static final int AUTO_NEXT_DELAY_IN_SECONDS = 5;
 
@@ -303,7 +309,7 @@ public class BoardView extends ParameterizedView {
 				preselectedCardImage = null;
 			} else {
 				preselectedCardImage = image;
-				preselectedCardImage.getStyle().set(BORDER_STYLE, "1px solid Blue");
+				preselectedCardImage.getStyle().set(BORDER_STYLE, ONE_PX_SOLID + BLUE_COLOR);
 			}
 		}
 	}
@@ -354,10 +360,11 @@ public class BoardView extends ParameterizedView {
 			pointsHL.add(pointsVL);
 
 			Boolean terminator = user.wasTerminator();
+			Style style = pointsVL.getStyle();
 			if (terminator == null) {
-				pointsVL.getStyle().set(BORDER_STYLE, "1px solid Red");
+				style.set(BORDER_STYLE, ONE_PX_SOLID + Constant.RED_COLOR);
 			} else if (terminator) {
-				pointsVL.getStyle().set(BORDER_STYLE, "1px solid Green");
+				style.set(BORDER_STYLE, ONE_PX_SOLID + GREEN_COLOR);
 			}
 
 			Checkbox newGameCheckbox = new Checkbox(user.wantNewGame());
@@ -468,7 +475,7 @@ public class BoardView extends ParameterizedView {
 			Style style = cardPlaceholderLabel.getStyle();
 
 			if (actualTakes == expectedTakes) {
-				style.set(Constant.COLOR_STYLE, "green");
+				style.set(Constant.COLOR_STYLE, GREEN_COLOR);
 			} else {
 				List<Card> matchUserCards = matchUser.getCards();
 				long numberOfCardsLeft = getNumberOfCardsLeft(matchUserCards);
@@ -485,7 +492,7 @@ public class BoardView extends ParameterizedView {
 
 		int indexOfHighestCardUser = game.getIndexOfHighestCardUser();
 		VerticalLayout cardPlaceholderVL = (VerticalLayout) cardPlaceholdersHL.getComponentAt(indexOfHighestCardUser);
-		cardPlaceholderVL.getStyle().set(BORDER_STYLE, "1px solid Blue");
+		cardPlaceholderVL.getStyle().set(BORDER_STYLE, ONE_PX_SOLID + BLUE_COLOR);
 
 		Button nextButton = new Button(NEXT_BUTTON_TEXT);
 		autoNextVL.add(nextButton);
