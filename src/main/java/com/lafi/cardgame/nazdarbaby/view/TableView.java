@@ -106,8 +106,8 @@ public class TableView extends ParameterizedView {
 		String userName = nameField.getValue();
 		UserProvider userProvider = table.getUserProvider();
 
-		if (StringUtils.isEmpty(userName)) {
-			UiUtil.invalidateFieldWithFocus(nameField, "Name cannot be empty");
+		if (StringUtils.isBlank(userName)) {
+			UiUtil.invalidateFieldWithFocus(nameField, "Name cannot be blank");
 			return;
 		}
 		if (userProvider.usernameExist(userName)) {
