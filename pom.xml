@@ -11,7 +11,7 @@
     <properties>
         <!-- change java version also in '.github/workflows/codeql-analysis.yml' and 'system.properties' -->
         <java.version>17</java.version>
-        <vaadin.version>23.0.0</vaadin.version>
+        <vaadin.version>23.0.1</vaadin.version>
         <heroku.appName>serene-forest-82847</heroku.appName>
     </properties>
 
@@ -139,7 +139,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <nodeVersion>v17.6.0</nodeVersion>
+                    <nodeVersion>v17.7.0</nodeVersion>
                     <!-- optional: with node version greater than 4.0.0 will use npm provided by node distribution -->
                     <!--                    <npmVersion>2.15.9</npmVersion>-->
 
