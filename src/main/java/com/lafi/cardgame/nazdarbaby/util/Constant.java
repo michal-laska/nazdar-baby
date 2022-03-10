@@ -2,6 +2,9 @@ package com.lafi.cardgame.nazdarbaby.util;
 
 import com.vaadin.flow.component.icon.VaadinIcon;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+
 public final class Constant {
 
 	public static final String IMAGE_HEIGHT = "3cm";
@@ -16,6 +19,8 @@ public final class Constant {
 
 	public static final VaadinIcon PASSWORD_LOCK_ICON = VaadinIcon.KEY;
 	public static final VaadinIcon PASSWORD_OPEN_ICON = VaadinIcon.KEY_O;
+
+	public static final Charset CHARSET = StandardCharsets.UTF_8;
 
 	private Constant() {
 	}

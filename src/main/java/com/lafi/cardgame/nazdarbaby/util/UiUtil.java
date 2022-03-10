@@ -12,6 +12,7 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.server.Command;
 
+import java.net.URLEncoder;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -55,8 +56,9 @@ public final class UiUtil {
 		uiOptional.ifPresent(action);
 	}
 
-	public static String createLocation(String... locationParts) {
-		return String.join(LOCATION_SEPARATOR, locationParts);
+	public static String createLocation(String firstPart, String secondPart) {
+		String encodedSecondPart = URLEncoder.encode(secondPart, Constant.CHARSET);
+		return firstPart + LOCATION_SEPARATOR + encodedSecondPart;
 	}
 
 	private static void makeUIAction(Component component, Consumer<UI> action) {
