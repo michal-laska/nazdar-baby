@@ -104,8 +104,7 @@ public class BoardView extends ParameterizedView {
 				expectedTakesField.focus();
 			} else {
 				expectedTakesField.addFocusListener(focusEvent -> notYourTurnAction());
-				expectedTakesField.addBlurListener(blurEvent ->
-				{
+				expectedTakesField.addBlurListener(blurEvent -> {
 					if (expectedTakesField == null) {
 						return;
 					}
@@ -118,8 +117,7 @@ public class BoardView extends ParameterizedView {
 				});
 
 				// to set value immediately (without pressing ENTER or losing focus)
-				expectedTakesField.addKeyDownListener(press ->
-				{
+				expectedTakesField.addKeyDownListener(press -> {
 					if (expectedTakesField == null) {
 						return;
 					}
@@ -189,7 +187,7 @@ public class BoardView extends ParameterizedView {
 
 		expectedTakesField = null;
 
-		broadcastThisClass();
+		broadcast();
 	}
 
 	private void addUserCardsHL(HorizontalLayout cardPlaceholdersHL) {
@@ -298,7 +296,7 @@ public class BoardView extends ParameterizedView {
 			game.setWinCard(card);
 			game.changeActiveUser();
 
-			broadcastThisClass();
+			broadcast();
 		} else if (currentUser.getExpectedTakes() != null) {
 			if (preselectedCardImage != null) {
 				preselectedCardImage.getStyle().remove(BORDER_STYLE);
@@ -388,8 +386,7 @@ public class BoardView extends ParameterizedView {
 				table.addCountdownCheckbox(newGameCheckbox);
 			}
 
-			newGameCheckbox.addClickListener(click ->
-			{
+			newGameCheckbox.addClickListener(click -> {
 				if (user.isLoggedOut()) {
 					newGameCheckbox.setValue(false);
 					newGameCheckbox.setIndeterminate(false);
@@ -416,7 +413,7 @@ public class BoardView extends ParameterizedView {
 					broadcast(TableView.class, null);
 				}
 
-				broadcastThisClass();
+				broadcast();
 			});
 
 			Label userLabel = new Label(user.getName());
@@ -547,7 +544,7 @@ public class BoardView extends ParameterizedView {
 					game.startNewGame();
 				}
 
-				broadcastThisClass();
+				broadcast();
 			} else {
 				UserProvider userProvider = table.getUserProvider();
 				User currentUser = userProvider.getCurrentUser();
@@ -556,7 +553,7 @@ public class BoardView extends ParameterizedView {
 				int indexOfCurrentUser = matchUsers.indexOf(currentUser);
 
 				String indexOfCurrentUserStr = String.valueOf(indexOfCurrentUser);
-				broadcastThisClass(indexOfCurrentUserStr);
+				broadcast(indexOfCurrentUserStr);
 			}
 		}
 	}

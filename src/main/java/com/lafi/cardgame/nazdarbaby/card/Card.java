@@ -58,10 +58,10 @@ public class Card implements Comparable<Card> {
 
 	@Override
 	public int compareTo(Card card) {
-		Integer value = this.value + color.getCompareToValue();
+		Integer thisValue = this.value + color.getCompareToValue();
 		Integer otherValue = card.value + card.color.getCompareToValue();
 
-		return value.compareTo(otherValue);
+		return thisValue.compareTo(otherValue);
 	}
 
 	@Override

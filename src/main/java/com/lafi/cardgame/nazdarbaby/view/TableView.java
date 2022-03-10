@@ -118,7 +118,7 @@ public class TableView extends ParameterizedView {
 		currentUser = userProvider.addUser(userName);
 		remove(userNameHL);
 
-		broadcastThisClass();
+		broadcast();
 	}
 
 	private void showUsers() {
@@ -141,7 +141,7 @@ public class TableView extends ParameterizedView {
 
 			if (isCurrentUser && user.isLoggedOut()) {
 				user.resetAction();
-				broadcastThisClass();
+				broadcast();
 
 				break;
 			}
@@ -158,8 +158,7 @@ public class TableView extends ParameterizedView {
 
 			Checkbox readyCheckbox = new Checkbox("Ready", user.isReady());
 			readyCheckbox.setEnabled(isCurrentUser);
-			readyCheckbox.addClickListener(event ->
-			{
+			readyCheckbox.addClickListener(event -> {
 				boolean value = readyCheckbox.getValue();
 				user.setReady(value);
 
@@ -173,7 +172,7 @@ public class TableView extends ParameterizedView {
 					table.tryStartNewGame();
 				}
 
-				broadcastThisClass();
+				broadcast();
 			});
 
 			Checkbox logoutCheckbox = new Checkbox(Constant.LOGOUT_LABEL, user.isLoggedOut());
@@ -186,8 +185,7 @@ public class TableView extends ParameterizedView {
 				logoutCheckbox.getStyle().set(Constant.COLOR_STYLE, Constant.RED_COLOR);
 			}
 
-			logoutCheckbox.addClickListener(event ->
-			{
+			logoutCheckbox.addClickListener(event -> {
 				boolean value = logoutCheckbox.getValue();
 				user.setLoggedOut(value);
 
@@ -205,7 +203,7 @@ public class TableView extends ParameterizedView {
 					navigate(TablesView.ROUTE_LOCATION);
 				}
 
-				broadcastThisClass();
+				broadcast();
 			});
 
 			Label userPoints = new Label("(" + user.getPoints() + Constant.POINTS_LABEL + ')');
@@ -255,8 +253,7 @@ public class TableView extends ParameterizedView {
 		Label joinLabel = new Label("Want to join - notify players");
 		Button notifyButton = new Button(NOTIFY_BUTTON_TEXT);
 
-		notifyButton.addClickListener(clickEvent ->
-		{
+		notifyButton.addClickListener(clickEvent -> {
 			table.setLastNotificationTime(Instant.now());
 
 			showGameInProgress();
@@ -294,8 +291,7 @@ public class TableView extends ParameterizedView {
 
 			@Override
 			public void finalRun() {
-				access(notifyButton, () ->
-				{
+				access(notifyButton, () -> {
 					notifyButton.setText(NOTIFY_BUTTON_TEXT);
 					notifyButton.setEnabled(true);
 				});
@@ -313,7 +309,7 @@ public class TableView extends ParameterizedView {
 			UserProvider userProvider = table.getUserProvider();
 			userProvider.logInCurrentSession();
 
-			broadcastThisClass();
+			broadcast();
 		} else {
 			UiUtil.invalidateFieldWithFocus(confirmPasswordField, "Passwords don't match");
 		}
