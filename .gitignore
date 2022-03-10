@@ -4,8 +4,11 @@ node
 node_modules
 target
 
+.npmrc
 package.json
 package-lock.json
+pnpm-lock.yaml
+pnpmfile.js
 tsconfig.json
 types.d.ts
 webpack.config.js
