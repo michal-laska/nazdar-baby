@@ -40,11 +40,11 @@ public abstract class VerticalLayoutWithBroadcast extends VerticalLayout impleme
 		Broadcaster.INSTANCE.unregister(this);
 	}
 
-	protected void broadcastThisClass() {
-		broadcastThisClass(null);
+	protected void broadcast() {
+		broadcast(null);
 	}
 
-	protected void broadcastThisClass(String message) {
+	protected void broadcast(String message) {
 		broadcast(getClass(), message);
 	}
 

@@ -141,8 +141,7 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 			tableButton.setIconAfterText(true);
 		}
 
-		tableButton.addClickListener(clickEvent ->
-		{
+		tableButton.addClickListener(clickEvent -> {
 			String location = UiUtil.createLocation(TableView.ROUTE_LOCATION, tableName);
 			navigate(location);
 		});

@@ -77,8 +77,8 @@ public final class UserProvider {
 		return getPlayingUsers().stream().allMatch(User::isReady);
 	}
 
-	public int getReadyUsersCount() {
-		return (int) getPlayingUsers().stream()
+	public long getReadyUsersCount() {
+		return getPlayingUsers().stream()
 				.filter(User::isReady)
 				.count();
 	}
