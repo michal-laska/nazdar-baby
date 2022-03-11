@@ -25,10 +25,16 @@ import com.vaadin.flow.router.Route;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Route(BoardView.ROUTE_LOCATION)
 public class BoardView extends ParameterizedView {
 
 	static final String ROUTE_LOCATION = "board";
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(BoardView.class);
 
 	private static final String NEW_GAME_LABEL = "New game";
 
@@ -584,9 +590,13 @@ public class BoardView extends ParameterizedView {
 	}
 
 	private void removeColorFromCardPlaceholderLabel(String indexStr) {
-		int index = Integer.parseInt(indexStr);
-		Label cardPlaceholderLabel = cardPlaceholderLabels.get(index);
+		try {
+			int index = Integer.parseInt(indexStr);
 
-		cardPlaceholderLabel.getStyle().remove(FONT_WEIGHT_STYLE);
+			Label cardPlaceholderLabel = cardPlaceholderLabels.get(index);
+			cardPlaceholderLabel.getStyle().remove(FONT_WEIGHT_STYLE);
+		} catch (IndexOutOfBoundsException e) {
+			LOGGER.warn(StringUtils.EMPTY, e);
+		}
 	}
 }

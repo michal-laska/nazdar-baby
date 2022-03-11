@@ -11,7 +11,7 @@ public enum Broadcaster {
 
 	INSTANCE;
 
-	private final ExecutorService executorService = Executors.newCachedThreadPool();
+	private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 	private final Set<BroadcastListener> listeners = ConcurrentHashMap.newKeySet();
 
 	public void register(BroadcastListener listener) {
