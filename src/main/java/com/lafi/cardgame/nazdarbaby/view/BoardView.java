@@ -290,7 +290,7 @@ public class BoardView extends ParameterizedView {
 			cardPlaceholders.set(matchUserIndex, card);
 
 			int cardIndex = cards.indexOf(card);
-			cards.set(cardIndex, CardProvider.getCardPlaceholder());
+			cards.set(cardIndex, CardProvider.CARD_PLACEHOLDER);
 
 			currentUser.setLastPlayedCard(card);
 			game.setWinCard(card);
@@ -458,6 +458,9 @@ public class BoardView extends ParameterizedView {
 		Game game = table.getGame();
 		List<User> matchUsers = game.getMatchUsers();
 
+		List<Card> cardPlaceholders = game.getCardPlaceholders();
+		boolean isEndOfMatch = game.isEndOfMatch();
+
 		for (int i = 0; i < matchUsers.size(); ++i) {
 			User matchUser = matchUsers.get(i);
 
@@ -476,6 +479,10 @@ public class BoardView extends ParameterizedView {
 			} else {
 				List<Card> matchUserCards = matchUser.getCards();
 				long numberOfCardsLeft = getNumberOfCardsLeft(matchUserCards);
+
+				if (!isEndOfMatch && cardPlaceholders.get(i) != CardProvider.CARD_PLACEHOLDER) {
+					++numberOfCardsLeft;
+				}
 
 				if (actualTakes > expectedTakes || actualTakes + numberOfCardsLeft < expectedTakes || game.isEndOfSet()) {
 					style.set(Constant.COLOR_STYLE, Constant.RED_COLOR);
