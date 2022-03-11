@@ -12,6 +12,7 @@
         <!-- change java version also in '.github/workflows/codeql-analysis.yml' and 'system.properties' -->
         <java.version>17</java.version>
         <vaadin.version>23.0.1</vaadin.version>
+        <heroku.appName>serene-forest-82847</heroku.appName>
     </properties>
 
     <parent>
@@ -173,9 +174,20 @@
                             <pnpmEnable>true</pnpmEnable>
                         </configuration>
                     </plugin>
+
+                    <plugin>
+                        <groupId>com.heroku.sdk</groupId>
+                        <artifactId>heroku-maven-plugin</artifactId>
+                        <version>3.0.4</version>
+                        <configuration>
+                            <appName>${heroku.appName}</appName>
+                            <processTypes>
+                                <web>java $JAVA_OPTS -jar target/nazdar-baby-2.0-SNAPSHOT.jar --server.port=$PORT</web>
+                            </processTypes>
+                        </configuration>
+                    </plugin>
                 </plugins>
             </build>
         </profile>
-
     </profiles>
 </project>
