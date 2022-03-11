@@ -22,6 +22,10 @@ public enum Broadcaster {
 		listeners.remove(listener);
 	}
 
+	public void broadcast(Class<?> clazz, String tableName) {
+		broadcast(clazz, tableName, null);
+	}
+
 	public void broadcast(Class<?> clazz, String tableName, String message) {
 		listeners.stream()
 				.filter(listener -> filterView(listener, clazz, tableName))
