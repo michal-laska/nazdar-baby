@@ -100,13 +100,13 @@ public class Table {
 			public void finalRun() {
 				if (game.isGameInProgress()) {
 					stopCurrentGame();
-					Broadcaster.INSTANCE.broadcast(BoardView.class, tableName, null);
+					Broadcaster.INSTANCE.broadcast(BoardView.class, tableName);
 				} else {
 					startNewGame();
 				}
 
 				// call it even if game is in progress - some players can be in "waiting room"
-				Broadcaster.INSTANCE.broadcast(TableView.class, tableName, null);
+				Broadcaster.INSTANCE.broadcast(TableView.class, tableName);
 			}
 
 			private void stopCurrentGame() {
@@ -132,7 +132,7 @@ public class Table {
 
 		if (game.isGameInProgress()) {
 			game.getMatchUsers().forEach(User::resetAction);
-			Broadcaster.INSTANCE.broadcast(BoardView.class, tableName, null);
+			Broadcaster.INSTANCE.broadcast(BoardView.class, tableName);
 		}
 	}
 
