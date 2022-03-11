@@ -263,7 +263,7 @@ public final class Game {
 
 	private void initCardPlaceholders() {
 		cardPlaceholders = matchUsers.stream()
-				.map(user -> CardProvider.getCardPlaceholder())
+				.map(user -> CardProvider.CARD_PLACEHOLDER)
 				.collect(Collectors.toList());
 	}
 

@@ -8,9 +8,10 @@ import java.util.Set;
 
 public final class CardProvider {
 
+	public static final Card CARD_PLACEHOLDER = new CardPlaceholder();
+
 	private static final Set<Card> BIG_DECK_OF_CARDS = new HashSet<>(52);
 	private static final Set<Card> SMALL_DECK_OF_CARDS = new HashSet<>(32);
-	private static final Card CARD_PLACEHOLDER = new CardPlaceholder();
 
 	static {
 		loadCards();
@@ -20,10 +21,6 @@ public final class CardProvider {
 
 	public CardProvider(int userCount) {
 		deckOfCards = userCount > 3 ? new ArrayList<>(BIG_DECK_OF_CARDS) : new ArrayList<>(SMALL_DECK_OF_CARDS);
-	}
-
-	public static Card getCardPlaceholder() {
-		return CARD_PLACEHOLDER;
 	}
 
 	public List<Card> getShuffledDeckOfCards() {
