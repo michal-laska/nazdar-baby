@@ -25,7 +25,6 @@ import com.vaadin.flow.router.Route;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +59,7 @@ public class BoardView extends ParameterizedView {
 		if (message == null) {
 			access(this::showView);
 		} else if (isInteger(message)) {
-			access(() -> removeColorFromCardPlaceholderLabel(message));
+			access(() -> removeBoldFontWeightStyleFromCardPlaceholderLabel(message));
 		} else {
 			access(() -> Notification.show(message));
 		}
@@ -589,14 +588,14 @@ public class BoardView extends ParameterizedView {
 		}
 	}
 
-	private void removeColorFromCardPlaceholderLabel(String indexStr) {
+	private void removeBoldFontWeightStyleFromCardPlaceholderLabel(String indexStr) {
 		try {
 			int index = Integer.parseInt(indexStr);
 
 			Label cardPlaceholderLabel = cardPlaceholderLabels.get(index);
 			cardPlaceholderLabel.getStyle().remove(FONT_WEIGHT_STYLE);
 		} catch (IndexOutOfBoundsException e) {
-			LOGGER.warn(StringUtils.EMPTY, e);
+			LOGGER.warn("Known race condition problem - not a big deal");
 		}
 	}
 }
