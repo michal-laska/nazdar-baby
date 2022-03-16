@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public final class CardProvider {
+public class CardProvider {
 
 	public static final Card CARD_PLACEHOLDER = Card.createCardPlaceholder();
 
