@@ -12,18 +12,22 @@ public class Card implements Comparable<Card> {
 	static final String KING = "K";
 	static final String ACE = "A";
 
-	private final String fileName;
 	private final int value;
 	private final Color color;
+	private final String imageSrc;
 
 	Card(String valueStr, Color color) {
-		this(valueStr + color.getStrValue() + ".png", getValueFromString(valueStr), color);
+		this(getValueFromString(valueStr), color, "cards", valueStr + color.getStrValue() + ".png");
 	}
 
-	Card(String fileName, int value, Color color) {
-		this.fileName = fileName;
+	private Card(int value, Color color, String folderName, String fileName) {
 		this.value = value;
 		this.color = color;
+		imageSrc = folderName + '/' + fileName;
+	}
+
+	static Card createCardPlaceholder() {
+		return new Card(0, null, "card_placeholder", "gray_back.png");
 	}
 
 	private static int getValueFromString(String valueStr) {
@@ -38,7 +42,7 @@ public class Card implements Comparable<Card> {
 
 	public Image getImage() {
 		Image image = new Image();
-		image.setSrc(getFolderName() + '/' + fileName);
+		image.setSrc(imageSrc);
 		image.setHeight(Constant.IMAGE_HEIGHT);
 
 		return image;
@@ -53,7 +57,7 @@ public class Card implements Comparable<Card> {
 	}
 
 	public boolean isPlaceholder() {
-		return false;
+		return color == null;
 	}
 
 	@Override
@@ -80,9 +84,5 @@ public class Card implements Comparable<Card> {
 	@Override
 	public int hashCode() {
 		return Objects.hash(value, color);
-	}
-
-	String getFolderName() {
-		return "cards";
 	}
 }

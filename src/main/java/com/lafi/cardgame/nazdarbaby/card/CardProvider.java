@@ -8,7 +8,7 @@ import java.util.Set;
 
 public final class CardProvider {
 
-	public static final Card CARD_PLACEHOLDER = new CardPlaceholder();
+	public static final Card CARD_PLACEHOLDER = Card.createCardPlaceholder();
 
 	private static final Set<Card> BIG_DECK_OF_CARDS = new HashSet<>(52);
 	private static final Set<Card> SMALL_DECK_OF_CARDS = new HashSet<>(32);
