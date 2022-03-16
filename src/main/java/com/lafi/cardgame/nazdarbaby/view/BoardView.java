@@ -297,8 +297,6 @@ public class BoardView extends ParameterizedView {
 			int cardIndex = cards.indexOf(card);
 			cards.set(cardIndex, CardProvider.CARD_PLACEHOLDER);
 
-			currentUser.setLastPlayedCard(card);
-			game.setWinCard(card);
 			game.changeActiveUser();
 
 			broadcast();
@@ -499,8 +497,8 @@ public class BoardView extends ParameterizedView {
 	private void handleEndOfMatch(HorizontalLayout cardPlaceholdersHL, VerticalLayout autoNextVL) {
 		Game game = table.getGame();
 
-		int indexOfHighestCardUser = game.getIndexOfHighestCardUser();
-		VerticalLayout cardPlaceholderVL = (VerticalLayout) cardPlaceholdersHL.getComponentAt(indexOfHighestCardUser);
+		int winUserIndex = game.getWinUserIndex();
+		VerticalLayout cardPlaceholderVL = (VerticalLayout) cardPlaceholdersHL.getComponentAt(winUserIndex);
 		cardPlaceholderVL.getStyle().set(BORDER_STYLE, ONE_PX_SOLID + BLUE_COLOR);
 
 		Button nextButton = new Button(NEXT_BUTTON_TEXT);

@@ -17,7 +17,6 @@ public class User {
 	private Action action = Action.NONE;
 	private float points;
 	private Float lastAddedPoints;
-	private Card lastPlayedCard;
 	private Boolean terminator = false;
 
 	public User(String name) {
@@ -62,14 +61,6 @@ public class User {
 
 	public void addCard(Card card) {
 		cards.add(card);
-	}
-
-	public Card getLastPlayedCard() {
-		return lastPlayedCard;
-	}
-
-	public void setLastPlayedCard(Card lastPlayedCard) {
-		this.lastPlayedCard = lastPlayedCard;
 	}
 
 	public float getPoints() {
