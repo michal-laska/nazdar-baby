@@ -98,15 +98,15 @@ public final class Game {
 		int activeUserIndex = activeUser == null ? matchUsers.size() : matchUsers.indexOf(activeUser);
 
 		if (activeUserIndex == matchUsers.size()) {
-			int winUserIndex = getWinUserIndex();
+			int winnerIndex = getWinnerIndex();
 
-			Collections.rotate(matchUsers, -winUserIndex);
+			Collections.rotate(matchUsers, -winnerIndex);
 			resetActiveUser();
 
 			startNewMatch();
 		} else if (++activeUserIndex == matchUsers.size()) {
-			int winUserIndex = getWinUserIndex();
-			User winUser = matchUsers.get(winUserIndex);
+			int winnerIndex = getWinnerIndex();
+			User winUser = matchUsers.get(winnerIndex);
 			winUser.increaseActualTakes();
 
 			activeUser = null;
@@ -152,7 +152,7 @@ public final class Game {
 		return matchUsers.get(lastIndex).getExpectedTakes() != null;
 	}
 
-	public int getWinUserIndex() {
+	public int getWinnerIndex() {
 		Card highestCard = null;
 
 		for (Card card : cardPlaceholders) {
