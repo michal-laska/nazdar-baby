@@ -30,7 +30,6 @@ public final class Game {
 	private int matchNumber;
 
 	private User activeUser;
-	private Card winCard;
 	private boolean terminatorFlagsReseted;
 	private boolean gameInProgress;
 
@@ -96,24 +95,25 @@ public final class Game {
 	}
 
 	public void changeActiveUser() {
-		int indexOfActiveUser = activeUser == null ? matchUsers.size() : matchUsers.indexOf(activeUser);
+		int activeUserIndex = activeUser == null ? matchUsers.size() : matchUsers.indexOf(activeUser);
 
-		if (indexOfActiveUser == matchUsers.size()) {
-			int indexOfHighestCardUser = getIndexOfHighestCardUser();
+		if (activeUserIndex == matchUsers.size()) {
+			int winUserIndex = getWinUserIndex();
 
-			Collections.rotate(matchUsers, -indexOfHighestCardUser);
+			Collections.rotate(matchUsers, -winUserIndex);
 			resetActiveUser();
 
 			startNewMatch();
-		} else if (++indexOfActiveUser == matchUsers.size()) {
-			User highestCardUser = getHighestCardUser();
-			highestCardUser.increaseActualTakes();
+		} else if (++activeUserIndex == matchUsers.size()) {
+			int winUserIndex = getWinUserIndex();
+			User winUser = matchUsers.get(winUserIndex);
+			winUser.increaseActualTakes();
 
 			activeUser = null;
 
 			calculatePoints();
 		} else {
-			activeUser = matchUsers.get(indexOfActiveUser);
+			activeUser = matchUsers.get(activeUserIndex);
 		}
 	}
 
@@ -152,19 +152,20 @@ public final class Game {
 		return matchUsers.get(lastIndex).getExpectedTakes() != null;
 	}
 
-	public void setWinCard(Card card) {
-		if (winCard == null) {
-			winCard = card;
-		} else if (winCard.getColor() == card.getColor()) {
-			winCard = winCard.getValue() < card.getValue() ? card : winCard;
-		} else if (card.getColor() == Color.HEARTS) {
-			winCard = card;
-		}
-	}
+	public int getWinUserIndex() {
+		Card highestCard = null;
 
-	public int getIndexOfHighestCardUser() {
-		User highestCardUser = getHighestCardUser();
-		return matchUsers.indexOf(highestCardUser);
+		for (Card card : cardPlaceholders) {
+			if (highestCard == null) {
+				highestCard = card;
+			} else if (highestCard.getColor() == card.getColor()) {
+				highestCard = highestCard.getValue() < card.getValue() ? card : highestCard;
+			} else if (card.getColor() == Color.HEARTS) {
+				highestCard = card;
+			}
+		}
+
+		return cardPlaceholders.indexOf(highestCard);
 	}
 
 	public void startNewGame() {
@@ -236,22 +237,13 @@ public final class Game {
 		return true;
 	}
 
-	private User getHighestCardUser() {
-		for (User user : matchUsers) {
-			if (user.getLastPlayedCard().equals(winCard)) {
-				return user;
-			}
-		}
-		throw new IllegalStateException("Nobody has a win card = " + winCard);
-	}
-
 	private void rotateGameUsersAccordingToTerminators() {
 		List<User> gameUsersCopy = new ArrayList<>(gameUsers);
 		int rotateDistanceToLastSet = -(getUserCardsCount() - 1);
 		Collections.rotate(gameUsersCopy, rotateDistanceToLastSet);
 
-		int indexOfLastUser = gameUsersCopy.size() - 1;
-		User lastUser = gameUsersCopy.get(indexOfLastUser);
+		int lastUserIndex = gameUsersCopy.size() - 1;
+		User lastUser = gameUsersCopy.get(lastUserIndex);
 
 		if (Boolean.TRUE.equals(lastUser.wasTerminator())) {
 			Collections.rotate(gameUsers, -1);
@@ -300,9 +292,6 @@ public final class Game {
 
 	private void startNewMatch() {
 		initCardPlaceholders();
-		winCard = null;
-
-		matchUsers.forEach(user -> user.setLastPlayedCard(null));
 
 		if (matchNumber++ == matchUsers.get(0).getCards().size()) {
 			startNewSet();
