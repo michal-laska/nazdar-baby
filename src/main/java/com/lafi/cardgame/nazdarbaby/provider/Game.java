@@ -19,6 +19,8 @@ public final class Game {
 
 	private static final Map<UserProvider, Game> USER_PROVIDER_TO_GAME = new HashMap<>();
 
+	private final UserProvider userProvider;
+
 	private List<User> gameUsers;
 	private List<User> setUsers;
 	private List<User> matchUsers;
@@ -32,8 +34,6 @@ public final class Game {
 	private User activeUser;
 	private boolean terminatorFlagsReseted;
 	private boolean gameInProgress;
-
-	private final UserProvider userProvider;
 
 	private Game(UserProvider userProvider) {
 		this.userProvider = userProvider;
@@ -57,10 +57,6 @@ public final class Game {
 
 	public List<Card> getCardPlaceholders() {
 		return cardPlaceholders;
-	}
-
-	public boolean terminatorFlagsReseted() {
-		return terminatorFlagsReseted;
 	}
 
 	public void setTerminatorFlagsReseted(boolean terminatorFlagsReseted) {
@@ -153,19 +149,19 @@ public final class Game {
 	}
 
 	public int getWinnerIndex() {
-		Card highestCard = null;
+		Card winnerCard = null;
 
 		for (Card card : cardPlaceholders) {
-			if (highestCard == null) {
-				highestCard = card;
-			} else if (highestCard.getColor() == card.getColor()) {
-				highestCard = highestCard.getValue() < card.getValue() ? card : highestCard;
+			if (winnerCard == null) {
+				winnerCard = card;
+			} else if (winnerCard.getColor() == card.getColor()) {
+				winnerCard = winnerCard.getValue() < card.getValue() ? card : winnerCard;
 			} else if (card.getColor() == Color.HEARTS) {
-				highestCard = card;
+				winnerCard = card;
 			}
 		}
 
-		return cardPlaceholders.indexOf(highestCard);
+		return cardPlaceholders.indexOf(winnerCard);
 	}
 
 	public void startNewGame() {
@@ -219,7 +215,7 @@ public final class Game {
 			}
 		}
 
-		if (!noCards && terminatorFlagsReseted()) {
+		if (!noCards && terminatorFlagsReseted) {
 			gameUsers.forEach(user -> user.setTerminator(true));
 			return false;
 		}
