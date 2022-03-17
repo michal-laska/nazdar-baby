@@ -110,10 +110,6 @@ public class User {
 		return Integer.valueOf(actualTakes).equals(expectedTakes);
 	}
 
-	public boolean hasHearts() {
-		return hasColor(Color.HEARTS);
-	}
-
 	public boolean hasColor(Color color) {
 		return cards.stream().anyMatch(card -> card.getColor() == color);
 	}

@@ -282,7 +282,7 @@ public class BoardView extends ParameterizedView {
 						return;
 					}
 				} else {
-					boolean userHasHearts = currentUser.hasHearts();
+					boolean userHasHearts = currentUser.hasColor(Color.HEARTS);
 					if (userHasHearts && card.getColor() != Color.HEARTS) {
 						showWrongCardNotification(Color.HEARTS);
 						return;
