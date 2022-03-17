@@ -32,14 +32,12 @@ public final class UserProvider {
 		TABLE_NAME_TO_USER_PROVIDER.remove(tableName);
 	}
 
-	public User addUser(String userName) {
+	public void addUser(String userName) {
 		VaadinSession session = sessionProvider.getSession();
 		User user = new User(userName);
 
 		sessionToUser.put(session, user);
 		userNames.add(userName);
-
-		return user;
 	}
 
 	public void logInCurrentSession() {

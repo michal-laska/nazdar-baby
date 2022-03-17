@@ -36,7 +36,6 @@ public class TableView extends ParameterizedView {
 
 	private HorizontalLayout userNameHL;
 	private TextField nameField;
-	private User currentUser;
 
 	@Override
 	public void receiveBroadcast(String message) {
@@ -68,7 +67,7 @@ public class TableView extends ParameterizedView {
 
 		Game game = table.getGame();
 		if (game.isGameInProgress()) {
-			currentUser = userProvider.getCurrentUser();
+			User currentUser = userProvider.getCurrentUser();
 			if (currentUser == null || currentUser.isLoggedOut()) {
 				showGameInProgress();
 			} else {
@@ -76,7 +75,6 @@ public class TableView extends ParameterizedView {
 				navigate(location);
 			}
 		} else if (userProvider.getCurrentUser() != null) {
-			currentUser = userProvider.getCurrentUser();
 			showUsers();
 		} else {
 			showUsers();
@@ -115,7 +113,7 @@ public class TableView extends ParameterizedView {
 			return;
 		}
 
-		currentUser = userProvider.addUser(userName);
+		userProvider.addUser(userName);
 		remove(userNameHL);
 
 		broadcast();
@@ -128,8 +126,9 @@ public class TableView extends ParameterizedView {
 		addTableH1(icon);
 
 		UserProvider userProvider = table.getUserProvider();
+		User currentUser = userProvider.getCurrentUser();
 
-		if (userProvider.getCurrentUser() == null) {
+		if (currentUser == null) {
 			addUserNameHL();
 		}
 
@@ -257,6 +256,9 @@ public class TableView extends ParameterizedView {
 			table.setLastNotificationTime(Instant.now());
 
 			showGameInProgress();
+
+			UserProvider userProvider = table.getUserProvider();
+			User currentUser = userProvider.getCurrentUser();
 
 			String notificationMessage = currentUser == null ? "A new player" : "Player '" + currentUser + '\'';
 			broadcast(BoardView.class, notificationMessage + " would like to join");

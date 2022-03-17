@@ -338,11 +338,9 @@ public class BoardView extends ParameterizedView {
 
 	private Label getInProgressGameTypeLabel() {
 		Game game = table.getGame();
-		int sumOfExpectedTakes = game.getSumOfExpectedTakes();
 
-		UserProvider userProvider = table.getUserProvider();
-		User currentUser = userProvider.getCurrentUser();
-		int sumOfCards = currentUser.getCards().size();
+		int sumOfExpectedTakes = game.getSumOfExpectedTakes();
+		int sumOfCards = game.getMatchUsers().get(0).getCards().size();
 
 		return new Label(sumOfExpectedTakes + "/" + sumOfCards);
 	}
