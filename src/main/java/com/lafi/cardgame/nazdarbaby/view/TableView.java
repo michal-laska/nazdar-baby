@@ -5,7 +5,8 @@ import com.lafi.cardgame.nazdarbaby.provider.Table;
 import com.lafi.cardgame.nazdarbaby.provider.UserProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
 import com.lafi.cardgame.nazdarbaby.util.Constant;
-import com.lafi.cardgame.nazdarbaby.util.ExecutorServiceUtil;
+import com.lafi.cardgame.nazdarbaby.util.CountdownCounter;
+import com.lafi.cardgame.nazdarbaby.util.DurationUtil;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
@@ -276,7 +277,7 @@ public class TableView extends ParameterizedView {
 
 	private void disableNotifyButtonIfRequired(Button notifyButton) {
 		long remainingDurationInSeconds
-				= ExecutorServiceUtil.getRemainingDurationInSeconds(table.getLastNotificationTime(), Table.NOTIFICATION_DELAY_IN_MINUTES);
+				= DurationUtil.getRemainingDurationInSeconds(table.getLastNotificationTime(), Table.NOTIFICATION_DELAY_IN_MINUTES);
 
 		if (remainingDurationInSeconds <= 0) {
 			return;
@@ -284,7 +285,7 @@ public class TableView extends ParameterizedView {
 
 		notifyButton.setEnabled(false);
 
-		ExecutorServiceUtil.runPerSecond(this, new ExecutorServiceUtil.CountdownRunnable(remainingDurationInSeconds) {
+		CountdownCounter countdownCounter = new CountdownCounter(this, remainingDurationInSeconds) {
 
 			@Override
 			public void eachRun() {
@@ -299,7 +300,8 @@ public class TableView extends ParameterizedView {
 					notifyButton.setEnabled(true);
 				});
 			}
-		});
+		};
+		countdownCounter.start();
 	}
 
 	private void createPasswordAction(PasswordField createPasswordField, PasswordField confirmPasswordField) {

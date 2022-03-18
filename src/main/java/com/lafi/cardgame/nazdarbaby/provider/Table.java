@@ -4,7 +4,8 @@ import com.lafi.cardgame.nazdarbaby.broadcast.BroadcastListener;
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.points.Points;
 import com.lafi.cardgame.nazdarbaby.user.User;
-import com.lafi.cardgame.nazdarbaby.util.ExecutorServiceUtil;
+import com.lafi.cardgame.nazdarbaby.util.CountdownCounter;
+import com.lafi.cardgame.nazdarbaby.util.DurationUtil;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
 import com.lafi.cardgame.nazdarbaby.view.BoardView;
 import com.lafi.cardgame.nazdarbaby.view.TableView;
@@ -82,8 +83,8 @@ public class Table {
 
 		countdownCheckboxes.clear();
 
-		long remainingDurationInSeconds = ExecutorServiceUtil.getRemainingDurationInSeconds(1);
-		newGameExecutorService = ExecutorServiceUtil.runPerSecond(listener, new ExecutorServiceUtil.CountdownRunnable(remainingDurationInSeconds) {
+		long remainingDurationInSeconds = DurationUtil.getRemainingDurationInSeconds(1);
+		CountdownCounter countdownCounter = new CountdownCounter(listener, remainingDurationInSeconds) {
 
 			@Override
 			public void eachRun() {
@@ -99,15 +100,17 @@ public class Table {
 
 			@Override
 			public void finalRun() {
+				Broadcaster broadcaster = Broadcaster.INSTANCE;
+
 				if (game.isGameInProgress()) {
 					stopCurrentGame();
-					Broadcaster.INSTANCE.broadcast(BoardView.class, tableName);
+					broadcaster.broadcast(BoardView.class, tableName);
 				} else {
 					startNewGame();
 				}
 
 				// call it even if game is in progress - some players can be in "waiting room"
-				Broadcaster.INSTANCE.broadcast(TableView.class, tableName);
+				broadcaster.broadcast(TableView.class, tableName);
 			}
 
 			private void stopCurrentGame() {
@@ -123,7 +126,8 @@ public class Table {
 						.forEach(user -> user.setLoggedOut(true));
 				tryStartNewGame();
 			}
-		});
+		};
+		newGameExecutorService = countdownCounter.start();
 	}
 
 	public void stopNewGameCountdown() {
