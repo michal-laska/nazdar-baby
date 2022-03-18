@@ -1,5 +1,6 @@
 package com.lafi.cardgame.nazdarbaby.view;
 
+import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.provider.Game;
 import com.lafi.cardgame.nazdarbaby.provider.Table;
 import com.lafi.cardgame.nazdarbaby.provider.UserProvider;
@@ -21,7 +22,6 @@ import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
 
-import java.time.Instant;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -253,7 +253,7 @@ public class TableView extends ParameterizedView {
 		Button notifyButton = new Button(NOTIFY_BUTTON_TEXT);
 
 		notifyButton.addClickListener(clickEvent -> {
-			table.setLastNotificationTime(Instant.now());
+			table.setLastNotificationTimeToNow();
 
 			showGameInProgress();
 
@@ -261,7 +261,9 @@ public class TableView extends ParameterizedView {
 			User currentUser = userProvider.getCurrentUser();
 
 			String notificationMessage = currentUser == null ? "A new player" : "Player '" + currentUser + '\'';
-			broadcast(BoardView.class, notificationMessage + " would like to join");
+			notificationMessage += " would like to join";
+
+			broadcast(BoardView.class, notificationMessage);
 		});
 
 		HorizontalLayout redirectHorizontalLayout = new HorizontalLayout(joinLabel, notifyButton);
@@ -281,12 +283,19 @@ public class TableView extends ParameterizedView {
 			return;
 		}
 
+		Broadcaster broadcaster = Broadcaster.INSTANCE;
+		broadcaster.register(this);
+
 		notifyButton.setEnabled(false);
 
 		ExecutorServiceUtil.runPerSecond(new ExecutorServiceUtil.CountdownRunnable(remainingDurationInSeconds) {
 
 			@Override
 			public void everyRun() {
+				if (!broadcaster.isRegistered(TableView.this)) {
+					shutdown();
+				}
+
 				String newNotifyButtonText = NOTIFY_BUTTON_TEXT + getFormattedCountdown();
 				access(notifyButton, () -> notifyButton.setText(newNotifyButtonText));
 			}

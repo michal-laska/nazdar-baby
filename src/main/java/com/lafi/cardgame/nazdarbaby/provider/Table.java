@@ -57,8 +57,8 @@ public class Table {
 		return lastNotificationTime;
 	}
 
-	public void setLastNotificationTime(Instant lastNotificationTime) {
-		this.lastNotificationTime = lastNotificationTime;
+	public void setLastNotificationTimeToNow() {
+		lastNotificationTime = Instant.now();
 	}
 
 	public void addCountdownCheckbox(Checkbox countdownCheckbox) {

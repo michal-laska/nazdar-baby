@@ -7,7 +7,7 @@ import com.lafi.cardgame.nazdarbaby.router.DecodedStringUrlParameter;
 
 public abstract class ParameterizedView extends VerticalLayoutWithBroadcast implements DecodedStringUrlParameter {
 
-	protected Table table;
+	protected transient Table table;
 
 	@Override
 	public void showView(String tableName) {
@@ -24,9 +24,9 @@ public abstract class ParameterizedView extends VerticalLayoutWithBroadcast impl
 		initTable(getTableName());
 	}
 
+	abstract void showView();
+
 	private void initTable(String tableName) {
 		table = TableProvider.INSTANCE.get(tableName);
 	}
-
-	abstract void showView();
 }

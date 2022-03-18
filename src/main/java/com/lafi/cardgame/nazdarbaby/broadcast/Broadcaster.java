@@ -22,6 +22,10 @@ public enum Broadcaster {
 		listeners.remove(listener);
 	}
 
+	public boolean isRegistered(BroadcastListener listener) {
+		return listeners.contains(listener);
+	}
+
 	public void broadcast(Class<?> clazz, String tableName) {
 		broadcast(clazz, tableName, null);
 	}
