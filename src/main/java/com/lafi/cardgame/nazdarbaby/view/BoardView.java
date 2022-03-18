@@ -8,7 +8,7 @@ import com.lafi.cardgame.nazdarbaby.provider.Game;
 import com.lafi.cardgame.nazdarbaby.provider.UserProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
 import com.lafi.cardgame.nazdarbaby.util.Constant;
-import com.lafi.cardgame.nazdarbaby.util.ExecutorServiceUtil;
+import com.lafi.cardgame.nazdarbaby.util.CountdownCounter;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
@@ -519,7 +519,7 @@ public class BoardView extends ParameterizedView {
 		Game game = table.getGame();
 		long countdownInSeconds = game.isEndOfSet() ? 2 * AUTO_NEXT_DELAY_IN_SECONDS : AUTO_NEXT_DELAY_IN_SECONDS;
 
-		ExecutorServiceUtil.runPerSecond(this, new ExecutorServiceUtil.CountdownRunnable(countdownInSeconds) {
+		CountdownCounter countdownCounter = new CountdownCounter(this, countdownInSeconds) {
 
 			@Override
 			public void eachRun() {
@@ -535,7 +535,8 @@ public class BoardView extends ParameterizedView {
 					access(nextButton, () -> nextButton.setText(NEXT_BUTTON_TEXT));
 				}
 			}
-		});
+		};
+		countdownCounter.start();
 	}
 
 	private void nextButtonClickAction(VerticalLayout autoNextVL, Button nextButton, Image yourTurnGif) {
