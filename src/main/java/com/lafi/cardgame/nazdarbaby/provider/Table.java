@@ -2,9 +2,9 @@ package com.lafi.cardgame.nazdarbaby.provider;
 
 import com.lafi.cardgame.nazdarbaby.broadcast.BroadcastListener;
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
+import com.lafi.cardgame.nazdarbaby.counter.CountdownCounter;
 import com.lafi.cardgame.nazdarbaby.points.Points;
 import com.lafi.cardgame.nazdarbaby.user.User;
-import com.lafi.cardgame.nazdarbaby.util.CountdownCounter;
 import com.lafi.cardgame.nazdarbaby.util.DurationUtil;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
 import com.lafi.cardgame.nazdarbaby.view.BoardView;

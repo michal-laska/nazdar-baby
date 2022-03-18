@@ -1,11 +1,11 @@
 package com.lafi.cardgame.nazdarbaby.view;
 
+import com.lafi.cardgame.nazdarbaby.counter.CountdownCounter;
 import com.lafi.cardgame.nazdarbaby.provider.Game;
 import com.lafi.cardgame.nazdarbaby.provider.Table;
 import com.lafi.cardgame.nazdarbaby.provider.UserProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
 import com.lafi.cardgame.nazdarbaby.util.Constant;
-import com.lafi.cardgame.nazdarbaby.util.CountdownCounter;
 import com.lafi.cardgame.nazdarbaby.util.DurationUtil;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
 import com.vaadin.flow.component.Key;
