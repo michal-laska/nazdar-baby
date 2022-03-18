@@ -400,7 +400,7 @@ public class BoardView extends ParameterizedView {
 					user.setLoggedOut(true);
 				} else if (Boolean.TRUE.equals(newGameCheckbox.getValue())) {
 					user.setNewGame(true);
-					table.startNewGameCountdown();
+					table.startNewGameCountdown(this);
 				} else {
 					user.resetAction();
 					table.stopNewGameCountdown();
@@ -519,10 +519,10 @@ public class BoardView extends ParameterizedView {
 		Game game = table.getGame();
 		long countdownInSeconds = game.isEndOfSet() ? 2 * AUTO_NEXT_DELAY_IN_SECONDS : AUTO_NEXT_DELAY_IN_SECONDS;
 
-		ExecutorServiceUtil.runPerSecond(new ExecutorServiceUtil.CountdownRunnable(countdownInSeconds) {
+		ExecutorServiceUtil.runPerSecond(this, new ExecutorServiceUtil.CountdownRunnable(countdownInSeconds) {
 
 			@Override
-			public void everyRun() {
+			public void eachRun() {
 				String nextButtonText = NEXT_BUTTON_TEXT + getFormattedCountdown();
 				access(nextButton, () -> nextButton.setText(nextButtonText));
 			}
