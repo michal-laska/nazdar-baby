@@ -356,6 +356,8 @@ public class TableView extends ParameterizedView {
 		PasswordField confirmPasswordField = new PasswordField();
 		confirmPasswordField.setMinWidth(minimalWidth);
 		confirmPasswordField.setPlaceholder("Confirm password");
+
+		createPasswordField.addKeyUpListener(Key.ENTER, event -> createPasswordAction(createPasswordField, confirmPasswordField));
 		confirmPasswordField.addKeyUpListener(Key.ENTER, event -> createPasswordAction(createPasswordField, confirmPasswordField));
 
 		createPasswordField.addInputListener(inputEvent -> UiUtil.makeFieldValid(confirmPasswordField));
