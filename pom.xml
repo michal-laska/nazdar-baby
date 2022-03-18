@@ -11,11 +11,13 @@
     <properties>
         <!-- change java version also in '.github/workflows/codeql-analysis.yml' and 'system.properties' -->
         <java.version>17</java.version>
+        <!-- https://github.com/vaadin/platform/tags -->
         <vaadin.version>23.0.1</vaadin.version>
         <heroku.appName>nazdar-baby</heroku.appName>
     </properties>
 
     <parent>
+        <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-parent -->
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>2.6.4</version>
@@ -122,10 +124,9 @@
             </plugin>
 
             <plugin>
+                <!-- https://mvnrepository.com/artifact/com.github.eirslett/frontend-maven-plugin -->
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
-                <!-- Use the latest released version:
-                https://repo1.maven.org/maven2/com/github/eirslett/frontend-maven-plugin/ -->
                 <version>1.12.1</version>
                 <executions>
                     <execution>
@@ -139,12 +140,8 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <nodeVersion>v17.7.1</nodeVersion>
-                    <!-- optional: with node version greater than 4.0.0 will use npm provided by node distribution -->
-                    <!--                    <npmVersion>2.15.9</npmVersion>-->
-
-                    <!-- optional: where to download node and npm from. Defaults to https://nodejs.org/dist/ -->
-                    <!--                    <downloadRoot>http://myproxy.example.org/nodejs/</downloadRoot>-->
+                    <!-- https://nodejs.org/dist/latest/ -->
+                    <nodeVersion>v17.7.2</nodeVersion>
                 </configuration>
             </plugin>
         </plugins>
@@ -176,6 +173,7 @@
                     </plugin>
 
                     <plugin>
+                        <!-- https://github.com/heroku/heroku-maven-plugin/tags -->
                         <groupId>com.heroku.sdk</groupId>
                         <artifactId>heroku-maven-plugin</artifactId>
                         <version>3.0.4</version>
