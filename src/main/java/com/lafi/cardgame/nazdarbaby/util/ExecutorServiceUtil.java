@@ -50,7 +50,7 @@ public final class ExecutorServiceUtil {
 
 			if (--countdownInSeconds < 0) {
 				finalRun();
-				executorService.shutdown();
+				shutdown();
 			}
 		}
 
@@ -64,6 +64,10 @@ public final class ExecutorServiceUtil {
 			format += "s)";
 
 			return DurationFormatUtils.formatDuration(countdownInMillis, format);
+		}
+
+		protected void shutdown() {
+			executorService.shutdown();
 		}
 
 		protected abstract void everyRun();
