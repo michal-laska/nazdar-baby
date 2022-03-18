@@ -1,5 +1,8 @@
 package com.lafi.cardgame.nazdarbaby.util;
 
+import com.lafi.cardgame.nazdarbaby.broadcast.BroadcastListener;
+import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ExecutorService;
@@ -14,10 +17,12 @@ public final class ExecutorServiceUtil {
 	private ExecutorServiceUtil() {
 	}
 
-	public static ExecutorService runPerSecond(CountdownRunnable runnable) {
+	public static ExecutorService runPerSecond(BroadcastListener listener, CountdownRunnable runnable) {
+		Broadcaster.INSTANCE.register(listener);
+		runnable.listener = listener;
+
 		ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 		scheduledExecutorService.scheduleAtFixedRate(runnable, 0, 1, TimeUnit.SECONDS);
-
 		runnable.executorService = scheduledExecutorService;
 
 		return scheduledExecutorService;
@@ -39,6 +44,7 @@ public final class ExecutorServiceUtil {
 
 		private long countdownInSeconds;
 		private ExecutorService executorService;
+		private BroadcastListener listener;
 
 		protected CountdownRunnable(long countdownInSeconds) {
 			this.countdownInSeconds = countdownInSeconds;
@@ -46,10 +52,12 @@ public final class ExecutorServiceUtil {
 
 		@Override
 		public void run() {
-			everyRun();
+			eachRun();
 
 			if (--countdownInSeconds < 0) {
 				finalRun();
+				shutdown();
+			} else if (!Broadcaster.INSTANCE.isRegistered(listener)) {
 				shutdown();
 			}
 		}
@@ -66,12 +74,12 @@ public final class ExecutorServiceUtil {
 			return DurationFormatUtils.formatDuration(countdownInMillis, format);
 		}
 
-		protected void shutdown() {
-			executorService.shutdown();
-		}
-
-		protected abstract void everyRun();
+		protected abstract void eachRun();
 
 		protected abstract void finalRun();
+
+		private void shutdown() {
+			executorService.shutdown();
+		}
 	}
 }

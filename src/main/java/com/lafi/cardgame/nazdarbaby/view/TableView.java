@@ -1,6 +1,5 @@
 package com.lafi.cardgame.nazdarbaby.view;
 
-import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.provider.Game;
 import com.lafi.cardgame.nazdarbaby.provider.Table;
 import com.lafi.cardgame.nazdarbaby.provider.UserProvider;
@@ -162,7 +161,7 @@ public class TableView extends ParameterizedView {
 				user.setReady(value);
 
 				if (userProvider.getReadyUsersCount() >= Table.MINIMUM_USERS) {
-					table.startNewGameCountdown();
+					table.startNewGameCountdown(this);
 				} else {
 					table.stopNewGameCountdown();
 				}
@@ -283,19 +282,12 @@ public class TableView extends ParameterizedView {
 			return;
 		}
 
-		Broadcaster broadcaster = Broadcaster.INSTANCE;
-		broadcaster.register(this);
-
 		notifyButton.setEnabled(false);
 
-		ExecutorServiceUtil.runPerSecond(new ExecutorServiceUtil.CountdownRunnable(remainingDurationInSeconds) {
+		ExecutorServiceUtil.runPerSecond(this, new ExecutorServiceUtil.CountdownRunnable(remainingDurationInSeconds) {
 
 			@Override
-			public void everyRun() {
-				if (!broadcaster.isRegistered(TableView.this)) {
-					shutdown();
-				}
-
+			public void eachRun() {
 				String newNotifyButtonText = NOTIFY_BUTTON_TEXT + getFormattedCountdown();
 				access(notifyButton, () -> notifyButton.setText(newNotifyButtonText));
 			}

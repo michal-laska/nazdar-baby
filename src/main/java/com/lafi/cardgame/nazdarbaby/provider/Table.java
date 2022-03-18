@@ -1,5 +1,6 @@
 package com.lafi.cardgame.nazdarbaby.provider;
 
+import com.lafi.cardgame.nazdarbaby.broadcast.BroadcastListener;
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.points.Points;
 import com.lafi.cardgame.nazdarbaby.user.User;
@@ -74,7 +75,7 @@ public class Table {
 		countdownCheckboxes.add(countdownCheckbox);
 	}
 
-	public void startNewGameCountdown() {
+	public void startNewGameCountdown(BroadcastListener listener) {
 		if (isNewGameCountdownRunning()) {
 			return;
 		}
@@ -82,10 +83,10 @@ public class Table {
 		countdownCheckboxes.clear();
 
 		long remainingDurationInSeconds = ExecutorServiceUtil.getRemainingDurationInSeconds(1);
-		newGameExecutorService = ExecutorServiceUtil.runPerSecond(new ExecutorServiceUtil.CountdownRunnable(remainingDurationInSeconds) {
+		newGameExecutorService = ExecutorServiceUtil.runPerSecond(listener, new ExecutorServiceUtil.CountdownRunnable(remainingDurationInSeconds) {
 
 			@Override
-			public void everyRun() {
+			public void eachRun() {
 				for (Checkbox countdownCheckbox : countdownCheckboxes) {
 					String label = countdownCheckbox.getLabel();
 					String[] splittedLabel = label.split(FORMATTED_COUNTDOWN_REGEX_SPLITTER);
