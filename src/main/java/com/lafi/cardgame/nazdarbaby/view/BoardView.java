@@ -7,6 +7,7 @@ import com.lafi.cardgame.nazdarbaby.card.Color;
 import com.lafi.cardgame.nazdarbaby.counter.CountdownCounter;
 import com.lafi.cardgame.nazdarbaby.exception.EndGameException;
 import com.lafi.cardgame.nazdarbaby.provider.Game;
+import com.lafi.cardgame.nazdarbaby.provider.TableProvider;
 import com.lafi.cardgame.nazdarbaby.provider.UserProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
 import com.lafi.cardgame.nazdarbaby.util.Constant;
@@ -55,8 +56,8 @@ public class BoardView extends ParameterizedView {
 	private boolean autoNext = true;
 	private Image preselectedCardImage;
 
-	public BoardView(Broadcaster broadcaster) {
-		super(broadcaster);
+	public BoardView(Broadcaster broadcaster, TableProvider tableProvider) {
+		super(broadcaster, tableProvider);
 	}
 
 	@Override

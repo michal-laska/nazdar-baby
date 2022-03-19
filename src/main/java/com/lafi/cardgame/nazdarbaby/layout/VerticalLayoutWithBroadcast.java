@@ -2,6 +2,7 @@ package com.lafi.cardgame.nazdarbaby.layout;
 
 import com.lafi.cardgame.nazdarbaby.broadcast.BroadcastListener;
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
+import com.lafi.cardgame.nazdarbaby.provider.TableProvider;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
@@ -17,9 +18,11 @@ import java.util.function.Consumer;
 public abstract class VerticalLayoutWithBroadcast extends VerticalLayout implements BroadcastListener {
 
 	protected final Broadcaster broadcaster;
+	protected final TableProvider tableProvider;
 
-	public VerticalLayoutWithBroadcast(Broadcaster broadcaster) {
+	public VerticalLayoutWithBroadcast(Broadcaster broadcaster, TableProvider tableProvider) {
 		this.broadcaster = broadcaster;
+		this.tableProvider = tableProvider;
 	}
 
 	public void access(Command command) {

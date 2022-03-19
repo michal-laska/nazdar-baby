@@ -31,8 +31,8 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 
 	private HorizontalLayout createTableHL;
 
-	public TablesView(Broadcaster broadcaster) {
-		super(broadcaster);
+	public TablesView(Broadcaster broadcaster, TableProvider tableProvider) {
+		super(broadcaster, tableProvider);
 		showView();
 	}
 
@@ -130,7 +130,7 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 			return;
 		}
 
-		Table table = TableProvider.INSTANCE.get(tableName, broadcaster);
+		Table table = tableProvider.get(tableName, broadcaster);
 
 		Button tableButton = new Button(tableName);
 		tableButton.setEnabled(!table.isFull());

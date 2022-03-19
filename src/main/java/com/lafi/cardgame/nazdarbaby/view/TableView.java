@@ -4,6 +4,7 @@ import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.counter.CountdownCounter;
 import com.lafi.cardgame.nazdarbaby.provider.Game;
 import com.lafi.cardgame.nazdarbaby.provider.Table;
+import com.lafi.cardgame.nazdarbaby.provider.TableProvider;
 import com.lafi.cardgame.nazdarbaby.provider.UserProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
 import com.lafi.cardgame.nazdarbaby.util.Constant;
@@ -38,8 +39,8 @@ public class TableView extends ParameterizedView {
 	private HorizontalLayout userNameHL;
 	private TextField nameField;
 
-	public TableView(Broadcaster broadcaster) {
-		super(broadcaster);
+	public TableView(Broadcaster broadcaster, TableProvider tableProvider) {
+		super(broadcaster, tableProvider);
 	}
 
 	@Override

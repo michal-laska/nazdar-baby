@@ -2,17 +2,15 @@ package com.lafi.cardgame.nazdarbaby.provider;
 
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-public enum TableProvider {
+public class TableProvider {
 
-	INSTANCE;
+	private final Map<String, Table> tableNameToTable = new ConcurrentHashMap<>();
 
-	private final Map<String, Table> tableNameToTable = new HashMap<>();
-
-	public synchronized Table get(String tableName, Broadcaster broadcaster) {
-		return tableNameToTable.computeIfAbsent(tableName, s -> new Table(tableName, broadcaster));
+	public Table get(String tableName, Broadcaster broadcaster) {
+		return tableNameToTable.computeIfAbsent(tableName, s -> new Table(tableName, broadcaster, this));
 	}
 
 	void delete(String tableName) {
