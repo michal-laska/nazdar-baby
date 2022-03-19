@@ -1,5 +1,6 @@
 package com.lafi.cardgame.nazdarbaby.view;
 
+import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.layout.VerticalLayoutWithBroadcast;
 import com.lafi.cardgame.nazdarbaby.provider.Table;
 import com.lafi.cardgame.nazdarbaby.provider.TableProvider;
@@ -31,6 +32,7 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 	private HorizontalLayout createTableHL;
 
 	public TablesView() {
+		super(Broadcaster.INSTANCE);
 		showView();
 	}
 
@@ -128,7 +130,7 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 			return;
 		}
 
-		Table table = TableProvider.INSTANCE.get(tableName);
+		Table table = TableProvider.INSTANCE.get(tableName, broadcaster);
 
 		Button tableButton = new Button(tableName);
 		tableButton.setEnabled(!table.isFull());

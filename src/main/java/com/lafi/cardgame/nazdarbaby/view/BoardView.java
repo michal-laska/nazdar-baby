@@ -55,6 +55,10 @@ public class BoardView extends ParameterizedView {
 	private boolean autoNext = true;
 	private Image preselectedCardImage;
 
+	public BoardView() {
+		super(Broadcaster.INSTANCE);
+	}
+
 	@Override
 	public void receiveBroadcast(String message) {
 		if (message == null) {
@@ -525,7 +529,7 @@ public class BoardView extends ParameterizedView {
 	}
 
 	private CountdownCounter createCountdownCounter(long countdownInSeconds, Button nextButton) {
-		return new CountdownCounter(countdownInSeconds, Broadcaster.INSTANCE, this) {
+		return new CountdownCounter(countdownInSeconds, broadcaster, this) {
 
 			@Override
 			public void eachRun() {

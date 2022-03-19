@@ -16,6 +16,12 @@ import java.util.function.Consumer;
 @PreserveOnRefresh
 public abstract class VerticalLayoutWithBroadcast extends VerticalLayout implements BroadcastListener {
 
+	protected final Broadcaster broadcaster;
+
+	public VerticalLayoutWithBroadcast(Broadcaster broadcaster) {
+		this.broadcaster = broadcaster;
+	}
+
 	public void access(Command command) {
 		makeUIAction(ui -> ui.access(command));
 	}
@@ -30,14 +36,14 @@ public abstract class VerticalLayoutWithBroadcast extends VerticalLayout impleme
 
 	@Override
 	protected void onAttach(AttachEvent attachEvent) {
-		Broadcaster.INSTANCE.register(this);
+		broadcaster.register(this);
 		super.onAttach(attachEvent);
 	}
 
 	@Override
 	protected void onDetach(DetachEvent detachEvent) {
 		super.onDetach(detachEvent);
-		Broadcaster.INSTANCE.unregister(this);
+		broadcaster.unregister(this);
 	}
 
 	protected void broadcast() {
@@ -50,7 +56,7 @@ public abstract class VerticalLayoutWithBroadcast extends VerticalLayout impleme
 
 	protected void broadcast(Class<? extends VerticalLayoutWithBroadcast> clazz, String message) {
 		String tableName = getTableName();
-		Broadcaster.INSTANCE.broadcast(clazz, tableName, message);
+		broadcaster.broadcast(clazz, tableName, message);
 	}
 
 	private void makeUIAction(Consumer<UI> action) {

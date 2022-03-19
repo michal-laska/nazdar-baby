@@ -38,6 +38,10 @@ public class TableView extends ParameterizedView {
 	private HorizontalLayout userNameHL;
 	private TextField nameField;
 
+	public TableView() {
+		super(Broadcaster.INSTANCE);
+	}
+
 	@Override
 	public void receiveBroadcast(String message) {
 		// in case original table was deleted and a new one with the same name was created
@@ -291,7 +295,7 @@ public class TableView extends ParameterizedView {
 	}
 
 	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds, Button notifyButton) {
-		return new CountdownCounter(remainingDurationInSeconds, Broadcaster.INSTANCE, this) {
+		return new CountdownCounter(remainingDurationInSeconds, broadcaster, this) {
 
 			@Override
 			public void eachRun() {
