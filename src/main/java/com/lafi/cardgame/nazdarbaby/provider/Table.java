@@ -5,7 +5,7 @@ import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.counter.CountdownCounter;
 import com.lafi.cardgame.nazdarbaby.points.Points;
 import com.lafi.cardgame.nazdarbaby.user.User;
-import com.lafi.cardgame.nazdarbaby.util.DurationUtil;
+import com.lafi.cardgame.nazdarbaby.util.TimeUtil;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
 import com.lafi.cardgame.nazdarbaby.view.BoardView;
 import com.lafi.cardgame.nazdarbaby.view.TableView;
@@ -83,8 +83,14 @@ public class Table {
 
 		countdownCheckboxes.clear();
 
-		long remainingDurationInSeconds = DurationUtil.getRemainingDurationInSeconds(1);
-		CountdownCounter countdownCounter = new CountdownCounter(listener, remainingDurationInSeconds) {
+		long remainingDurationInSeconds = TimeUtil.getRemainingDurationInSeconds(1);
+
+		CountdownCounter countdownCounter = createCountdownCounter(remainingDurationInSeconds, listener);
+		newGameExecutorService = countdownCounter.start();
+	}
+
+	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds, BroadcastListener listener) {
+		return new CountdownCounter(remainingDurationInSeconds, Broadcaster.INSTANCE, listener) {
 
 			@Override
 			public void eachRun() {
@@ -127,7 +133,6 @@ public class Table {
 				tryStartNewGame();
 			}
 		};
-		newGameExecutorService = countdownCounter.start();
 	}
 
 	public void stopNewGameCountdown() {

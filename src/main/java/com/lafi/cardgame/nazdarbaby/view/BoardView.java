@@ -1,5 +1,6 @@
 package com.lafi.cardgame.nazdarbaby.view;
 
+import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.CardProvider;
 import com.lafi.cardgame.nazdarbaby.card.Color;
@@ -519,7 +520,12 @@ public class BoardView extends ParameterizedView {
 		Game game = table.getGame();
 		long countdownInSeconds = game.isEndOfSet() ? 2 * AUTO_NEXT_DELAY_IN_SECONDS : AUTO_NEXT_DELAY_IN_SECONDS;
 
-		CountdownCounter countdownCounter = new CountdownCounter(this, countdownInSeconds) {
+		CountdownCounter countdownCounter = createCountdownCounter(countdownInSeconds, nextButton);
+		countdownCounter.start();
+	}
+
+	private CountdownCounter createCountdownCounter(long countdownInSeconds, Button nextButton) {
+		return new CountdownCounter(countdownInSeconds, Broadcaster.INSTANCE, this) {
 
 			@Override
 			public void eachRun() {
@@ -536,7 +542,6 @@ public class BoardView extends ParameterizedView {
 				}
 			}
 		};
-		countdownCounter.start();
 	}
 
 	private void nextButtonClickAction(VerticalLayout autoNextVL, Button nextButton, Image yourTurnGif) {

@@ -12,57 +12,59 @@ import org.apache.commons.lang3.time.DurationFormatUtils;
 
 public abstract class CountdownCounter implements Runnable {
 
-    private static final String FORMATTED_COUNTDOWN_SPLITTER = " (";
-    protected static final String FORMATTED_COUNTDOWN_REGEX_SPLITTER = FORMATTED_COUNTDOWN_SPLITTER.replaceAll("[\\W]", "\\\\$0");
+	private static final String FORMATTED_COUNTDOWN_SPLITTER = " (";
+	protected static final String FORMATTED_COUNTDOWN_REGEX_SPLITTER = FORMATTED_COUNTDOWN_SPLITTER.replaceAll("[\\W]", "\\\\$0");
 
-    private final BroadcastListener listener;
+	private final Broadcaster broadcaster;
+	private final BroadcastListener listener;
+	private final ScheduledExecutorService executorService;
 
-    private long countdownInSeconds;
-    private ScheduledExecutorService executorService;
+	private long countdownInSeconds;
 
-    public CountdownCounter(BroadcastListener listener, long countdownInSeconds) {
-        this.listener = listener;
-        this.countdownInSeconds = countdownInSeconds;
-    }
+	public CountdownCounter(long countdownInSeconds, Broadcaster broadcaster, BroadcastListener listener) {
+		this.countdownInSeconds = countdownInSeconds;
+		this.broadcaster = broadcaster;
+		this.listener = listener;
 
-    @Override
-    public void run() {
-        eachRun();
+		executorService = Executors.newSingleThreadScheduledExecutor();
+	}
 
-        if (--countdownInSeconds < 0) {
-            finalRun();
-            shutdown();
-        } else if (!Broadcaster.INSTANCE.isRegistered(listener)) {
-            shutdown();
-        }
-    }
+	@Override
+	public void run() {
+		eachRun();
 
-    public ExecutorService start() {
-        Broadcaster.INSTANCE.register(listener);
+		if (--countdownInSeconds < 0) {
+			finalRun();
+			shutdown();
+		} else if (!broadcaster.isRegistered(listener)) {
+			shutdown();
+		}
+	}
 
-        executorService = Executors.newSingleThreadScheduledExecutor();
-        executorService.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
+	public ExecutorService start() {
+		broadcaster.register(listener);
+		executorService.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
 
-        return executorService;
-    }
+		return executorService;
+	}
 
-    protected String getFormattedCountdown() {
-        long countdownInMillis = TimeUnit.SECONDS.toMillis(countdownInSeconds);
+	protected String getFormattedCountdown() {
+		long countdownInMillis = TimeUnit.SECONDS.toMillis(countdownInSeconds);
 
-        String format = FORMATTED_COUNTDOWN_SPLITTER;
-        if (countdownInSeconds >= TimeUnit.MINUTES.toSeconds(1)) {
-            format += "mm:s";
-        }
-        format += "s)";
+		String format = FORMATTED_COUNTDOWN_SPLITTER;
+		if (countdownInSeconds >= TimeUnit.MINUTES.toSeconds(1)) {
+			format += "mm:s";
+		}
+		format += "s)";
 
-        return DurationFormatUtils.formatDuration(countdownInMillis, format);
-    }
+		return DurationFormatUtils.formatDuration(countdownInMillis, format);
+	}
 
-    protected abstract void eachRun();
+	protected abstract void eachRun();
 
-    protected abstract void finalRun();
+	protected abstract void finalRun();
 
-    private void shutdown() {
-        executorService.shutdown();
-    }
+	private void shutdown() {
+		executorService.shutdown();
+	}
 }
