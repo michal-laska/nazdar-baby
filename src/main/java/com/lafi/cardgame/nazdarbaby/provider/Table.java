@@ -26,6 +26,7 @@ public class Table {
 	public static final int NOTIFICATION_DELAY_IN_MINUTES = 5;
 
 	private final String tableName;
+	private final Broadcaster broadcaster;
 	private final UserProvider userProvider;
 	private final Game game;
 
@@ -35,8 +36,10 @@ public class Table {
 	private Instant lastNotificationTime;
 	private int nextButtonClickCounter;
 
-	Table(String tableName) {
+	Table(String tableName, Broadcaster broadcaster) {
 		this.tableName = tableName;
+		this.broadcaster = broadcaster;
+
 		userProvider = UserProvider.get(tableName);
 		game = Game.get(userProvider);
 
@@ -90,7 +93,7 @@ public class Table {
 	}
 
 	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds, BroadcastListener listener) {
-		return new CountdownCounter(remainingDurationInSeconds, Broadcaster.INSTANCE, listener) {
+		return new CountdownCounter(remainingDurationInSeconds, broadcaster, listener) {
 
 			@Override
 			public void eachRun() {
@@ -106,8 +109,6 @@ public class Table {
 
 			@Override
 			public void finalRun() {
-				Broadcaster broadcaster = Broadcaster.INSTANCE;
-
 				if (game.isGameInProgress()) {
 					stopCurrentGame();
 					broadcaster.broadcast(BoardView.class, tableName);
@@ -142,7 +143,7 @@ public class Table {
 
 		if (game.isGameInProgress()) {
 			game.getMatchUsers().forEach(User::resetAction);
-			Broadcaster.INSTANCE.broadcast(BoardView.class, tableName);
+			broadcaster.broadcast(BoardView.class, tableName);
 		}
 	}
 
