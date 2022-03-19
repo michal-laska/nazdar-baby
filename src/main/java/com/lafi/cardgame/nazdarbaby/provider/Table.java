@@ -27,6 +27,7 @@ public class Table {
 
 	private final String tableName;
 	private final Broadcaster broadcaster;
+	private final TableProvider tableProvider;
 	private final UserProvider userProvider;
 	private final Game game;
 
@@ -36,9 +37,10 @@ public class Table {
 	private Instant lastNotificationTime;
 	private int nextButtonClickCounter;
 
-	Table(String tableName, Broadcaster broadcaster) {
+	Table(String tableName, Broadcaster broadcaster, TableProvider tableProvider) {
 		this.tableName = tableName;
 		this.broadcaster = broadcaster;
+		this.tableProvider = tableProvider;
 
 		userProvider = UserProvider.get(tableName);
 		game = Game.get(userProvider);
@@ -197,7 +199,7 @@ public class Table {
 		userProvider.delete(tableName);
 
 		TablesView.deleteTable(tableName);
-		TableProvider.INSTANCE.delete(tableName);
+		tableProvider.delete(tableName);
 	}
 
 	private void resetLastNotificationTime() {

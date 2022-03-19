@@ -10,8 +10,8 @@ public abstract class ParameterizedView extends VerticalLayoutWithBroadcast impl
 
 	protected transient Table table;
 
-	protected ParameterizedView(Broadcaster broadcaster) {
-		super(broadcaster);
+	protected ParameterizedView(Broadcaster broadcaster, TableProvider tableProvider) {
+		super(broadcaster, tableProvider);
 	}
 
 	@Override
@@ -32,6 +32,6 @@ public abstract class ParameterizedView extends VerticalLayoutWithBroadcast impl
 	abstract void showView();
 
 	private void initTable(String tableName) {
-		table = TableProvider.INSTANCE.get(tableName, broadcaster);
+		table = tableProvider.get(tableName, broadcaster);
 	}
 }
