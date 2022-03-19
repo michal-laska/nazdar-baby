@@ -31,8 +31,8 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 
 	private HorizontalLayout createTableHL;
 
-	public TablesView() {
-		super(Broadcaster.INSTANCE);
+	public TablesView(Broadcaster broadcaster) {
+		super(broadcaster);
 		showView();
 	}
 
