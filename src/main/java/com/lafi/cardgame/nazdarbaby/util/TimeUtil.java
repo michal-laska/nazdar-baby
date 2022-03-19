@@ -4,9 +4,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
-public final class DurationUtil {
+public final class TimeUtil {
 
-	private DurationUtil() {
+	private TimeUtil() {
 	}
 
 	public static long getRemainingDurationInSeconds(int durationInMinutes) {

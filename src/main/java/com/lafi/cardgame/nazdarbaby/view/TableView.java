@@ -1,12 +1,13 @@
 package com.lafi.cardgame.nazdarbaby.view;
 
+import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.counter.CountdownCounter;
 import com.lafi.cardgame.nazdarbaby.provider.Game;
 import com.lafi.cardgame.nazdarbaby.provider.Table;
 import com.lafi.cardgame.nazdarbaby.provider.UserProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
 import com.lafi.cardgame.nazdarbaby.util.Constant;
-import com.lafi.cardgame.nazdarbaby.util.DurationUtil;
+import com.lafi.cardgame.nazdarbaby.util.TimeUtil;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
@@ -276,8 +277,8 @@ public class TableView extends ParameterizedView {
 	}
 
 	private void disableNotifyButtonIfRequired(Button notifyButton) {
-		long remainingDurationInSeconds
-				= DurationUtil.getRemainingDurationInSeconds(table.getLastNotificationTime(), Table.NOTIFICATION_DELAY_IN_MINUTES);
+		long remainingDurationInSeconds = TimeUtil.getRemainingDurationInSeconds(
+				table.getLastNotificationTime(), Table.NOTIFICATION_DELAY_IN_MINUTES);
 
 		if (remainingDurationInSeconds <= 0) {
 			return;
@@ -285,7 +286,12 @@ public class TableView extends ParameterizedView {
 
 		notifyButton.setEnabled(false);
 
-		CountdownCounter countdownCounter = new CountdownCounter(this, remainingDurationInSeconds) {
+		CountdownCounter countdownCounter = createCountdownCounter(remainingDurationInSeconds, notifyButton);
+		countdownCounter.start();
+	}
+
+	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds, Button notifyButton) {
+		return new CountdownCounter(remainingDurationInSeconds, Broadcaster.INSTANCE, this) {
 
 			@Override
 			public void eachRun() {
@@ -301,7 +307,6 @@ public class TableView extends ParameterizedView {
 				});
 			}
 		};
-		countdownCounter.start();
 	}
 
 	private void createPasswordAction(PasswordField createPasswordField, PasswordField confirmPasswordField) {
