@@ -17,12 +17,13 @@ public class Card implements Comparable<Card> {
 	private final String imageSrc;
 
 	Card(String valueStr, Color color) {
-		this(getValueFromString(valueStr), color, "cards", valueStr + color.getStrValue() + ".png");
+		this(getValueFromString(valueStr), color, "cards", createFileName(valueStr, color));
 	}
 
 	private Card(int value, Color color, String folderName, String fileName) {
 		this.value = value;
 		this.color = color;
+
 		imageSrc = folderName + '/' + fileName;
 	}
 
@@ -38,6 +39,10 @@ public class Card implements Comparable<Card> {
 			case JACK -> 11;
 			default -> Integer.parseInt(valueStr);
 		};
+	}
+
+	private static String createFileName(String valueStr, Color color) {
+		return valueStr + color.getStrValue() + ".png";
 	}
 
 	public Image getImage() {
