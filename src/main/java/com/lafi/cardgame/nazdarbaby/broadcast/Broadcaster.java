@@ -7,9 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public enum Broadcaster {
-
-	INSTANCE;
+public class Broadcaster {
 
 	private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 	private final Set<BroadcastListener> listeners = ConcurrentHashMap.newKeySet();

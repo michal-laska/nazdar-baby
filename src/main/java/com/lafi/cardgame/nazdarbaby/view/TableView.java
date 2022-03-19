@@ -38,8 +38,8 @@ public class TableView extends ParameterizedView {
 	private HorizontalLayout userNameHL;
 	private TextField nameField;
 
-	public TableView() {
-		super(Broadcaster.INSTANCE);
+	public TableView(Broadcaster broadcaster) {
+		super(broadcaster);
 	}
 
 	@Override

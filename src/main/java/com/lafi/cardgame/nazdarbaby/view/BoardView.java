@@ -55,8 +55,8 @@ public class BoardView extends ParameterizedView {
 	private boolean autoNext = true;
 	private Image preselectedCardImage;
 
-	public BoardView() {
-		super(Broadcaster.INSTANCE);
+	public BoardView(Broadcaster broadcaster) {
+		super(broadcaster);
 	}
 
 	@Override
