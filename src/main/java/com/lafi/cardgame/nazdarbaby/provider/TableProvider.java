@@ -11,12 +11,16 @@ public class TableProvider {
 
 	private final Map<String, Table> tableNameToTable = new ConcurrentHashMap<>();
 
-	public Table get(String tableName, Broadcaster broadcaster) {
+	public Table getOrCreate(String tableName, Broadcaster broadcaster) {
 		return tableNameToTable.computeIfAbsent(tableName, s -> new Table(tableName, broadcaster, this));
 	}
 
+	public Table get(String tableName) {
+		return tableNameToTable.get(tableName);
+	}
+
 	public void setPasswordHash(String tableName, Integer passwordHash) {
-		Table table = tableNameToTable.get(tableName);
+		Table table = get(tableName);
 		table.setPasswordHash(passwordHash);
 	}
 
@@ -49,7 +53,7 @@ public class TableProvider {
 	}
 
 	private Integer getPasswordHash(String tableName) {
-		Table table = tableNameToTable.get(tableName);
+		Table table = get(tableName);
 		return table.getPasswordHash();
 	}
 }

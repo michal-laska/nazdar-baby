@@ -32,6 +32,6 @@ public abstract class ParameterizedView extends VerticalLayoutWithBroadcast impl
 	abstract void showView();
 
 	private void initTable(String tableName) {
-		table = tableProvider.get(tableName, broadcaster);
+		table = tableProvider.getOrCreate(tableName, broadcaster);
 	}
 }
