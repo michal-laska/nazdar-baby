@@ -98,58 +98,6 @@ public class Table {
 		newGameExecutorService = countdownCounter.start();
 	}
 
-	Integer getPasswordHash() {
-		return passwordHash;
-	}
-
-	void setPasswordHash(Integer passwordHash) {
-		this.passwordHash = passwordHash;
-	}
-
-	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds, BroadcastListener listener) {
-		return new CountdownCounter(remainingDurationInSeconds, broadcaster, listener) {
-
-			@Override
-			public void eachRun() {
-				for (Checkbox countdownCheckbox : countdownCheckboxes) {
-					String label = countdownCheckbox.getLabel();
-					String[] splittedLabel = label.split(FORMATTED_COUNTDOWN_REGEX_SPLITTER);
-					String originalLabel = splittedLabel[0];
-
-					String newLabel = originalLabel + getFormattedCountdown();
-					UiUtil.access(countdownCheckbox, () -> countdownCheckbox.setLabel(newLabel));
-				}
-			}
-
-			@Override
-			public void finalRun() {
-				if (game.isGameInProgress()) {
-					stopCurrentGame();
-					broadcaster.broadcast(BoardView.class, tableName);
-				} else {
-					startNewGame();
-				}
-
-				// call it even if game is in progress - some players can be in "waiting room"
-				broadcaster.broadcast(TableView.class, tableName);
-			}
-
-			private void stopCurrentGame() {
-				game.getMatchUsers().stream()
-						.filter(user -> !user.isLoggedOut())
-						.forEach(user -> user.setNewGame(true));
-				game.setGameInProgress(false);
-			}
-
-			private void startNewGame() {
-				userProvider.getPlayingUsers().stream()
-						.filter(user -> !user.isReady())
-						.forEach(user -> user.setLoggedOut(true));
-				tryStartNewGame();
-			}
-		};
-	}
-
 	public void stopNewGameCountdown() {
 		if (newGameExecutorService != null) {
 			newGameExecutorService.shutdown();
@@ -210,6 +158,58 @@ public class Table {
 		game.delete();
 		userProvider.delete(tableName);
 		tableProvider.delete(tableName);
+	}
+
+	Integer getPasswordHash() {
+		return passwordHash;
+	}
+
+	void setPasswordHash(Integer passwordHash) {
+		this.passwordHash = passwordHash;
+	}
+
+	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds, BroadcastListener listener) {
+		return new CountdownCounter(remainingDurationInSeconds, broadcaster, listener) {
+
+			@Override
+			public void eachRun() {
+				for (Checkbox countdownCheckbox : countdownCheckboxes) {
+					String label = countdownCheckbox.getLabel();
+					String[] splittedLabel = label.split(FORMATTED_COUNTDOWN_REGEX_SPLITTER);
+					String originalLabel = splittedLabel[0];
+
+					String newLabel = originalLabel + getFormattedCountdown();
+					UiUtil.access(countdownCheckbox, () -> countdownCheckbox.setLabel(newLabel));
+				}
+			}
+
+			@Override
+			public void finalRun() {
+				if (game.isGameInProgress()) {
+					stopCurrentGame();
+					broadcaster.broadcast(BoardView.class, tableName);
+				} else {
+					startNewGame();
+				}
+
+				// call it even if game is in progress - some players can be in "waiting room"
+				broadcaster.broadcast(TableView.class, tableName);
+			}
+
+			private void stopCurrentGame() {
+				game.getMatchUsers().stream()
+						.filter(user -> !user.isLoggedOut())
+						.forEach(user -> user.setNewGame(true));
+				game.setGameInProgress(false);
+			}
+
+			private void startNewGame() {
+				userProvider.getPlayingUsers().stream()
+						.filter(user -> !user.isReady())
+						.forEach(user -> user.setLoggedOut(true));
+				tryStartNewGame();
+			}
+		};
 	}
 
 	private void resetLastNotificationTime() {
