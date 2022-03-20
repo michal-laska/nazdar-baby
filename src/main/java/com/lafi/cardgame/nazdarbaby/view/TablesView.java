@@ -76,11 +76,7 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 			UiUtil.invalidateFieldWithFocus(tableNameField, "Table name cannot be blank");
 			return;
 		}
-		if (tableProvider.tableWaitForPassword(tableName)) {
-			UiUtil.invalidateFieldWithFocus(tableNameField, "Table with this name is under construction");
-			return;
-		}
-		if (tableProvider.tableNameExist(tableName)) {
+		if (tableProvider.tableIsCreated(tableName)) {
 			UiUtil.invalidateFieldWithFocus(tableNameField, "Table with this name already exist");
 			return;
 		}
@@ -89,16 +85,16 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 	}
 
 	private void addTableToJoinIfCreated(String tableName) {
-		if (tableProvider.tableIsNotCreated(tableName)) {
+		Table table = tableProvider.get(tableName);
+
+		if (!tableProvider.tableIsCreated(table)) {
 			return;
 		}
-
-		Table table = tableProvider.get(tableName);
 
 		Button tableButton = new Button(tableName);
 		tableButton.setEnabled(!table.isFull());
 
-		if (tableProvider.isTablePasswordProtected(tableName)) {
+		if (table.isPasswordProtected()) {
 			UserProvider userProvider = table.getUserProvider();
 
 			VaadinIcon icon = userProvider.isCurrentSessionLoggedIn() ? Constant.PASSWORD_OPEN_ICON : Constant.PASSWORD_LOCK_ICON;
