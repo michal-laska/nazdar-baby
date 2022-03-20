@@ -47,6 +47,7 @@ public class TableView extends ParameterizedView {
 	public void receiveBroadcast(String message) {
 		// in case original table was deleted and a new one with the same name was created
 		initTable();
+
 		access(this::showView);
 	}
 
@@ -56,11 +57,6 @@ public class TableView extends ParameterizedView {
 
 		if (tableProvider.tableWaitForPassword(tableName)) {
 			showCreatePassword();
-			return;
-		}
-
-		if (!tableProvider.tableNameExist(tableName)) {
-			showTableDoesntExist(tableName);
 			return;
 		}
 
@@ -369,15 +365,6 @@ public class TableView extends ParameterizedView {
 
 		HorizontalLayout confirmPasswordHL = new HorizontalLayout(confirmPasswordField, okButton);
 		add(confirmPasswordHL);
-	}
-
-	private void showTableDoesntExist(String tableName) {
-		removeAll();
-
-		Label nonExistentTableLabel = new Label("Table '" + tableName + "' doesn't exist");
-		add(nonExistentTableLabel);
-
-		UiUtil.createNavigationToTablesView(this);
 	}
 
 	private void showEnterPassword() {

@@ -93,7 +93,7 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 			return;
 		}
 
-		Table table = tableProvider.get(tableName, broadcaster);
+		Table table = tableProvider.get(tableName);
 
 		Button tableButton = new Button(tableName);
 		tableButton.setEnabled(!table.isFull());
