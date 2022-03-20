@@ -24,24 +24,27 @@ public class TableProvider {
 		table.setPasswordHash(passwordHash);
 	}
 
-	public boolean tableNameExist(String tableName) {
-		return tableNameToTable.containsKey(tableName);
-	}
-
 	public boolean tableWaitForPassword(String tableName) {
-		return tableNameExist(tableName) && tableIsNotCreated(tableName);
+		return tableNameExist(tableName) && !tableIsCreated(tableName);
 	}
 
-	public boolean tableIsNotCreated(String tableName) {
-		return verifyPassword(tableName, null);
+	public boolean tableIsCreated(String tableName) {
+		Table table = get(tableName);
+		return tableIsCreated(table);
+	}
+
+	public boolean tableIsCreated(Table table) {
+		return table != null && table.getPasswordHash() != null;
 	}
 
 	public boolean isTablePasswordProtected(String tableName) {
-		return !verifyPassword(tableName, 0);
+		Table table = get(tableName);
+		return table.isPasswordProtected();
 	}
 
 	public boolean verifyPassword(String tableName, Integer passwordHash) {
-		return Objects.equals(getPasswordHash(tableName), passwordHash);
+		Table table = get(tableName);
+		return Objects.equals(table.getPasswordHash(), passwordHash);
 	}
 
 	public Set<String> getTableNames() {
@@ -52,8 +55,7 @@ public class TableProvider {
 		tableNameToTable.remove(tableName);
 	}
 
-	private Integer getPasswordHash(String tableName) {
-		Table table = get(tableName);
-		return table.getPasswordHash();
+	private boolean tableNameExist(String tableName) {
+		return tableNameToTable.containsKey(tableName);
 	}
 }

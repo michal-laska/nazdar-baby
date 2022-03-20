@@ -68,12 +68,8 @@ public class Table {
 		lastNotificationTime = Instant.now();
 	}
 
-	public Integer getPasswordHash() {
-		return passwordHash;
-	}
-
-	public void setPasswordHash(Integer passwordHash) {
-		this.passwordHash = passwordHash;
+	public boolean isPasswordProtected() {
+		return passwordHash != null && passwordHash != 0;
 	}
 
 	public void addCountdownCheckbox(Checkbox countdownCheckbox) {
@@ -100,6 +96,14 @@ public class Table {
 
 		CountdownCounter countdownCounter = createCountdownCounter(remainingDurationInSeconds, listener);
 		newGameExecutorService = countdownCounter.start();
+	}
+
+	Integer getPasswordHash() {
+		return passwordHash;
+	}
+
+	void setPasswordHash(Integer passwordHash) {
+		this.passwordHash = passwordHash;
 	}
 
 	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds, BroadcastListener listener) {
