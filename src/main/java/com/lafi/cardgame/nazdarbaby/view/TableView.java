@@ -54,19 +54,19 @@ public class TableView extends ParameterizedView {
 	void showView() {
 		String tableName = getTableName();
 
-		if (TablesView.tableWaitForPassword(tableName)) {
+		if (tableProvider.tableWaitForPassword(tableName)) {
 			showCreatePassword();
 			return;
 		}
 
-		if (!TablesView.existTableName(tableName)) {
+		if (!tableProvider.existTableName(tableName)) {
 			showTableDoesntExist(tableName);
 			return;
 		}
 
 		UserProvider userProvider = table.getUserProvider();
 
-		if (TablesView.isTablePasswordProtected(tableName) && !userProvider.isCurrentSessionLoggedIn()) {
+		if (tableProvider.isTablePasswordProtected(tableName) && !userProvider.isCurrentSessionLoggedIn()) {
 			showEnterPassword();
 			return;
 		}
@@ -128,7 +128,7 @@ public class TableView extends ParameterizedView {
 	private void showUsers() {
 		removeAll();
 
-		VaadinIcon icon = TablesView.isTablePasswordProtected(getTableName()) ? Constant.PASSWORD_OPEN_ICON : null;
+		VaadinIcon icon = tableProvider.isTablePasswordProtected(getTableName()) ? Constant.PASSWORD_OPEN_ICON : null;
 		addTableH1(icon);
 
 		UserProvider userProvider = table.getUserProvider();
@@ -319,7 +319,7 @@ public class TableView extends ParameterizedView {
 		String password2 = confirmPasswordField.getValue();
 
 		if (password1.equals(password2)) {
-			TablesView.addTable(getTableName(), password1.hashCode());
+			tableProvider.addTable(getTableName(), password1.hashCode());
 
 			UserProvider userProvider = table.getUserProvider();
 			userProvider.logInCurrentSession();
@@ -332,7 +332,7 @@ public class TableView extends ParameterizedView {
 
 	private void verifyPasswordAction(PasswordField passwordField) {
 		int passwordHash = passwordField.getValue().hashCode();
-		boolean passwordIsCorrect = TablesView.verifyPassword(getTableName(), passwordHash);
+		boolean passwordIsCorrect = tableProvider.verifyPassword(getTableName(), passwordHash);
 
 		if (passwordIsCorrect) {
 			UserProvider userProvider = table.getUserProvider();
