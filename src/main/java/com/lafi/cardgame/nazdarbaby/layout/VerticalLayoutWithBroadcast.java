@@ -4,6 +4,7 @@ import com.lafi.cardgame.nazdarbaby.broadcast.BroadcastListener;
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.provider.TableProvider;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
+import com.lafi.cardgame.nazdarbaby.view.TablesView;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
@@ -33,8 +34,17 @@ public abstract class VerticalLayoutWithBroadcast extends VerticalLayout impleme
 		UiUtil.access(component, command);
 	}
 
-	public void navigate(String location) {
-		makeUIAction(ui -> ui.navigate(location));
+	public void navigateToTable(String locationPrefix) {
+		navigate(locationPrefix, getTableName());
+	}
+
+	public void navigate(String locationPrefix, String tableName) {
+		String location = UiUtil.createLocation(locationPrefix, tableName);
+		navigate(location);
+	}
+
+	public void navigateToTablesView() {
+		navigate(TablesView.ROUTE_LOCATION);
 	}
 
 	@Override
@@ -60,6 +70,10 @@ public abstract class VerticalLayoutWithBroadcast extends VerticalLayout impleme
 	protected void broadcast(Class<? extends VerticalLayoutWithBroadcast> clazz, String message) {
 		String tableName = getTableName();
 		broadcaster.broadcast(clazz, tableName, message);
+	}
+
+	private void navigate(String location) {
+		makeUIAction(ui -> ui.navigate(location));
 	}
 
 	private void makeUIAction(Consumer<UI> action) {
