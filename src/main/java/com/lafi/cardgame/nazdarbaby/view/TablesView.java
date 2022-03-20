@@ -16,10 +16,6 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-
 import org.apache.commons.lang3.StringUtils;
 
 @Route(TablesView.ROUTE_LOCATION)
@@ -27,45 +23,11 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 
 	public static final String ROUTE_LOCATION = StringUtils.EMPTY;
 
-	private static final Map<String, Integer> TABLE_NAME_TO_PASSWORD_HASH = new HashMap<>();
-
 	private HorizontalLayout createTableHL;
 
 	public TablesView(Broadcaster broadcaster, TableProvider tableProvider) {
 		super(broadcaster, tableProvider);
 		showView();
-	}
-
-	public static void addTable(String tableName, Integer passwordHash) {
-		TABLE_NAME_TO_PASSWORD_HASH.put(tableName, passwordHash);
-	}
-
-	public static boolean existTableName(String tableName) {
-		return TABLE_NAME_TO_PASSWORD_HASH.containsKey(tableName);
-	}
-
-	public static void deleteTable(String tableName) {
-		TABLE_NAME_TO_PASSWORD_HASH.remove(tableName);
-	}
-
-	public static boolean tableWaitForPassword(String tableName) {
-		return existTableName(tableName) && isNotTableCreated(tableName);
-	}
-
-	public static boolean isNotTableCreated(String tableName) {
-		return verifyPassword(tableName, null);
-	}
-
-	public static boolean isTablePasswordProtected(String tableName) {
-		return !verifyPassword(tableName, 0);
-	}
-
-	public static boolean verifyPassword(String tableName, Integer passwordHash) {
-		return Objects.equals(getPasswordHash(tableName), passwordHash);
-	}
-
-	private static Integer getPasswordHash(String tableName) {
-		return TABLE_NAME_TO_PASSWORD_HASH.get(tableName);
 	}
 
 	@Override
@@ -104,7 +66,7 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 		Label joinTableLabel = new Label("Join table:");
 		add(joinTableLabel);
 
-		TABLE_NAME_TO_PASSWORD_HASH.keySet().forEach(this::addTableToJoinIfCreated);
+		tableProvider.getTableNames().forEach(this::addTableToJoinIfCreated);
 	}
 
 	private void addTableAction(TextField tableNameField) {
@@ -114,19 +76,19 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 			UiUtil.invalidateFieldWithFocus(tableNameField, "Table name cannot be blank");
 			return;
 		}
-		if (existTableName(tableName)) {
+		if (tableProvider.existTableName(tableName)) {
 			UiUtil.invalidateFieldWithFocus(tableNameField, "Table name already exists or it's under construction");
 			return;
 		}
 
-		addTable(tableName, null);
+		tableProvider.addTable(tableName, null);
 
 		String location = UiUtil.createLocation(TableView.ROUTE_LOCATION, tableName);
 		navigate(location);
 	}
 
 	private void addTableToJoinIfCreated(String tableName) {
-		if (isNotTableCreated(tableName)) {
+		if (tableProvider.isNotTableCreated(tableName)) {
 			return;
 		}
 
@@ -135,7 +97,7 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 		Button tableButton = new Button(tableName);
 		tableButton.setEnabled(!table.isFull());
 
-		if (isTablePasswordProtected(tableName)) {
+		if (tableProvider.isTablePasswordProtected(tableName)) {
 			UserProvider userProvider = table.getUserProvider();
 
 			VaadinIcon icon = userProvider.isCurrentSessionLoggedIn() ? Constant.PASSWORD_OPEN_ICON : Constant.PASSWORD_LOCK_ICON;

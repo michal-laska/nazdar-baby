@@ -9,7 +9,6 @@ import com.lafi.cardgame.nazdarbaby.util.TimeUtil;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
 import com.lafi.cardgame.nazdarbaby.view.BoardView;
 import com.lafi.cardgame.nazdarbaby.view.TableView;
-import com.lafi.cardgame.nazdarbaby.view.TablesView;
 import com.vaadin.flow.component.checkbox.Checkbox;
 
 import java.time.Instant;
@@ -197,8 +196,6 @@ public class Table {
 	public void delete() {
 		game.delete();
 		userProvider.delete(tableName);
-
-		TablesView.deleteTable(tableName);
 		tableProvider.delete(tableName);
 	}
 
