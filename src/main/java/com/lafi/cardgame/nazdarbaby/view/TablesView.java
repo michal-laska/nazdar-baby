@@ -76,19 +76,20 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 			UiUtil.invalidateFieldWithFocus(tableNameField, "Table name cannot be blank");
 			return;
 		}
-		if (tableProvider.existTableName(tableName)) {
-			UiUtil.invalidateFieldWithFocus(tableNameField, "Table name already exists or it's under construction");
+		if (tableProvider.tableWaitForPassword(tableName)) {
+			UiUtil.invalidateFieldWithFocus(tableNameField, "Table with this name is under construction");
+			return;
+		}
+		if (tableProvider.tableNameExist(tableName)) {
+			UiUtil.invalidateFieldWithFocus(tableNameField, "Table with this name already exist");
 			return;
 		}
 
-		tableProvider.addTable(tableName, null);
-
-		String location = UiUtil.createLocation(TableView.ROUTE_LOCATION, tableName);
-		navigate(location);
+		navigate(TableView.ROUTE_LOCATION, tableName);
 	}
 
 	private void addTableToJoinIfCreated(String tableName) {
-		if (tableProvider.isNotTableCreated(tableName)) {
+		if (tableProvider.tableIsNotCreated(tableName)) {
 			return;
 		}
 
@@ -105,10 +106,7 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 			tableButton.setIconAfterText(true);
 		}
 
-		tableButton.addClickListener(clickEvent -> {
-			String location = UiUtil.createLocation(TableView.ROUTE_LOCATION, tableName);
-			navigate(location);
-		});
+		tableButton.addClickListener(clickEvent -> navigate(TableView.ROUTE_LOCATION, tableName));
 
 		String tableInfo = table.getInfo();
 		Label tableInfoLabel = new Label(tableInfo);

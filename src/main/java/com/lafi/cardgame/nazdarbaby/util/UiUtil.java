@@ -1,7 +1,6 @@
 package com.lafi.cardgame.nazdarbaby.util;
 
 import com.lafi.cardgame.nazdarbaby.layout.VerticalLayoutWithBroadcast;
-import com.lafi.cardgame.nazdarbaby.view.TablesView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Focusable;
 import com.vaadin.flow.component.HasValidation;
@@ -26,7 +25,7 @@ public final class UiUtil {
 	public static void createNavigationToTablesView(VerticalLayoutWithBroadcast verticalLayout) {
 		Label redirectLabel = new Label("Create or join to another table");
 		Button redirectButton = new Button(Constant.OK_LABEL);
-		redirectButton.addClickListener(e -> verticalLayout.navigate(TablesView.ROUTE_LOCATION));
+		redirectButton.addClickListener(e -> verticalLayout.navigateToTablesView());
 
 		HorizontalLayout redirectHorizontalLayout = new HorizontalLayout(redirectLabel, redirectButton);
 		redirectHorizontalLayout.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);

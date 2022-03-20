@@ -59,7 +59,7 @@ public class TableView extends ParameterizedView {
 			return;
 		}
 
-		if (!tableProvider.existTableName(tableName)) {
+		if (!tableProvider.tableNameExist(tableName)) {
 			showTableDoesntExist(tableName);
 			return;
 		}
@@ -77,11 +77,8 @@ public class TableView extends ParameterizedView {
 			if (currentUser == null || currentUser.isLoggedOut()) {
 				showGameInProgress();
 			} else {
-				String location = UiUtil.createLocation(BoardView.ROUTE_LOCATION, tableName);
-				navigate(location);
+				navigateToTable(BoardView.ROUTE_LOCATION);
 			}
-		} else if (userProvider.getCurrentUser() != null) {
-			showUsers();
 		} else {
 			showUsers();
 		}
@@ -205,7 +202,7 @@ public class TableView extends ParameterizedView {
 						table.tryStartNewGame();
 					}
 
-					navigate(TablesView.ROUTE_LOCATION);
+					navigateToTablesView();
 				}
 
 				broadcast();
@@ -319,7 +316,7 @@ public class TableView extends ParameterizedView {
 		String password2 = confirmPasswordField.getValue();
 
 		if (password1.equals(password2)) {
-			tableProvider.addTable(getTableName(), password1.hashCode());
+			tableProvider.setPasswordHash(getTableName(), password1.hashCode());
 
 			UserProvider userProvider = table.getUserProvider();
 			userProvider.logInCurrentSession();

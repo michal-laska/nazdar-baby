@@ -35,6 +35,7 @@ public class Table {
 
 	private Instant lastNotificationTime;
 	private int nextButtonClickCounter;
+	private Integer passwordHash;
 
 	Table(String tableName, Broadcaster broadcaster, TableProvider tableProvider) {
 		this.tableName = tableName;
@@ -65,6 +66,14 @@ public class Table {
 
 	public void setLastNotificationTimeToNow() {
 		lastNotificationTime = Instant.now();
+	}
+
+	public Integer getPasswordHash() {
+		return passwordHash;
+	}
+
+	public void setPasswordHash(Integer passwordHash) {
+		this.passwordHash = passwordHash;
 	}
 
 	public void addCountdownCheckbox(Checkbox countdownCheckbox) {

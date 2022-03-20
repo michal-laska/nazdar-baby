@@ -91,10 +91,9 @@ public class BoardView extends ParameterizedView {
 			HorizontalLayout cardPlaceholdersHL = getAndAddCardPlaceholdersHL();
 			addUserCardsHL(cardPlaceholdersHL);
 		} else if (currentUser.isLoggedOut()) {
-			navigate(TablesView.ROUTE_LOCATION);
+			navigateToTablesView();
 		} else {
-			String location = UiUtil.createLocation(TableView.ROUTE_LOCATION, getTableName());
-			navigate(location);
+			navigateToTable(TableView.ROUTE_LOCATION);
 		}
 	}
 

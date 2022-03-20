@@ -2,7 +2,6 @@ package com.lafi.cardgame.nazdarbaby.provider;
 
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -11,25 +10,25 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TableProvider {
 
 	private final Map<String, Table> tableNameToTable = new ConcurrentHashMap<>();
-	private final Map<String, Integer> tableNameToPasswordHash = new HashMap<>();
 
 	public Table get(String tableName, Broadcaster broadcaster) {
 		return tableNameToTable.computeIfAbsent(tableName, s -> new Table(tableName, broadcaster, this));
 	}
 
-	public void addTable(String tableName, Integer passwordHash) {
-		tableNameToPasswordHash.put(tableName, passwordHash);
+	public void setPasswordHash(String tableName, Integer passwordHash) {
+		Table table = tableNameToTable.get(tableName);
+		table.setPasswordHash(passwordHash);
 	}
 
-	public boolean existTableName(String tableName) {
-		return tableNameToPasswordHash.containsKey(tableName);
+	public boolean tableNameExist(String tableName) {
+		return tableNameToTable.containsKey(tableName);
 	}
 
 	public boolean tableWaitForPassword(String tableName) {
-		return existTableName(tableName) && isNotTableCreated(tableName);
+		return tableNameExist(tableName) && tableIsNotCreated(tableName);
 	}
 
-	public boolean isNotTableCreated(String tableName) {
+	public boolean tableIsNotCreated(String tableName) {
 		return verifyPassword(tableName, null);
 	}
 
@@ -47,10 +46,10 @@ public class TableProvider {
 
 	void delete(String tableName) {
 		tableNameToTable.remove(tableName);
-		tableNameToPasswordHash.remove(tableName);
 	}
 
 	private Integer getPasswordHash(String tableName) {
-		return tableNameToPasswordHash.get(tableName);
+		Table table = tableNameToTable.get(tableName);
+		return table.getPasswordHash();
 	}
 }
