@@ -53,15 +53,14 @@ public class TableView extends ParameterizedView {
 
 	@Override
 	void showView() {
-		String tableName = getTableName();
-
-		if (tableProvider.tableWaitForPassword(tableName)) {
+		if (!tableProvider.isTableCreated(table)) {
 			showCreatePassword();
 			return;
 		}
 
 		UserProvider userProvider = table.getUserProvider();
 
+		String tableName = getTableName();
 		if (tableProvider.isTablePasswordProtected(tableName) && !userProvider.isCurrentSessionLoggedIn()) {
 			showEnterPassword();
 			return;
