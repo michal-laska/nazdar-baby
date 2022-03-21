@@ -27,11 +27,6 @@ public class TableProvider {
 		return table != null && !table.verifyPasswordHash(null);
 	}
 
-	public boolean isTablePasswordProtected(String tableName) {
-		Table table = get(tableName);
-		return table.isPasswordProtected();
-	}
-
 	public Set<String> getTableNames() {
 		return tableNameToTable.keySet();
 	}

@@ -60,8 +60,7 @@ public class TableView extends ParameterizedView {
 
 		UserProvider userProvider = table.getUserProvider();
 
-		String tableName = getTableName();
-		if (tableProvider.isTablePasswordProtected(tableName) && !userProvider.isCurrentSessionLoggedIn()) {
+		if (table.isPasswordProtected() && !userProvider.isCurrentSessionLoggedIn()) {
 			showEnterPassword();
 			return;
 		}
@@ -120,7 +119,7 @@ public class TableView extends ParameterizedView {
 	private void showUsers() {
 		removeAll();
 
-		VaadinIcon icon = tableProvider.isTablePasswordProtected(getTableName()) ? Constant.PASSWORD_OPEN_ICON : null;
+		VaadinIcon icon = table.isPasswordProtected() ? Constant.PASSWORD_OPEN_ICON : null;
 		addTableH1(icon);
 
 		UserProvider userProvider = table.getUserProvider();
