@@ -321,9 +321,9 @@ public class TableView extends ParameterizedView {
 		}
 	}
 
-	private void verifyPasswordAction(PasswordField passwordField) {
+	private void loginToTableAction(PasswordField passwordField) {
 		int passwordHash = passwordField.getValue().hashCode();
-		boolean passwordHashIsCorrect = table.verifyPasswordHash(passwordHash);
+		boolean passwordHashIsCorrect = table.isCorrectPasswordHash(passwordHash);
 
 		if (passwordHashIsCorrect) {
 			UserProvider userProvider = table.getUserProvider();
@@ -373,11 +373,11 @@ public class TableView extends ParameterizedView {
 		PasswordField passwordField = new PasswordField("Table is password protected");
 		passwordField.setPlaceholder(ENTER_PASSWORD_PLACEHOLDER);
 		passwordField.focus();
-		passwordField.addKeyUpListener(Key.ENTER, event -> verifyPasswordAction(passwordField));
+		passwordField.addKeyUpListener(Key.ENTER, event -> loginToTableAction(passwordField));
 		passwordField.addInputListener(inputEvent -> UiUtil.makeFieldValid(passwordField));
 
 		Button okButton = new Button(Constant.OK_LABEL);
-		okButton.addClickListener(click -> verifyPasswordAction(passwordField));
+		okButton.addClickListener(click -> loginToTableAction(passwordField));
 
 		HorizontalLayout passwordHL = new HorizontalLayout(passwordField, okButton);
 		passwordHL.setDefaultVerticalComponentAlignment(Alignment.BASELINE);
