@@ -18,10 +18,6 @@ public class TableProvider {
 		return tableNameToTable.get(tableName);
 	}
 
-	public boolean tableWaitForPassword(String tableName) {
-		return existTableName(tableName) && !isTableCreated(tableName);
-	}
-
 	public boolean isTableCreated(String tableName) {
 		Table table = get(tableName);
 		return isTableCreated(table);
@@ -43,9 +39,5 @@ public class TableProvider {
 	public void delete(Table table) {
 		table.delete();
 		tableNameToTable.remove(table.getTableName());
-	}
-
-	private boolean existTableName(String tableName) {
-		return tableNameToTable.containsKey(tableName);
 	}
 }
