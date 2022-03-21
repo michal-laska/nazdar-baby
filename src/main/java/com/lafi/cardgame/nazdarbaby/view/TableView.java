@@ -312,7 +312,7 @@ public class TableView extends ParameterizedView {
 		String password2 = confirmPasswordField.getValue();
 
 		if (password1.equals(password2)) {
-			tableProvider.setPasswordHash(getTableName(), password1.hashCode());
+			table.setPasswordHash(password1.hashCode());
 
 			UserProvider userProvider = table.getUserProvider();
 			userProvider.logInCurrentSession();
@@ -325,9 +325,9 @@ public class TableView extends ParameterizedView {
 
 	private void verifyPasswordAction(PasswordField passwordField) {
 		int passwordHash = passwordField.getValue().hashCode();
-		boolean passwordIsCorrect = tableProvider.verifyPassword(getTableName(), passwordHash);
+		boolean passwordHashIsCorrect = table.verifyPasswordHash(passwordHash);
 
-		if (passwordIsCorrect) {
+		if (passwordHashIsCorrect) {
 			UserProvider userProvider = table.getUserProvider();
 			userProvider.logInCurrentSession();
 
