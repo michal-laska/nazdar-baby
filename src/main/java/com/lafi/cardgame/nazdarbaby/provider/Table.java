@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -152,17 +153,17 @@ public class Table {
 		}
 	}
 
+	public boolean verifyPasswordHash(Integer passwordHash) {
+		return Objects.equals(this.passwordHash, passwordHash);
+	}
+
+	public void setPasswordHash(int passwordHash) {
+		this.passwordHash = passwordHash;
+	}
+
 	void delete() {
 		game.delete();
 		userProvider.delete(tableName);
-	}
-
-	Integer getPasswordHash() {
-		return passwordHash;
-	}
-
-	void setPasswordHash(Integer passwordHash) {
-		this.passwordHash = passwordHash;
 	}
 
 	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds, BroadcastListener listener) {

@@ -3,7 +3,6 @@ package com.lafi.cardgame.nazdarbaby.provider;
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -19,11 +18,6 @@ public class TableProvider {
 		return tableNameToTable.get(tableName);
 	}
 
-	public void setPasswordHash(String tableName, Integer passwordHash) {
-		Table table = get(tableName);
-		table.setPasswordHash(passwordHash);
-	}
-
 	public boolean tableWaitForPassword(String tableName) {
 		return existTableName(tableName) && !isTableCreated(tableName);
 	}
@@ -34,17 +28,12 @@ public class TableProvider {
 	}
 
 	public boolean isTableCreated(Table table) {
-		return table != null && table.getPasswordHash() != null;
+		return table != null && !table.verifyPasswordHash(null);
 	}
 
 	public boolean isTablePasswordProtected(String tableName) {
 		Table table = get(tableName);
 		return table.isPasswordProtected();
-	}
-
-	public boolean verifyPassword(String tableName, Integer passwordHash) {
-		Table table = get(tableName);
-		return Objects.equals(table.getPasswordHash(), passwordHash);
 	}
 
 	public Set<String> getTableNames() {
