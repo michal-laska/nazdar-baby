@@ -76,7 +76,7 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 			UiUtil.invalidateFieldWithFocus(tableNameField, "Table name cannot be blank");
 			return;
 		}
-		if (tableProvider.tableIsCreated(tableName)) {
+		if (tableProvider.isTableCreated(tableName)) {
 			UiUtil.invalidateFieldWithFocus(tableNameField, "Table with this name already exist");
 			return;
 		}
@@ -87,7 +87,7 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 	private void addTableToJoinIfCreated(String tableName) {
 		Table table = tableProvider.get(tableName);
 
-		if (!tableProvider.tableIsCreated(table)) {
+		if (!tableProvider.isTableCreated(table)) {
 			return;
 		}
 

@@ -12,7 +12,7 @@ public class TableProvider {
 	private final Map<String, Table> tableNameToTable = new ConcurrentHashMap<>();
 
 	public Table getOrCreate(String tableName, Broadcaster broadcaster) {
-		return tableNameToTable.computeIfAbsent(tableName, s -> new Table(tableName, broadcaster, this));
+		return tableNameToTable.computeIfAbsent(tableName, s -> new Table(tableName, broadcaster));
 	}
 
 	public Table get(String tableName) {
@@ -25,15 +25,15 @@ public class TableProvider {
 	}
 
 	public boolean tableWaitForPassword(String tableName) {
-		return tableNameExist(tableName) && !tableIsCreated(tableName);
+		return existTableName(tableName) && !isTableCreated(tableName);
 	}
 
-	public boolean tableIsCreated(String tableName) {
+	public boolean isTableCreated(String tableName) {
 		Table table = get(tableName);
-		return tableIsCreated(table);
+		return isTableCreated(table);
 	}
 
-	public boolean tableIsCreated(Table table) {
+	public boolean isTableCreated(Table table) {
 		return table != null && table.getPasswordHash() != null;
 	}
 
@@ -51,11 +51,12 @@ public class TableProvider {
 		return tableNameToTable.keySet();
 	}
 
-	void delete(String tableName) {
-		tableNameToTable.remove(tableName);
+	public void delete(Table table) {
+		table.delete();
+		tableNameToTable.remove(table.getTableName());
 	}
 
-	private boolean tableNameExist(String tableName) {
+	private boolean existTableName(String tableName) {
 		return tableNameToTable.containsKey(tableName);
 	}
 }
