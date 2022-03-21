@@ -26,7 +26,6 @@ public class Table {
 
 	private final String tableName;
 	private final Broadcaster broadcaster;
-	private final TableProvider tableProvider;
 	private final UserProvider userProvider;
 	private final Game game;
 
@@ -37,10 +36,9 @@ public class Table {
 	private int nextButtonClickCounter;
 	private Integer passwordHash;
 
-	Table(String tableName, Broadcaster broadcaster, TableProvider tableProvider) {
+	Table(String tableName, Broadcaster broadcaster) {
 		this.tableName = tableName;
 		this.broadcaster = broadcaster;
-		this.tableProvider = tableProvider;
 
 		userProvider = UserProvider.get(tableName);
 		game = Game.get(userProvider);
@@ -154,10 +152,9 @@ public class Table {
 		}
 	}
 
-	public void delete() {
+	void delete() {
 		game.delete();
 		userProvider.delete(tableName);
-		tableProvider.delete(tableName);
 	}
 
 	Integer getPasswordHash() {

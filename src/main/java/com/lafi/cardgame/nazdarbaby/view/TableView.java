@@ -193,7 +193,7 @@ public class TableView extends ParameterizedView {
 
 				if (value) {
 					if (tableHasLastOneLoggedInUser) {
-						table.delete();
+						tableProvider.delete(table);
 					} else {
 						table.tryStartNewGame();
 					}
