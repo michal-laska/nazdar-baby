@@ -24,7 +24,7 @@ public class TableProvider {
 	}
 
 	public boolean isTableCreated(Table table) {
-		return table != null && !table.isCorrectPasswordHash(null);
+		return table != null && !table.verifyPasswordHash(null);
 	}
 
 	public Set<String> getTableNames() {
