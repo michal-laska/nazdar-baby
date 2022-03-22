@@ -9,15 +9,11 @@ import com.lafi.cardgame.nazdarbaby.user.User;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 public final class Game {
-
-	private static final Map<UserProvider, Game> USER_PROVIDER_TO_GAME = new HashMap<>();
 
 	private final UserProvider userProvider;
 
@@ -35,16 +31,8 @@ public final class Game {
 	private boolean terminatorFlagsReseted;
 	private boolean gameInProgress;
 
-	private Game(UserProvider userProvider) {
+	Game(UserProvider userProvider) {
 		this.userProvider = userProvider;
-	}
-
-	static Game get(UserProvider userProvider) {
-		return USER_PROVIDER_TO_GAME.computeIfAbsent(userProvider, s -> new Game(userProvider));
-	}
-
-	public void delete() {
-		USER_PROVIDER_TO_GAME.remove(userProvider);
 	}
 
 	public List<User> getSetUsers() {
