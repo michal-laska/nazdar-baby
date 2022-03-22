@@ -77,19 +77,26 @@ public class BoardView extends ParameterizedView {
 		User currentUser = userProvider.getCurrentUser();
 		Game game = table.getGame();
 
-		if (currentUser == null) {
+		if (game.isGameInProgress()) {
+			removeAll();
+
+			addPointsHL();
+			HorizontalLayout cardPlaceholdersHL = getAndAddCardPlaceholdersHL();
+
+			List<User> playingUsers = userProvider.getPlayingUsers();
+
+			if (playingUsers.contains(currentUser)) {
+				addUserCardsHL(cardPlaceholdersHL);
+			} else {
+				//TODO add match counter
+			}
+		} else if (currentUser == null) {
 			removeAll();
 
 			Label nonExistentBoardLabel = new Label("Board '" + getTableName() + "' doesn't exist");
 			add(nonExistentBoardLabel);
 
 			UiUtil.createNavigationToTablesView(this);
-		} else if (game.isGameInProgress()) {
-			removeAll();
-
-			addPointsHL();
-			HorizontalLayout cardPlaceholdersHL = getAndAddCardPlaceholdersHL();
-			addUserCardsHL(cardPlaceholdersHL);
 		} else if (currentUser.isLoggedOut()) {
 			navigateToTablesView();
 		} else {

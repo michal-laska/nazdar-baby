@@ -246,28 +246,8 @@ public class TableView extends ParameterizedView {
 		Label gameInProgressLabel = new Label("Game in progress");
 		add(gameInProgressLabel);
 
-		Label joinLabel = new Label("Want to join - notify players");
-		Button notifyButton = new Button(NOTIFY_BUTTON_TEXT);
-
-		notifyButton.addClickListener(clickEvent -> {
-			table.setLastNotificationTimeToNow();
-
-			showGameInProgress();
-
-			UserProvider userProvider = table.getUserProvider();
-			User currentUser = userProvider.getCurrentUser();
-
-			String notificationMessage = currentUser == null ? "A new player" : "Player '" + currentUser + '\'';
-			notificationMessage += " would like to join";
-
-			broadcast(BoardView.class, notificationMessage);
-		});
-
-		HorizontalLayout redirectHorizontalLayout = new HorizontalLayout(joinLabel, notifyButton);
-		redirectHorizontalLayout.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
-		add(redirectHorizontalLayout);
-
-		disableNotifyButtonIfRequired(notifyButton);
+		addNotifyPossibility();
+		addSpectatePossibility();
 
 		UiUtil.createNavigationToTablesView(this);
 	}
@@ -284,6 +264,42 @@ public class TableView extends ParameterizedView {
 
 		CountdownCounter countdownCounter = createCountdownCounter(remainingDurationInSeconds, notifyButton);
 		countdownCounter.start();
+	}
+
+	private void addNotifyPossibility() {
+		Label notifyLabel = new Label("Want to join - notify players");
+		Button notifyButton = new Button(NOTIFY_BUTTON_TEXT);
+
+		HorizontalLayout redirectHL = new HorizontalLayout(notifyLabel, notifyButton);
+		redirectHL.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
+		add(redirectHL);
+
+		notifyButton.addClickListener(clickEvent -> {
+			table.setLastNotificationTimeToNow();
+
+			showGameInProgress();
+
+			UserProvider userProvider = table.getUserProvider();
+			User currentUser = userProvider.getCurrentUser();
+
+			String notificationMessage = currentUser == null ? "A new player" : "Player '" + currentUser + '\'';
+			notificationMessage += " would like to join";
+
+			broadcast(BoardView.class, notificationMessage);
+		});
+
+		disableNotifyButtonIfRequired(notifyButton);
+	}
+
+	private void addSpectatePossibility() {
+		Label spectateLabel = new Label("Want to spectate");
+		Button spectateButton = new Button("Spectate");
+
+		HorizontalLayout spectateHL = new HorizontalLayout(spectateLabel, spectateButton);
+		spectateHL.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
+		add(spectateHL);
+
+		spectateButton.addClickListener(clickEvent -> navigateToTable(BoardView.ROUTE_LOCATION));
 	}
 
 	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds, Button notifyButton) {
