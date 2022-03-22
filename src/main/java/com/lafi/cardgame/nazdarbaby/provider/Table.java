@@ -153,7 +153,7 @@ public class Table {
 		}
 	}
 
-	public boolean isCorrectPasswordHash(Integer passwordHash) {
+	public boolean verifyPasswordHash(Integer passwordHash) {
 		return Objects.equals(this.passwordHash, passwordHash);
 	}
 

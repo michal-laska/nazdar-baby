@@ -323,7 +323,7 @@ public class TableView extends ParameterizedView {
 
 	private void loginToTableAction(PasswordField passwordField) {
 		int passwordHash = passwordField.getValue().hashCode();
-		boolean passwordHashIsCorrect = table.isCorrectPasswordHash(passwordHash);
+		boolean passwordHashIsCorrect = table.verifyPasswordHash(passwordHash);
 
 		if (passwordHashIsCorrect) {
 			UserProvider userProvider = table.getUserProvider();
