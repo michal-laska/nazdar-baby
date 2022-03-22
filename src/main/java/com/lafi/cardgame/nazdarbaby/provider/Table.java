@@ -42,7 +42,7 @@ public class Table {
 		this.broadcaster = broadcaster;
 
 		userProvider = UserProvider.get(tableName);
-		game = Game.get(userProvider);
+		game = new Game(userProvider);
 
 		resetLastNotificationTime();
 	}
@@ -162,7 +162,6 @@ public class Table {
 	}
 
 	void delete() {
-		game.delete();
 		userProvider.delete(tableName);
 	}
 
