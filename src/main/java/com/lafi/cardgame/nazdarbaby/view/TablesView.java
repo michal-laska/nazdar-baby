@@ -66,7 +66,7 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 		Label joinTableLabel = new Label("Join table:");
 		add(joinTableLabel);
 
-		tableProvider.getTableNames().forEach(this::addTableToJoinIfCreated);
+		tableProvider.getTableNames().stream().sorted().forEach(this::addTableToJoinIfCreated);
 	}
 
 	private void addTableAction(TextField tableNameField) {

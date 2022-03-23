@@ -326,6 +326,7 @@ public class TableView extends ParameterizedView {
 		String password2 = confirmPasswordField.getValue();
 
 		if (password1.equals(password2)) {
+			tableProvider.add(table);
 			table.setPasswordHash(password1.hashCode());
 
 			UserProvider userProvider = table.getUserProvider();

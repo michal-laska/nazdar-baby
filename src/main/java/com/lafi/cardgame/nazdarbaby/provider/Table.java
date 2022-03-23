@@ -15,7 +15,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -35,7 +34,7 @@ public class Table {
 
 	private Instant lastNotificationTime;
 	private int nextButtonClickCounter;
-	private Integer passwordHash;
+	private int passwordHash;
 
 	Table(String tableName, Broadcaster broadcaster) {
 		this.tableName = tableName;
@@ -68,7 +67,7 @@ public class Table {
 	}
 
 	public boolean isPasswordProtected() {
-		return passwordHash != null && passwordHash != 0;
+		return passwordHash != 0;
 	}
 
 	public void addCountdownCheckbox(Checkbox countdownCheckbox) {
@@ -153,8 +152,8 @@ public class Table {
 		}
 	}
 
-	public boolean verifyPasswordHash(Integer passwordHash) {
-		return Objects.equals(this.passwordHash, passwordHash);
+	public boolean verifyPasswordHash(int passwordHash) {
+		return this.passwordHash == passwordHash;
 	}
 
 	public void setPasswordHash(int passwordHash) {
