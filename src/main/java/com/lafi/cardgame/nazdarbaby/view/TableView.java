@@ -71,7 +71,7 @@ public class TableView extends ParameterizedView {
 			if (currentUser == null || currentUser.isLoggedOut()) {
 				showGameInProgress();
 			} else {
-				navigateToTable(BoardView.ROUTE_LOCATION);
+				navigateToTableName(BoardView.ROUTE_LOCATION);
 			}
 		} else {
 			showUsers();
@@ -299,7 +299,7 @@ public class TableView extends ParameterizedView {
 		spectateHL.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
 		add(spectateHL);
 
-		spectateButton.addClickListener(clickEvent -> navigateToTable(BoardView.ROUTE_LOCATION));
+		spectateButton.addClickListener(clickEvent -> navigateToTableName(BoardView.ROUTE_LOCATION));
 	}
 
 	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds, Button notifyButton) {
