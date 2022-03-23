@@ -66,7 +66,7 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 		Label joinTableLabel = new Label("Join table:");
 		add(joinTableLabel);
 
-		tableProvider.getTableNames().stream().sorted().forEach(this::addTableToJoinIfCreated);
+		tableProvider.getTableNames().stream().sorted().forEach(this::showCreatedTables);
 	}
 
 	private void addTableAction(TextField tableNameField) {
@@ -84,12 +84,12 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 		navigate(TableView.ROUTE_LOCATION, tableName);
 	}
 
-	private void addTableToJoinIfCreated(String tableName) {
-		Table table = tableProvider.get(tableName);
-
-		if (!tableProvider.isTableCreated(table)) {
+	private void showCreatedTables(String tableName) {
+		if (!tableProvider.isTableCreated(tableName)) {
 			return;
 		}
+
+		Table table = tableProvider.get(tableName);
 
 		Button tableButton = new Button(tableName);
 		tableButton.setEnabled(!table.isFull());

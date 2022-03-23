@@ -53,7 +53,7 @@ public class TableView extends ParameterizedView {
 
 	@Override
 	void showView() {
-		if (!tableProvider.isTableCreated(table)) {
+		if (!tableProvider.isTableCreated(getTableName())) {
 			showCreatePassword();
 			return;
 		}
