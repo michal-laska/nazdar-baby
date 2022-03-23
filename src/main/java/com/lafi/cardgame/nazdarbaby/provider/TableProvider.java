@@ -22,10 +22,6 @@ public class TableProvider {
 		return tableNameToTable.get(tableName);
 	}
 
-	public boolean isTableCreated(Table table) {
-		return isTableCreated(table.getTableName());
-	}
-
 	public boolean isTableCreated(String tableName) {
 		return tableNameToTable.containsKey(tableName);
 	}
