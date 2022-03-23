@@ -18,10 +18,10 @@ import java.util.function.Consumer;
 @PreserveOnRefresh
 public abstract class VerticalLayoutWithBroadcast extends VerticalLayout implements BroadcastListener {
 
-	protected final Broadcaster broadcaster;
-	protected final TableProvider tableProvider;
+	protected final transient Broadcaster broadcaster;
+	protected final transient TableProvider tableProvider;
 
-	public VerticalLayoutWithBroadcast(Broadcaster broadcaster, TableProvider tableProvider) {
+	protected VerticalLayoutWithBroadcast(Broadcaster broadcaster, TableProvider tableProvider) {
 		this.broadcaster = broadcaster;
 		this.tableProvider = tableProvider;
 	}
@@ -34,7 +34,7 @@ public abstract class VerticalLayoutWithBroadcast extends VerticalLayout impleme
 		UiUtil.access(component, command);
 	}
 
-	public void navigateToTable(String locationPrefix) {
+	public void navigateToTableName(String locationPrefix) {
 		navigate(locationPrefix, getTableName());
 	}
 

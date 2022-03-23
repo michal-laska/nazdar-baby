@@ -66,7 +66,10 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 		Label joinTableLabel = new Label("Join table:");
 		add(joinTableLabel);
 
-		tableProvider.getTableNames().stream().sorted().forEach(this::showCreatedTables);
+		tableProvider.getTableNames().stream()
+				.filter(tableProvider::isTableCreated)
+				.sorted()
+				.forEach(this::showCreatedTables);
 	}
 
 	private void addTableAction(TextField tableNameField) {
@@ -85,10 +88,6 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 	}
 
 	private void showCreatedTables(String tableName) {
-		if (!tableProvider.isTableCreated(tableName)) {
-			return;
-		}
-
 		Table table = tableProvider.get(tableName);
 
 		Button tableButton = new Button(tableName);
