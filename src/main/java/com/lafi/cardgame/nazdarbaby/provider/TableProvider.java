@@ -11,20 +11,23 @@ public class TableProvider {
 	private final Map<String, Table> tableNameToTable = new ConcurrentHashMap<>();
 
 	public Table getOrCreate(String tableName, Broadcaster broadcaster) {
-		return tableNameToTable.computeIfAbsent(tableName, s -> new Table(tableName, broadcaster));
+		return tableNameToTable.getOrDefault(tableName, new Table(tableName, broadcaster));
+	}
+
+	public void add(Table table) {
+		tableNameToTable.put(table.getTableName(), table);
 	}
 
 	public Table get(String tableName) {
 		return tableNameToTable.get(tableName);
 	}
 
-	public boolean isTableCreated(String tableName) {
-		Table table = get(tableName);
-		return isTableCreated(table);
+	public boolean isTableCreated(Table table) {
+		return isTableCreated(table.getTableName());
 	}
 
-	public boolean isTableCreated(Table table) {
-		return table != null && !table.verifyPasswordHash(null);
+	public boolean isTableCreated(String tableName) {
+		return tableNameToTable.containsKey(tableName);
 	}
 
 	public Set<String> getTableNames() {
