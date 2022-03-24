@@ -83,12 +83,20 @@ public class BoardView extends ParameterizedView {
 			addPointsHL();
 			HorizontalLayout cardPlaceholdersHL = getAndAddCardPlaceholdersHL();
 
-			List<User> playingUsers = userProvider.getPlayingUsers();
+			List<User> matchUsers = game.getMatchUsers();
 
-			if (playingUsers.contains(currentUser)) {
+			if (matchUsers.contains(currentUser)) {
 				addUserCardsHL(cardPlaceholdersHL);
 			} else {
-				//TODO add match counter
+				List<Card> cards = matchUsers.get(0).getCards();
+				long round = cards.size() - getNumberOfCardsLeft(cards);
+
+				Label roundLabel = new Label("Round " + round + "/" + cards.size());
+				add(roundLabel);
+
+				if (game.setCanStart()) {
+					add(getGameTypeLabel());
+				}
 			}
 		} else if (currentUser == null) {
 			removeAll();
@@ -352,9 +360,9 @@ public class BoardView extends ParameterizedView {
 		Game game = table.getGame();
 
 		int sumOfExpectedTakes = game.getSumOfExpectedTakes();
-		int sumOfCards = game.getMatchUsers().get(0).getCards().size();
+		int numberOfCards = game.getMatchUsers().get(0).getCards().size();
 
-		return new Label(sumOfExpectedTakes + "/" + sumOfCards);
+		return new Label(sumOfExpectedTakes + "/" + numberOfCards);
 	}
 
 	private void addPointsHL() {
