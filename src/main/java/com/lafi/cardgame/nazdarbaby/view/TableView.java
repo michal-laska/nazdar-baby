@@ -105,7 +105,7 @@ public class TableView extends ParameterizedView {
 			UiUtil.invalidateFieldWithFocus(nameField, "Name cannot be blank");
 			return;
 		}
-		if (userProvider.usernameExist(userName)) {
+		if (userProvider.userNameExist(userName)) {
 			UiUtil.invalidateFieldWithFocus(nameField, "Name already exists");
 			return;
 		}

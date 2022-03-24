@@ -11,12 +11,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class UserProvider {
 
 	private final Map<VaadinSession, User> sessionToUser = new HashMap<>();
 	private final Set<VaadinSession> loggedInSessions = new HashSet<>();
-	private final Set<String> userNames = new HashSet<>();
 
 	private final SessionProvider sessionProvider;
 
@@ -29,7 +29,6 @@ public final class UserProvider {
 		User user = new User(userName);
 
 		sessionToUser.put(session, user);
-		userNames.add(userName);
 	}
 
 	public void logInCurrentSession() {
@@ -54,13 +53,14 @@ public final class UserProvider {
 	}
 
 	public List<User> getAllUsers() {
-		return sessionToUser.values().stream()
+		return getUserStream()
 				.sorted(Comparator.comparing(User::getName))
 				.collect(Collectors.toList());
 	}
 
-	public boolean usernameExist(String username) {
-		return userNames.contains(username);
+	public boolean userNameExist(String userName) {
+		return getUserStream()
+				.anyMatch(user -> user.getName().equals(userName));
 	}
 
 	public boolean arePlayingUsersReady() {
@@ -71,5 +71,9 @@ public final class UserProvider {
 		return getPlayingUsers().stream()
 				.filter(User::isReady)
 				.count();
+	}
+
+	private Stream<User> getUserStream() {
+		return sessionToUser.values().stream();
 	}
 }
