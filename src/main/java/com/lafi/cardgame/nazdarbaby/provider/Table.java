@@ -24,9 +24,9 @@ public class Table {
 	public static final int MAXIMUM_USERS = Collections.max(Points.NUMBER_OF_USERS_TO_WIN_MAP.keySet());
 	public static final int NOTIFICATION_DELAY_IN_MINUTES = 5;
 
+	private final UserProvider userProvider = new UserProvider();
 	private final String tableName;
 	private final Broadcaster broadcaster;
-	private final UserProvider userProvider;
 	private final Game game;
 
 	private final List<Checkbox> countdownCheckboxes = new ArrayList<>();
@@ -40,7 +40,6 @@ public class Table {
 		this.tableName = tableName;
 		this.broadcaster = broadcaster;
 
-		userProvider = UserProvider.get(tableName);
 		game = new Game(userProvider);
 
 		resetLastNotificationTime();
@@ -158,10 +157,6 @@ public class Table {
 
 	public void setPasswordHash(int passwordHash) {
 		this.passwordHash = passwordHash;
-	}
-
-	void delete() {
-		userProvider.delete(tableName);
 	}
 
 	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds, BroadcastListener listener) {

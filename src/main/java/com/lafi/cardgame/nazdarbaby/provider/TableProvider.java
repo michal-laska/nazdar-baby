@@ -31,7 +31,6 @@ public class TableProvider {
 	}
 
 	public void delete(Table table) {
-		table.delete();
 		tableNameToTable.remove(table.getTableName());
 	}
 }
