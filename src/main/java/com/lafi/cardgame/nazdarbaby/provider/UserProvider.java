@@ -14,17 +14,18 @@ import java.util.stream.Collectors;
 
 public final class UserProvider {
 
-	private static final SessionProvider SESSION_PROVIDER = SessionProvider.INSTANCE;
-
 	private final Map<VaadinSession, User> sessionToUser = new HashMap<>();
 	private final Set<VaadinSession> loggedInSessions = new HashSet<>();
 	private final Set<String> userNames = new HashSet<>();
 
-	UserProvider() {
+	private final SessionProvider sessionProvider;
+
+	UserProvider(SessionProvider sessionProvider) {
+		this.sessionProvider = sessionProvider;
 	}
 
 	public void addUser(String userName) {
-		VaadinSession session = SESSION_PROVIDER.getSession();
+		VaadinSession session = sessionProvider.getSession();
 		User user = new User(userName);
 
 		sessionToUser.put(session, user);
@@ -32,17 +33,17 @@ public final class UserProvider {
 	}
 
 	public void logInCurrentSession() {
-		VaadinSession session = SESSION_PROVIDER.getSession();
+		VaadinSession session = sessionProvider.getSession();
 		loggedInSessions.add(session);
 	}
 
 	public boolean isCurrentSessionLoggedIn() {
-		VaadinSession session = SESSION_PROVIDER.getSession();
+		VaadinSession session = sessionProvider.getSession();
 		return loggedInSessions.contains(session);
 	}
 
 	public User getCurrentUser() {
-		VaadinSession session = SESSION_PROVIDER.getSession();
+		VaadinSession session = sessionProvider.getSession();
 		return sessionToUser.get(session);
 	}
 
