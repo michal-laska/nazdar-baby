@@ -4,6 +4,7 @@ import com.lafi.cardgame.nazdarbaby.broadcast.BroadcastListener;
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.counter.CountdownCounter;
 import com.lafi.cardgame.nazdarbaby.points.Points;
+import com.lafi.cardgame.nazdarbaby.session.SessionProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
 import com.lafi.cardgame.nazdarbaby.util.TimeUtil;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
@@ -24,9 +25,9 @@ public class Table {
 	public static final int MAXIMUM_USERS = Collections.max(Points.NUMBER_OF_USERS_TO_WIN_MAP.keySet());
 	public static final int NOTIFICATION_DELAY_IN_MINUTES = 5;
 
-	private final UserProvider userProvider = new UserProvider();
 	private final String tableName;
 	private final Broadcaster broadcaster;
+	private final UserProvider userProvider;
 	private final Game game;
 
 	private final List<Checkbox> countdownCheckboxes = new ArrayList<>();
@@ -36,10 +37,11 @@ public class Table {
 	private int nextButtonClickCounter;
 	private int passwordHash;
 
-	Table(String tableName, Broadcaster broadcaster) {
+	Table(String tableName, Broadcaster broadcaster, SessionProvider sessionProvider) {
 		this.tableName = tableName;
 		this.broadcaster = broadcaster;
 
+		userProvider = new UserProvider(sessionProvider);
 		game = new Game(userProvider);
 
 		resetLastNotificationTime();

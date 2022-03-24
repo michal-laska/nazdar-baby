@@ -2,9 +2,7 @@ package com.lafi.cardgame.nazdarbaby.session;
 
 import com.vaadin.flow.server.VaadinSession;
 
-public enum SessionProvider {
-
-	INSTANCE;
+public class SessionProvider {
 
 	public VaadinSession getSession() {
 		VaadinSession session = VaadinSession.getCurrent();
