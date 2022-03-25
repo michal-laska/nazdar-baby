@@ -3,7 +3,7 @@ package com.lafi.cardgame.nazdarbaby.provider;
 import com.lafi.cardgame.nazdarbaby.broadcast.BroadcastListener;
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.counter.CountdownCounter;
-import com.lafi.cardgame.nazdarbaby.points.Points;
+import com.lafi.cardgame.nazdarbaby.points.PointProvider;
 import com.lafi.cardgame.nazdarbaby.session.SessionProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
 import com.lafi.cardgame.nazdarbaby.util.TimeUtil;
@@ -21,8 +21,8 @@ import java.util.concurrent.TimeUnit;
 
 public class Table {
 
-	public static final int MINIMUM_USERS = Collections.min(Points.NUMBER_OF_USERS_TO_WIN_MAP.keySet());
-	public static final int MAXIMUM_USERS = Collections.max(Points.NUMBER_OF_USERS_TO_WIN_MAP.keySet());
+	public static final int MINIMUM_USERS = Collections.min(PointProvider.NUMBER_OF_USERS_TO_WINNER_MAP.keySet());
+	public static final int MAXIMUM_USERS = Collections.max(PointProvider.NUMBER_OF_USERS_TO_WINNER_MAP.keySet());
 	public static final int NOTIFICATION_DELAY_IN_MINUTES = 5;
 
 	private final String tableName;
@@ -37,12 +37,12 @@ public class Table {
 	private int nextButtonClickCounter;
 	private int passwordHash;
 
-	Table(String tableName, Broadcaster broadcaster, SessionProvider sessionProvider) {
+	Table(String tableName, Broadcaster broadcaster, SessionProvider sessionProvider, PointProvider pointProvider) {
 		this.tableName = tableName;
 		this.broadcaster = broadcaster;
 
 		userProvider = new UserProvider(sessionProvider);
-		game = new Game(userProvider);
+		game = new Game(userProvider, pointProvider);
 
 		resetLastNotificationTime();
 	}
