@@ -24,7 +24,9 @@ import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -35,6 +37,8 @@ public class TableView extends ParameterizedView {
 
 	private static final String ENTER_PASSWORD_PLACEHOLDER = "Enter password";
 	private static final String NOTIFY_BUTTON_TEXT = "Notify";
+
+	private final Set<Button> notifyButtons = new HashSet<>();
 
 	private HorizontalLayout userNameHL;
 	private TextField nameField;
@@ -262,8 +266,11 @@ public class TableView extends ParameterizedView {
 
 		notifyButton.setEnabled(false);
 
-		CountdownCounter countdownCounter = createCountdownCounter(remainingDurationInSeconds, notifyButton);
-		countdownCounter.start();
+		notifyButtons.add(notifyButton);
+		if (notifyButtons.size() == 1) {
+			CountdownCounter countdownCounter = createCountdownCounter(remainingDurationInSeconds);
+			countdownCounter.start();
+		}
 	}
 
 	private void addNotifyPossibility() {
@@ -302,21 +309,24 @@ public class TableView extends ParameterizedView {
 		spectateButton.addClickListener(clickEvent -> navigateToTableName(BoardView.ROUTE_LOCATION));
 	}
 
-	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds, Button notifyButton) {
+	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds) {
 		return new CountdownCounter(remainingDurationInSeconds, broadcaster, this) {
 
 			@Override
 			public void eachRun() {
 				String newNotifyButtonText = NOTIFY_BUTTON_TEXT + getFormattedCountdown();
-				access(notifyButton, () -> notifyButton.setText(newNotifyButtonText));
+				notifyButtons.forEach(notifyButton ->
+						access(notifyButton, () -> notifyButton.setText(newNotifyButtonText)));
 			}
 
 			@Override
 			public void finalRun() {
-				access(notifyButton, () -> {
+				notifyButtons.forEach(notifyButton -> access(notifyButton, () -> {
 					notifyButton.setText(NOTIFY_BUTTON_TEXT);
 					notifyButton.setEnabled(true);
-				});
+				}));
+
+				notifyButtons.clear();
 			}
 		};
 	}
