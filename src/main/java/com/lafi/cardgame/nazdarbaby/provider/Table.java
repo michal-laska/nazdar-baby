@@ -10,12 +10,15 @@ import com.lafi.cardgame.nazdarbaby.util.TimeUtil;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
 import com.lafi.cardgame.nazdarbaby.view.BoardView;
 import com.lafi.cardgame.nazdarbaby.view.TableView;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -24,6 +27,9 @@ public class Table {
 	public static final int MINIMUM_USERS = Collections.min(PointProvider.NUMBER_OF_USERS_TO_WINNER_MAP.keySet());
 	public static final int MAXIMUM_USERS = Collections.max(PointProvider.NUMBER_OF_USERS_TO_WINNER_MAP.keySet());
 	public static final int NOTIFICATION_DELAY_IN_MINUTES = 5;
+
+	private final Set<Button> nextButtons = new HashSet<>();
+	private final Set<Button> notifyButtons = new HashSet<>();
 
 	private final String tableName;
 	private final Broadcaster broadcaster;
@@ -65,6 +71,14 @@ public class Table {
 
 	public void setLastNotificationTimeToNow() {
 		lastNotificationTime = Instant.now();
+	}
+
+	public Set<Button> getNextButtons() {
+		return nextButtons;
+	}
+
+	public Set<Button> getNotifyButtons() {
+		return notifyButtons;
 	}
 
 	public boolean isPasswordProtected() {

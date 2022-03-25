@@ -38,8 +38,6 @@ public class TableView extends ParameterizedView {
 	private static final String ENTER_PASSWORD_PLACEHOLDER = "Enter password";
 	private static final String NOTIFY_BUTTON_TEXT = "Notify";
 
-	private final Set<Button> notifyButtons = new HashSet<>();
-
 	private HorizontalLayout userNameHL;
 	private TextField nameField;
 
@@ -266,7 +264,9 @@ public class TableView extends ParameterizedView {
 
 		notifyButton.setEnabled(false);
 
+		Set<Button> notifyButtons = table.getNotifyButtons();
 		notifyButtons.add(notifyButton);
+
 		if (notifyButtons.size() == 1) {
 			CountdownCounter countdownCounter = createCountdownCounter(remainingDurationInSeconds);
 			countdownCounter.start();
@@ -310,6 +310,8 @@ public class TableView extends ParameterizedView {
 	}
 
 	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds) {
+		Set<Button> notifyButtons = table.getNotifyButtons();
+
 		return new CountdownCounter(remainingDurationInSeconds, broadcaster, this) {
 
 			@Override
