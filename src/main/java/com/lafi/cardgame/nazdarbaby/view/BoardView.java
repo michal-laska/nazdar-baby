@@ -555,14 +555,14 @@ public class BoardView extends ParameterizedView {
 		return new CountdownCounter(countdownInSeconds, broadcaster, this) {
 
 			@Override
-			public void eachRun() {
+			protected void eachRun() {
 				String nextButtonText = NEXT_BUTTON_TEXT + getFormattedCountdown();
 				nextButtons.forEach(nextButton ->
 						access(nextButton, () -> nextButton.setText(nextButtonText)));
 			}
 
 			@Override
-			public void finalRun() {
+			protected void finalRun() {
 				if (autoNext) {
 					nextButtons.forEach(nextButton -> access(nextButton, nextButton::click));
 				} else {
@@ -572,7 +572,7 @@ public class BoardView extends ParameterizedView {
 			}
 
 			@Override
-			protected void shutdownClearing() {
+			protected void shutdownCleaning() {
 				nextButtons.clear();
 			}
 		};

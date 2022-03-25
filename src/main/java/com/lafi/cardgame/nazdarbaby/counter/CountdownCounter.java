@@ -60,14 +60,14 @@ public abstract class CountdownCounter implements Runnable {
 		return DurationFormatUtils.formatDuration(countdownInMillis, format);
 	}
 
+	protected void shutdown() {
+		executorService.shutdown();
+		shutdownCleaning();
+	}
+
 	protected abstract void eachRun();
 
 	protected abstract void finalRun();
 
-	protected abstract void shutdownClearing();
-
-	private void shutdown() {
-		executorService.shutdown();
-		shutdownClearing();
-	}
+	protected abstract void shutdownCleaning();
 }

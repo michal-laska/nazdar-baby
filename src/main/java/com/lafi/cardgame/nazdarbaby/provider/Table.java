@@ -179,7 +179,7 @@ public class Table {
 		return new CountdownCounter(remainingDurationInSeconds, broadcaster, listener) {
 
 			@Override
-			public void eachRun() {
+			protected void eachRun() {
 				for (Checkbox countdownCheckbox : countdownCheckboxes) {
 					String label = countdownCheckbox.getLabel();
 					String[] splittedLabel = label.split(FORMATTED_COUNTDOWN_REGEX_SPLITTER);
@@ -191,7 +191,7 @@ public class Table {
 			}
 
 			@Override
-			public void finalRun() {
+			protected void finalRun() {
 				if (game.isGameInProgress()) {
 					stopCurrentGame();
 					broadcaster.broadcast(BoardView.class, tableName);
@@ -204,7 +204,7 @@ public class Table {
 			}
 
 			@Override
-			protected void shutdownClearing() {
+			protected void shutdownCleaning() {
 				// do nothing
 			}
 
