@@ -64,7 +64,10 @@ public abstract class CountdownCounter implements Runnable {
 
 	protected abstract void finalRun();
 
+	protected abstract void shutdownClearing();
+
 	private void shutdown() {
 		executorService.shutdown();
+		shutdownClearing();
 	}
 }

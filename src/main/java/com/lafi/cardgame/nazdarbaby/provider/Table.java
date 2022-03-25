@@ -203,6 +203,11 @@ public class Table {
 				broadcaster.broadcast(TableView.class, tableName);
 			}
 
+			@Override
+			protected void shutdownClearing() {
+				// do nothing
+			}
+
 			private void stopCurrentGame() {
 				game.getMatchUsers().stream()
 						.filter(user -> !user.isLoggedOut())

@@ -569,7 +569,10 @@ public class BoardView extends ParameterizedView {
 					nextButtons.forEach(nextButton ->
 							access(nextButton, () -> nextButton.setText(NEXT_BUTTON_TEXT)));
 				}
+			}
 
+			@Override
+			protected void shutdownClearing() {
 				nextButtons.clear();
 			}
 		};
