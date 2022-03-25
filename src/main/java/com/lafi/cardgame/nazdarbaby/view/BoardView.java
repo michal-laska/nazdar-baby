@@ -26,6 +26,7 @@ import com.vaadin.flow.router.Route;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -539,26 +540,37 @@ public class BoardView extends ParameterizedView {
 		Game game = table.getGame();
 		long countdownInSeconds = game.isEndOfSet() ? 2 * AUTO_NEXT_DELAY_IN_SECONDS : AUTO_NEXT_DELAY_IN_SECONDS;
 
-		CountdownCounter countdownCounter = createCountdownCounter(countdownInSeconds, nextButton);
-		countdownCounter.start();
+		Set<Button> nextButtons = table.getNextButtons();
+		nextButtons.add(nextButton);
+
+		if (nextButtons.size() == 1) {
+			CountdownCounter countdownCounter = createCountdownCounter(countdownInSeconds);
+			countdownCounter.start();
+		}
 	}
 
-	private CountdownCounter createCountdownCounter(long countdownInSeconds, Button nextButton) {
+	private CountdownCounter createCountdownCounter(long countdownInSeconds) {
+		Set<Button> nextButtons = table.getNextButtons();
+
 		return new CountdownCounter(countdownInSeconds, broadcaster, this) {
 
 			@Override
 			public void eachRun() {
 				String nextButtonText = NEXT_BUTTON_TEXT + getFormattedCountdown();
-				access(nextButton, () -> nextButton.setText(nextButtonText));
+				nextButtons.forEach(nextButton ->
+						access(nextButton, () -> nextButton.setText(nextButtonText)));
 			}
 
 			@Override
 			public void finalRun() {
 				if (autoNext) {
-					access(nextButton, nextButton::click);
+					nextButtons.forEach(nextButton -> access(nextButton, nextButton::click));
 				} else {
-					access(nextButton, () -> nextButton.setText(NEXT_BUTTON_TEXT));
+					nextButtons.forEach(nextButton ->
+							access(nextButton, () -> nextButton.setText(NEXT_BUTTON_TEXT)));
 				}
+
+				nextButtons.clear();
 			}
 		};
 	}
