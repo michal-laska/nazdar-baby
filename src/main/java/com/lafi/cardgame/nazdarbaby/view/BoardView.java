@@ -541,17 +541,18 @@ public class BoardView extends ParameterizedView {
 		long countdownInSeconds = game.isEndOfSet() ? 2 * AUTO_NEXT_DELAY_IN_SECONDS : AUTO_NEXT_DELAY_IN_SECONDS;
 
 		Set<Button> nextButtons = table.getNextButtons();
-		nextButtons.add(nextButton);
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
+		synchronized (nextButtons) {
+			nextButtons.add(nextButton);
 
-		if (nextButtons.size() == 1) {
-			CountdownCounter countdownCounter = createCountdownCounter(countdownInSeconds);
-			countdownCounter.start();
+			if (nextButtons.size() == 1) {
+				CountdownCounter countdownCounter = createCountdownCounter(countdownInSeconds, nextButtons);
+				countdownCounter.start();
+			}
 		}
 	}
 
-	private CountdownCounter createCountdownCounter(long countdownInSeconds) {
-		Set<Button> nextButtons = table.getNextButtons();
-
+	private CountdownCounter createCountdownCounter(long countdownInSeconds, Set<Button> nextButtons) {
 		return new CountdownCounter(countdownInSeconds, broadcaster, this) {
 
 			@Override

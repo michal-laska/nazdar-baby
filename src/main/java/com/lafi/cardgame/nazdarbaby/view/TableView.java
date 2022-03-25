@@ -264,11 +264,14 @@ public class TableView extends ParameterizedView {
 		notifyButton.setEnabled(false);
 
 		Set<Button> notifyButtons = table.getNotifyButtons();
-		notifyButtons.add(notifyButton);
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
+		synchronized (notifyButtons) {
+			notifyButtons.add(notifyButton);
 
-		if (notifyButtons.size() == 1) {
-			CountdownCounter countdownCounter = createCountdownCounter(remainingDurationInSeconds);
-			countdownCounter.start();
+			if (notifyButtons.size() == 1) {
+				CountdownCounter countdownCounter = createCountdownCounter(remainingDurationInSeconds, notifyButtons);
+				countdownCounter.start();
+			}
 		}
 	}
 
@@ -308,8 +311,7 @@ public class TableView extends ParameterizedView {
 		spectateButton.addClickListener(clickEvent -> navigateToTableName(BoardView.ROUTE_LOCATION));
 	}
 
-	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds) {
-		Set<Button> notifyButtons = table.getNotifyButtons();
+	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds, Set<Button> notifyButtons) {
 		Game game = table.getGame();
 
 		return new CountdownCounter(remainingDurationInSeconds, broadcaster, this) {
