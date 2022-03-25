@@ -310,18 +310,23 @@ public class TableView extends ParameterizedView {
 
 	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds) {
 		Set<Button> notifyButtons = table.getNotifyButtons();
+		Game game = table.getGame();
 
 		return new CountdownCounter(remainingDurationInSeconds, broadcaster, this) {
 
 			@Override
-			public void eachRun() {
+			protected void eachRun() {
 				String newNotifyButtonText = NOTIFY_BUTTON_TEXT + getFormattedCountdown();
 				notifyButtons.forEach(notifyButton ->
 						access(notifyButton, () -> notifyButton.setText(newNotifyButtonText)));
+
+				if (!game.isGameInProgress()) {
+					shutdown();
+				}
 			}
 
 			@Override
-			public void finalRun() {
+			protected void finalRun() {
 				notifyButtons.forEach(notifyButton -> access(notifyButton, () -> {
 					notifyButton.setText(NOTIFY_BUTTON_TEXT);
 					notifyButton.setEnabled(true);
@@ -329,7 +334,7 @@ public class TableView extends ParameterizedView {
 			}
 
 			@Override
-			protected void shutdownClearing() {
+			protected void shutdownCleaning() {
 				notifyButtons.clear();
 			}
 		};
