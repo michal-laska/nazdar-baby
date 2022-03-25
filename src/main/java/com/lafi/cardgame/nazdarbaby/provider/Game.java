@@ -4,7 +4,7 @@ import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.CardProvider;
 import com.lafi.cardgame.nazdarbaby.card.Color;
 import com.lafi.cardgame.nazdarbaby.exception.EndGameException;
-import com.lafi.cardgame.nazdarbaby.points.Points;
+import com.lafi.cardgame.nazdarbaby.points.PointProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
 
 import java.util.ArrayList;
@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 public final class Game {
 
 	private final UserProvider userProvider;
+	private final PointProvider pointProvider;
 
 	private List<User> gameUsers;
 	private List<User> setUsers;
@@ -31,8 +32,9 @@ public final class Game {
 	private boolean terminatorFlagsReseted;
 	private boolean gameInProgress;
 
-	Game(UserProvider userProvider) {
+	Game(UserProvider userProvider, PointProvider pointProvider) {
 		this.userProvider = userProvider;
+		this.pointProvider = pointProvider;
 	}
 
 	public List<User> getSetUsers() {
@@ -318,7 +320,7 @@ public final class Game {
 			}
 		}
 
-		float winPoints = Points.getWinPoints(setUsers.size(), winCount);
+		float winPoints = pointProvider.getWinnerPoints(setUsers.size(), winCount);
 		float losePoints = (winCount * winPoints) / -loseCount;
 
 		for (User user : setUsers) {

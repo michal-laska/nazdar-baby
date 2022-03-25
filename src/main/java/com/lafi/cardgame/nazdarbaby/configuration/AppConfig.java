@@ -1,6 +1,7 @@
 package com.lafi.cardgame.nazdarbaby.configuration;
 
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
+import com.lafi.cardgame.nazdarbaby.points.PointProvider;
 import com.lafi.cardgame.nazdarbaby.provider.TableProvider;
 import com.lafi.cardgame.nazdarbaby.session.SessionProvider;
 
@@ -16,12 +17,10 @@ public class AppConfig {
 	}
 
 	@Bean
-	public SessionProvider sessionProvider() {
-		return new SessionProvider();
-	}
-
-	@Bean
 	public TableProvider tableProvider() {
-		return new TableProvider(sessionProvider());
+		SessionProvider sessionProvider = new SessionProvider();
+		PointProvider pointProvider = new PointProvider();
+
+		return new TableProvider(sessionProvider, pointProvider);
 	}
 }
