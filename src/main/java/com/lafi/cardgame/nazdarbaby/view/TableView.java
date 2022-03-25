@@ -24,7 +24,6 @@ import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -327,7 +326,10 @@ public class TableView extends ParameterizedView {
 					notifyButton.setText(NOTIFY_BUTTON_TEXT);
 					notifyButton.setEnabled(true);
 				}));
+			}
 
+			@Override
+			protected void shutdownClearing() {
 				notifyButtons.clear();
 			}
 		};
