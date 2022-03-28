@@ -21,7 +21,7 @@ public abstract class CountdownCounter implements Runnable {
 
 	private long countdownInSeconds;
 
-	public CountdownCounter(long countdownInSeconds, Broadcaster broadcaster, BroadcastListener listener) {
+	protected CountdownCounter(long countdownInSeconds, Broadcaster broadcaster, BroadcastListener listener) {
 		this.countdownInSeconds = countdownInSeconds;
 		this.broadcaster = broadcaster;
 		this.listener = listener;
