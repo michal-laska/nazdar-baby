@@ -12,6 +12,7 @@ import com.lafi.cardgame.nazdarbaby.provider.UserProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
 import com.lafi.cardgame.nazdarbaby.util.Constant;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
+import com.vaadin.flow.component.HasStyle;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -511,6 +512,10 @@ public class BoardView extends ParameterizedView {
 				}
 			}
 		}
+
+		if (everybodyLost()) {
+			game.setEverybodyLost(true);
+		}
 	}
 
 	private void handleEndOfMatch(HorizontalLayout cardPlaceholdersHL, VerticalLayout autoNextVL) {
@@ -525,7 +530,9 @@ public class BoardView extends ParameterizedView {
 
 		Image yourTurnGif = getYourTurnGif();
 
-		if (autoNext) {
+		if (everybodyLost()) {
+			setNextButtonText(nextButton, "Next game");
+		} else if (autoNext) {
 			runAutoNextTimer(nextButton);
 		} else {
 			add(yourTurnGif);
@@ -537,19 +544,29 @@ public class BoardView extends ParameterizedView {
 	}
 
 	private void runAutoNextTimer(Button nextButton) {
-		Game game = table.getGame();
-		long countdownInSeconds = game.isEndOfSet() ? 2 * AUTO_NEXT_DELAY_IN_SECONDS : AUTO_NEXT_DELAY_IN_SECONDS;
-
-		Set<Button> nextButtons = table.getNextButtons();
-		//noinspection SynchronizationOnLocalVariableOrMethodParameter
-		synchronized (nextButtons) {
+		//noinspection SynchronizeOnNonFinalField
+		synchronized (table) {
+			Set<Button> nextButtons = table.getNextButtons();
 			nextButtons.add(nextButton);
 
 			if (nextButtons.size() == 1) {
+				Game game = table.getGame();
+				long countdownInSeconds = game.isEndOfSet() ? 2 * AUTO_NEXT_DELAY_IN_SECONDS : AUTO_NEXT_DELAY_IN_SECONDS;
+
 				CountdownCounter countdownCounter = createCountdownCounter(countdownInSeconds, nextButtons);
 				countdownCounter.start();
 			}
 		}
+	}
+
+	private boolean everybodyLost() {
+		return cardPlaceholderLabels.stream()
+				.map(HasStyle::getStyle)
+				.allMatch(style -> Constant.RED_COLOR.equals(style.get(Constant.COLOR_STYLE)));
+	}
+
+	private void setNextButtonText(Button nextButton, String text) {
+		access(nextButton, () -> nextButton.setText(text));
 	}
 
 	private CountdownCounter createCountdownCounter(long countdownInSeconds, Set<Button> nextButtons) {
@@ -558,8 +575,7 @@ public class BoardView extends ParameterizedView {
 			@Override
 			protected void eachRun() {
 				String nextButtonText = NEXT_BUTTON_TEXT + getFormattedCountdown();
-				nextButtons.forEach(nextButton ->
-						access(nextButton, () -> nextButton.setText(nextButtonText)));
+				setNextButtonsText(nextButtonText);
 			}
 
 			@Override
@@ -567,14 +583,17 @@ public class BoardView extends ParameterizedView {
 				if (autoNext) {
 					nextButtons.forEach(nextButton -> access(nextButton, nextButton::click));
 				} else {
-					nextButtons.forEach(nextButton ->
-							access(nextButton, () -> nextButton.setText(NEXT_BUTTON_TEXT)));
+					setNextButtonsText(NEXT_BUTTON_TEXT);
 				}
 			}
 
 			@Override
 			protected void shutdownCleaning() {
 				nextButtons.clear();
+			}
+
+			private void setNextButtonsText(String text) {
+				nextButtons.forEach(nextButton -> BoardView.this.setNextButtonText(nextButton, text));
 			}
 		};
 	}

@@ -263,9 +263,9 @@ public class TableView extends ParameterizedView {
 
 		notifyButton.setEnabled(false);
 
-		Set<Button> notifyButtons = table.getNotifyButtons();
-		//noinspection SynchronizationOnLocalVariableOrMethodParameter
-		synchronized (notifyButtons) {
+		//noinspection SynchronizeOnNonFinalField
+		synchronized (table) {
+			Set<Button> notifyButtons = table.getNotifyButtons();
 			notifyButtons.add(notifyButton);
 
 			if (notifyButtons.size() == 1) {
