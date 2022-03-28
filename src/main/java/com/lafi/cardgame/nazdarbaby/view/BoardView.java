@@ -531,7 +531,8 @@ public class BoardView extends ParameterizedView {
 		Image yourTurnGif = getYourTurnGif();
 
 		if (everybodyLost()) {
-			setNextButtonText(nextButton, "Next game");
+			nextButton.setText("Next game");
+			add(yourTurnGif);
 		} else if (autoNext) {
 			runAutoNextTimer(nextButton);
 		} else {
@@ -565,10 +566,6 @@ public class BoardView extends ParameterizedView {
 				.allMatch(style -> Constant.RED_COLOR.equals(style.get(Constant.COLOR_STYLE)));
 	}
 
-	private void setNextButtonText(Button nextButton, String text) {
-		access(nextButton, () -> nextButton.setText(text));
-	}
-
 	private CountdownCounter createCountdownCounter(long countdownInSeconds, Set<Button> nextButtons) {
 		return new CountdownCounter(countdownInSeconds, broadcaster, this) {
 
@@ -593,7 +590,8 @@ public class BoardView extends ParameterizedView {
 			}
 
 			private void setNextButtonsText(String text) {
-				nextButtons.forEach(nextButton -> BoardView.this.setNextButtonText(nextButton, text));
+				nextButtons.forEach(nextButton ->
+						access(nextButton, () -> nextButton.setText(text)));
 			}
 		};
 	}
