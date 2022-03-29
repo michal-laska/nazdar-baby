@@ -531,7 +531,7 @@ public class BoardView extends ParameterizedView {
 		Image yourTurnGif = getYourTurnGif();
 
 		if (everybodyLost() && !game.isEndOfSet()) {
-			nextButton.setText("Next set");
+			nextButton.setText("Next set - everybody lost");
 			add(yourTurnGif);
 		} else if (autoNext) {
 			runAutoNextTimer(nextButton);
