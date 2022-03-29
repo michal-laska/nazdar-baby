@@ -49,7 +49,7 @@ public class BoardView extends ParameterizedView {
 	public static final String BLUE_COLOR = "blue";
 	public static final String GREEN_COLOR = "green";
 
-	private static final String NEXT_BUTTON_TEXT = "Next";
+	private static final String NEXT_BUTTON_TEXT = "Next match";
 	private static final int AUTO_NEXT_DELAY_IN_SECONDS = 5;
 
 	private final List<Label> cardPlaceholderLabels = new ArrayList<>();
@@ -531,7 +531,7 @@ public class BoardView extends ParameterizedView {
 		Image yourTurnGif = getYourTurnGif();
 
 		if (everybodyLost() && !game.isEndOfSet()) {
-			nextButton.setText("Next game");
+			nextButton.setText("Next set");
 			add(yourTurnGif);
 		} else if (autoNext) {
 			runAutoNextTimer(nextButton);
