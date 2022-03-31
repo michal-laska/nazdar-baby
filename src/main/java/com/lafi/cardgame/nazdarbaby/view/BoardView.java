@@ -578,6 +578,11 @@ public class BoardView extends ParameterizedView {
 				}
 			}
 
+			@Override
+			protected boolean isCanceled() {
+				return !nextButton.isAttached();
+			}
+
 			private void setNextButtonsText(String text) {
 				access(nextButton, () -> nextButton.setText(text));
 			}
