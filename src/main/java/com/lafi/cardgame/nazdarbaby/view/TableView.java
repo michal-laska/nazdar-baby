@@ -1,8 +1,8 @@
 package com.lafi.cardgame.nazdarbaby.view;
 
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
-import com.lafi.cardgame.nazdarbaby.counter.CountdownService;
-import com.lafi.cardgame.nazdarbaby.counter.CountdownTask;
+import com.lafi.cardgame.nazdarbaby.countdown.CountdownService;
+import com.lafi.cardgame.nazdarbaby.countdown.CountdownTask;
 import com.lafi.cardgame.nazdarbaby.provider.Game;
 import com.lafi.cardgame.nazdarbaby.provider.Table;
 import com.lafi.cardgame.nazdarbaby.provider.TableProvider;
@@ -40,8 +40,8 @@ public class TableView extends ParameterizedView {
 	private HorizontalLayout userNameHL;
 	private TextField nameField;
 
-	public TableView(Broadcaster broadcaster, TableProvider tableProvider) {
-		super(broadcaster, tableProvider);
+	public TableView(Broadcaster broadcaster, TableProvider tableProvider, CountdownService countdownService) {
+		super(broadcaster, tableProvider, countdownService);
 	}
 
 	@Override
@@ -254,8 +254,7 @@ public class TableView extends ParameterizedView {
 	}
 
 	private void disableNotifyButtonIfRequired(Button notifyButton) {
-		long remainingDurationInSeconds = TimeUtil.getRemainingDurationInSeconds(
-				table.getLastNotificationTime(), Table.NOTIFICATION_DELAY_IN_MINUTES);
+		long remainingDurationInSeconds = TimeUtil.getRemainingDurationInSeconds(table.getLastNotificationTime(), Table.NOTIFICATION_DELAY_IN_MINUTES);
 
 		if (remainingDurationInSeconds <= 0) {
 			return;
@@ -264,7 +263,7 @@ public class TableView extends ParameterizedView {
 		notifyButton.setEnabled(false);
 
 		CountdownTask countdownTask = createCountdownTask(remainingDurationInSeconds, notifyButton);
-		CountdownService.INSTANCE.addCountdownCounter(countdownTask);
+		countdownService.addCountdownCounter(countdownTask);
 	}
 
 	private void addNotifyPossibility() {

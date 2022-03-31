@@ -2,8 +2,8 @@ package com.lafi.cardgame.nazdarbaby.provider;
 
 import com.lafi.cardgame.nazdarbaby.broadcast.BroadcastListener;
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
-import com.lafi.cardgame.nazdarbaby.counter.CountdownService;
-import com.lafi.cardgame.nazdarbaby.counter.CountdownTask;
+import com.lafi.cardgame.nazdarbaby.countdown.CountdownService;
+import com.lafi.cardgame.nazdarbaby.countdown.CountdownTask;
 import com.lafi.cardgame.nazdarbaby.points.PointProvider;
 import com.lafi.cardgame.nazdarbaby.session.SessionProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
@@ -26,6 +26,7 @@ public class Table {
 
 	private final String tableName;
 	private final Broadcaster broadcaster;
+	private final CountdownService countdownService;
 	private final UserProvider userProvider;
 	private final Game game;
 
@@ -34,9 +35,10 @@ public class Table {
 	private int nextButtonClickCounter;
 	private int passwordHash;
 
-	Table(String tableName, Broadcaster broadcaster, SessionProvider sessionProvider, PointProvider pointProvider) {
+	Table(String tableName, Broadcaster broadcaster, CountdownService countdownService, SessionProvider sessionProvider, PointProvider pointProvider) {
 		this.tableName = tableName;
 		this.broadcaster = broadcaster;
+		this.countdownService = countdownService;
 
 		userProvider = new UserProvider(sessionProvider);
 		game = new Game(userProvider, pointProvider);
@@ -75,7 +77,7 @@ public class Table {
 		long remainingDurationInSeconds = TimeUtil.getRemainingDurationInSeconds(lastNewGameTime, 1);
 
 		CountdownTask countdownTask = createCountdownTask(remainingDurationInSeconds, listener, countdownCheckbox);
-		CountdownService.INSTANCE.addCountdownCounter(countdownTask);
+		countdownService.addCountdownCounter(countdownTask);
 	}
 
 	public void stopNewGameCountdown() {

@@ -4,8 +4,8 @@ import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.CardProvider;
 import com.lafi.cardgame.nazdarbaby.card.Color;
-import com.lafi.cardgame.nazdarbaby.counter.CountdownService;
-import com.lafi.cardgame.nazdarbaby.counter.CountdownTask;
+import com.lafi.cardgame.nazdarbaby.countdown.CountdownService;
+import com.lafi.cardgame.nazdarbaby.countdown.CountdownTask;
 import com.lafi.cardgame.nazdarbaby.exception.EndGameException;
 import com.lafi.cardgame.nazdarbaby.provider.Game;
 import com.lafi.cardgame.nazdarbaby.provider.TableProvider;
@@ -58,8 +58,8 @@ public class BoardView extends ParameterizedView {
 	private boolean autoNext = true;
 	private Image preselectedCardImage;
 
-	public BoardView(Broadcaster broadcaster, TableProvider tableProvider) {
-		super(broadcaster, tableProvider);
+	public BoardView(Broadcaster broadcaster, TableProvider tableProvider, CountdownService countdownService) {
+		super(broadcaster, tableProvider, countdownService);
 	}
 
 	@Override
@@ -551,7 +551,7 @@ public class BoardView extends ParameterizedView {
 		long countdownInSeconds = game.isEndOfSet() ? 2 * AUTO_NEXT_DELAY_IN_SECONDS : AUTO_NEXT_DELAY_IN_SECONDS;
 
 		CountdownTask countdownTask = createCountdownTask(countdownInSeconds, nextButton);
-		CountdownService.INSTANCE.addCountdownCounter(countdownTask);
+		countdownService.addCountdownCounter(countdownTask);
 	}
 
 	private boolean everybodyLost() {
