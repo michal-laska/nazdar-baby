@@ -2,7 +2,8 @@ package com.lafi.cardgame.nazdarbaby.provider;
 
 import com.lafi.cardgame.nazdarbaby.broadcast.BroadcastListener;
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
-import com.lafi.cardgame.nazdarbaby.counter.CountdownCounter;
+import com.lafi.cardgame.nazdarbaby.counter.CountdownService;
+import com.lafi.cardgame.nazdarbaby.counter.CountdownTask;
 import com.lafi.cardgame.nazdarbaby.points.PointProvider;
 import com.lafi.cardgame.nazdarbaby.session.SessionProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
@@ -10,16 +11,11 @@ import com.lafi.cardgame.nazdarbaby.util.TimeUtil;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
 import com.lafi.cardgame.nazdarbaby.view.BoardView;
 import com.lafi.cardgame.nazdarbaby.view.TableView;
-import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class Table {
@@ -28,18 +24,13 @@ public class Table {
 	public static final int MAXIMUM_USERS = Collections.max(PointProvider.NUMBER_OF_USERS_TO_WINNER_MAP.keySet());
 	public static final int NOTIFICATION_DELAY_IN_MINUTES = 5;
 
-	private final Set<Button> nextButtons = new HashSet<>();
-	private final Set<Button> notifyButtons = new HashSet<>();
-
 	private final String tableName;
 	private final Broadcaster broadcaster;
 	private final UserProvider userProvider;
 	private final Game game;
 
-	private final List<Checkbox> countdownCheckboxes = new ArrayList<>();
-	private ExecutorService newGameExecutorService;
-
 	private Instant lastNotificationTime;
+	private Instant lastNewGameTime;
 	private int nextButtonClickCounter;
 	private int passwordHash;
 
@@ -73,48 +64,22 @@ public class Table {
 		lastNotificationTime = Instant.now();
 	}
 
-	public Set<Button> getNextButtons() {
-		return nextButtons;
-	}
-
-	public Set<Button> getNotifyButtons() {
-		return notifyButtons;
-	}
-
 	public boolean isPasswordProtected() {
 		return passwordHash != 0;
 	}
 
-	public void addCountdownCheckbox(Checkbox countdownCheckbox) {
-		if (!isNewGameCountdownRunning()) {
-			return;
+	public void addCountdownCheckbox(BroadcastListener listener, Checkbox countdownCheckbox) {
+		if (lastNewGameTime == null) {
+			lastNewGameTime = Instant.now();
 		}
+		long remainingDurationInSeconds = TimeUtil.getRemainingDurationInSeconds(lastNewGameTime, 1);
 
-		List<User> users = game.isGameInProgress() ? game.getMatchUsers() : userProvider.getPlayingUsers();
-		if (countdownCheckboxes.size() == users.size()) {
-			countdownCheckboxes.remove(0);
-		}
-
-		countdownCheckboxes.add(countdownCheckbox);
-	}
-
-	public void startNewGameCountdown(BroadcastListener listener) {
-		if (isNewGameCountdownRunning()) {
-			return;
-		}
-
-		countdownCheckboxes.clear();
-
-		long remainingDurationInSeconds = TimeUtil.getRemainingDurationInSeconds(1);
-
-		CountdownCounter countdownCounter = createCountdownCounter(remainingDurationInSeconds, listener);
-		newGameExecutorService = countdownCounter.start();
+		CountdownTask countdownTask = createCountdownTask(remainingDurationInSeconds, listener, countdownCheckbox);
+		CountdownService.INSTANCE.addCountdownCounter(countdownTask);
 	}
 
 	public void stopNewGameCountdown() {
-		if (newGameExecutorService != null) {
-			newGameExecutorService.shutdown();
-		}
+		lastNewGameTime = null;
 
 		if (game.isGameInProgress()) {
 			game.getMatchUsers().forEach(User::resetAction);
@@ -122,11 +87,7 @@ public class Table {
 		}
 	}
 
-	public boolean isNewGameCountdownRunning() {
-		return newGameExecutorService != null && !newGameExecutorService.isShutdown();
-	}
-
-	public boolean increaseAndCheckNextButtonClickCounter() {
+	public boolean allNextButtonsWereClicked() {
 		return ++nextButtonClickCounter % game.getMatchUsers().size() == 0;
 	}
 
@@ -175,19 +136,17 @@ public class Table {
 		this.passwordHash = passwordHash;
 	}
 
-	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds, BroadcastListener listener) {
-		return new CountdownCounter(remainingDurationInSeconds, broadcaster, listener) {
+	private CountdownTask createCountdownTask(long remainingDurationInSeconds, BroadcastListener listener, Checkbox countdownCheckbox) {
+		return new CountdownTask(remainingDurationInSeconds, broadcaster, listener) {
 
 			@Override
 			protected void eachRun() {
-				for (Checkbox countdownCheckbox : countdownCheckboxes) {
-					String label = countdownCheckbox.getLabel();
-					String[] splittedLabel = label.split(FORMATTED_COUNTDOWN_REGEX_SPLITTER);
-					String originalLabel = splittedLabel[0];
+				String label = countdownCheckbox.getLabel();
+				String[] splittedLabel = label.split(FORMATTED_COUNTDOWN_REGEX_SPLITTER);
+				String originalLabel = splittedLabel[0];
 
-					String newLabel = originalLabel + getFormattedCountdown();
-					UiUtil.access(countdownCheckbox, () -> countdownCheckbox.setLabel(newLabel));
-				}
+				String newLabel = originalLabel + getFormattedCountdown();
+				UiUtil.access(countdownCheckbox, () -> countdownCheckbox.setLabel(newLabel));
 			}
 
 			@Override
@@ -204,8 +163,8 @@ public class Table {
 			}
 
 			@Override
-			protected void shutdownCleaning() {
-				// do nothing
+			protected boolean isCanceled() {
+				return lastNewGameTime == null;
 			}
 
 			private void stopCurrentGame() {
