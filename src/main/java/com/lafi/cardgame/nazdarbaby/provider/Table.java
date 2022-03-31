@@ -77,7 +77,7 @@ public class Table {
 		long remainingDurationInSeconds = TimeUtil.getRemainingDurationInSeconds(lastNewGameTime, 1);
 
 		CountdownTask countdownTask = createCountdownTask(remainingDurationInSeconds, listener, countdownCheckbox);
-		countdownService.addCountdownCounter(countdownTask);
+		countdownService.addCountdownTask(countdownTask);
 	}
 
 	public void stopNewGameCountdown() {

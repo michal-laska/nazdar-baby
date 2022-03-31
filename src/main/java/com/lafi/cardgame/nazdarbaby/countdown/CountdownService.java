@@ -10,43 +10,50 @@ import java.util.concurrent.TimeUnit;
 
 public class CountdownService implements Runnable {
 
-	private final Map<BroadcastListener, CountdownTask> listenerToCounter = new ConcurrentHashMap<>();
+	private final Map<BroadcastListener, CountdownTask> listenerToTask = new ConcurrentHashMap<>();
+
 	private ScheduledExecutorService executorService;
 
 	@Override
 	public void run() {
-		for (CountdownTask countdownTask : listenerToCounter.values()) {
+		for (CountdownTask countdownTask : listenerToTask.values()) {
 			if (countdownTask.isCanceled()) {
-				removeCountdownCounter(countdownTask);
+				removeCountdownTask(countdownTask);
 			} else {
 				countdownTask.eachRun();
 
 				if (countdownTask.decreaseAndGet() < 0) {
 					countdownTask.finalRun();
-					removeCountdownCounter(countdownTask);
+					removeCountdownTask(countdownTask);
 				} else if (!countdownTask.isListening()) {
-					removeCountdownCounter(countdownTask);
+					removeCountdownTask(countdownTask);
 				}
 			}
 		}
 	}
 
-	public synchronized void addCountdownCounter(CountdownTask countdownTask) {
-		listenerToCounter.put(countdownTask.getListener(), countdownTask);
+	public void addCountdownTask(CountdownTask countdownTask) {
+		listenerToTask.put(countdownTask.getListener(), countdownTask);
 
 		if (executorService == null) {
-			executorService = Executors.newSingleThreadScheduledExecutor();
-			executorService.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
+			startCountdown();
 		}
 	}
 
-	private void removeCountdownCounter(CountdownTask countdownTask) {
+	private void removeCountdownTask(CountdownTask countdownTask) {
 		BroadcastListener broadcastListener = countdownTask.getListener();
-		listenerToCounter.remove(broadcastListener);
+		listenerToTask.remove(broadcastListener);
 
-		if (listenerToCounter.isEmpty()) {
+		if (listenerToTask.isEmpty()) {
 			executorService.shutdown();
 			executorService = null;
+		}
+	}
+
+	private synchronized void startCountdown() {
+		if (executorService == null) {
+			executorService = Executors.newSingleThreadScheduledExecutor();
+			executorService.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
 		}
 	}
 }
