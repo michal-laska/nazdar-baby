@@ -1,4 +1,4 @@
-package com.lafi.cardgame.nazdarbaby.counter;
+package com.lafi.cardgame.nazdarbaby.countdown;
 
 import com.lafi.cardgame.nazdarbaby.broadcast.BroadcastListener;
 
@@ -8,9 +8,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public enum CountdownService implements Runnable {
-
-	INSTANCE;
+public class CountdownService implements Runnable {
 
 	private final Map<BroadcastListener, CountdownTask> listenerToCounter = new ConcurrentHashMap<>();
 	private ScheduledExecutorService executorService;

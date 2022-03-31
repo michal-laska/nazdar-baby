@@ -1,6 +1,7 @@
 package com.lafi.cardgame.nazdarbaby.provider;
 
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
+import com.lafi.cardgame.nazdarbaby.countdown.CountdownService;
 import com.lafi.cardgame.nazdarbaby.points.PointProvider;
 import com.lafi.cardgame.nazdarbaby.session.SessionProvider;
 
@@ -19,8 +20,8 @@ public class TableProvider {
 		this.pointProvider = pointProvider;
 	}
 
-	public Table getOrCreate(String tableName, Broadcaster broadcaster) {
-		return tableNameToTable.getOrDefault(tableName, new Table(tableName, broadcaster, sessionProvider, pointProvider));
+	public Table getOrCreate(String tableName, Broadcaster broadcaster, CountdownService countdownService) {
+		return tableNameToTable.getOrDefault(tableName, new Table(tableName, broadcaster, countdownService, sessionProvider, pointProvider));
 	}
 
 	public void add(Table table) {

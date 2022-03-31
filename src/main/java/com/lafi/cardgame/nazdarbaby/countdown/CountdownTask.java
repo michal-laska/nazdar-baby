@@ -1,4 +1,4 @@
-package com.lafi.cardgame.nazdarbaby.counter;
+package com.lafi.cardgame.nazdarbaby.countdown;
 
 import com.lafi.cardgame.nazdarbaby.broadcast.BroadcastListener;
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
