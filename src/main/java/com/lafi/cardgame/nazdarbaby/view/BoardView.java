@@ -4,7 +4,8 @@ import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.CardProvider;
 import com.lafi.cardgame.nazdarbaby.card.Color;
-import com.lafi.cardgame.nazdarbaby.counter.CountdownCounter;
+import com.lafi.cardgame.nazdarbaby.counter.CountdownService;
+import com.lafi.cardgame.nazdarbaby.counter.CountdownTask;
 import com.lafi.cardgame.nazdarbaby.exception.EndGameException;
 import com.lafi.cardgame.nazdarbaby.provider.Game;
 import com.lafi.cardgame.nazdarbaby.provider.TableProvider;
@@ -27,7 +28,6 @@ import com.vaadin.flow.router.Route;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -375,6 +375,9 @@ public class BoardView extends ParameterizedView {
 		Game game = table.getGame();
 		UserProvider userProvider = table.getUserProvider();
 		User currentUser = userProvider.getCurrentUser();
+
+		boolean newGameOrLogout = game.getSetUsers().stream().anyMatch(setUser -> setUser.wantNewGame() || setUser.isLoggedOut());
+
 		for (User user : game.getSetUsers()) {
 			VerticalLayout pointsVL = new VerticalLayout();
 			pointsVL.setDefaultHorizontalComponentAlignment(Alignment.CENTER);
@@ -398,15 +401,15 @@ public class BoardView extends ParameterizedView {
 
 			if (user.isLoggedOut()) {
 				newGameCheckbox.setLabel(Constant.LOGOUT_LABEL);
-			} else if (user.wantNewGame() || table.isNewGameCountdownRunning()) {
+			} else if (user.wantNewGame()) {
 				newGameCheckbox.setLabel(NEW_GAME_LABEL);
 			} else {
 				String newGameCheckboxLabel = NEW_GAME_LABEL + " / " + Constant.LOGOUT_LABEL;
 				newGameCheckbox.setLabel(newGameCheckboxLabel);
 			}
 
-			if (isCurrentUser) {
-				table.addCountdownCheckbox(newGameCheckbox);
+			if (isCurrentUser && newGameOrLogout) {
+				table.addCountdownCheckbox(this, newGameCheckbox);
 			}
 
 			newGameCheckbox.addClickListener(click -> {
@@ -422,7 +425,6 @@ public class BoardView extends ParameterizedView {
 					user.setLoggedOut(true);
 				} else if (Boolean.TRUE.equals(newGameCheckbox.getValue())) {
 					user.setNewGame(true);
-					table.startNewGameCountdown(this);
 				} else {
 					user.resetAction();
 					table.stopNewGameCountdown();
@@ -545,19 +547,11 @@ public class BoardView extends ParameterizedView {
 	}
 
 	private void runAutoNextTimer(Button nextButton) {
-		//noinspection SynchronizeOnNonFinalField
-		synchronized (table) {
-			Set<Button> nextButtons = table.getNextButtons();
-			nextButtons.add(nextButton);
+		Game game = table.getGame();
+		long countdownInSeconds = game.isEndOfSet() ? 2 * AUTO_NEXT_DELAY_IN_SECONDS : AUTO_NEXT_DELAY_IN_SECONDS;
 
-			if (nextButtons.size() == 1) {
-				Game game = table.getGame();
-				long countdownInSeconds = game.isEndOfSet() ? 2 * AUTO_NEXT_DELAY_IN_SECONDS : AUTO_NEXT_DELAY_IN_SECONDS;
-
-				CountdownCounter countdownCounter = createCountdownCounter(countdownInSeconds, nextButtons);
-				countdownCounter.start();
-			}
-		}
+		CountdownTask countdownTask = createCountdownTask(countdownInSeconds, nextButton);
+		CountdownService.INSTANCE.addCountdownCounter(countdownTask);
 	}
 
 	private boolean everybodyLost() {
@@ -566,8 +560,8 @@ public class BoardView extends ParameterizedView {
 				.allMatch(style -> Constant.RED_COLOR.equals(style.get(Constant.COLOR_STYLE)));
 	}
 
-	private CountdownCounter createCountdownCounter(long countdownInSeconds, Set<Button> nextButtons) {
-		return new CountdownCounter(countdownInSeconds, broadcaster, this) {
+	private CountdownTask createCountdownTask(long countdownInSeconds, Button nextButton) {
+		return new CountdownTask(countdownInSeconds, broadcaster, this) {
 
 			@Override
 			protected void eachRun() {
@@ -578,20 +572,14 @@ public class BoardView extends ParameterizedView {
 			@Override
 			protected void finalRun() {
 				if (autoNext) {
-					nextButtons.forEach(nextButton -> access(nextButton, nextButton::click));
+					access(nextButton, nextButton::click);
 				} else {
 					setNextButtonsText(NEXT_BUTTON_TEXT);
 				}
 			}
 
-			@Override
-			protected void shutdownCleaning() {
-				nextButtons.clear();
-			}
-
 			private void setNextButtonsText(String text) {
-				nextButtons.forEach(nextButton ->
-						access(nextButton, () -> nextButton.setText(text)));
+				access(nextButton, () -> nextButton.setText(text));
 			}
 		};
 	}
@@ -603,7 +591,7 @@ public class BoardView extends ParameterizedView {
 			remove(yourTurnGif);
 
 			Game game = table.getGame();
-			if (table.increaseAndCheckNextButtonClickCounter()) {
+			if (table.allNextButtonsWereClicked()) {
 				try {
 					game.changeActiveUser();
 				} catch (EndGameException e) {

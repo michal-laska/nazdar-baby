@@ -1,7 +1,8 @@
 package com.lafi.cardgame.nazdarbaby.view;
 
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
-import com.lafi.cardgame.nazdarbaby.counter.CountdownCounter;
+import com.lafi.cardgame.nazdarbaby.counter.CountdownService;
+import com.lafi.cardgame.nazdarbaby.counter.CountdownTask;
 import com.lafi.cardgame.nazdarbaby.provider.Game;
 import com.lafi.cardgame.nazdarbaby.provider.Table;
 import com.lafi.cardgame.nazdarbaby.provider.TableProvider;
@@ -25,7 +26,6 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
 
 import java.util.List;
-import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -159,9 +159,7 @@ public class TableView extends ParameterizedView {
 				boolean value = readyCheckbox.getValue();
 				user.setReady(value);
 
-				if (userProvider.getReadyUsersCount() >= Table.MINIMUM_USERS) {
-					table.startNewGameCountdown(this);
-				} else {
+				if (userProvider.getReadyUsersCount() < Table.MINIMUM_USERS) {
 					table.stopNewGameCountdown();
 				}
 
@@ -219,10 +217,12 @@ public class TableView extends ParameterizedView {
 					} else if (numberOfPlayingUsers > Table.MAXIMUM_USERS) {
 						Notification.show("Maximum number of players is " + Table.MAXIMUM_USERS);
 					}
-				} else if (user.isReady()) {
-					table.addCountdownCheckbox(readyCheckbox);
-				} else {
-					table.addCountdownCheckbox(logoutCheckbox);
+				} else if (userProvider.getReadyUsersCount() >= Table.MINIMUM_USERS) {
+					if (user.isReady()) {
+						table.addCountdownCheckbox(this, readyCheckbox);
+					} else {
+						table.addCountdownCheckbox(this, logoutCheckbox);
+					}
 				}
 			}
 		}
@@ -263,16 +263,8 @@ public class TableView extends ParameterizedView {
 
 		notifyButton.setEnabled(false);
 
-		//noinspection SynchronizeOnNonFinalField
-		synchronized (table) {
-			Set<Button> notifyButtons = table.getNotifyButtons();
-			notifyButtons.add(notifyButton);
-
-			if (notifyButtons.size() == 1) {
-				CountdownCounter countdownCounter = createCountdownCounter(remainingDurationInSeconds, notifyButtons);
-				countdownCounter.start();
-			}
-		}
+		CountdownTask countdownTask = createCountdownTask(remainingDurationInSeconds, notifyButton);
+		CountdownService.INSTANCE.addCountdownCounter(countdownTask);
 	}
 
 	private void addNotifyPossibility() {
@@ -311,32 +303,27 @@ public class TableView extends ParameterizedView {
 		spectateButton.addClickListener(clickEvent -> navigateToTableName(BoardView.ROUTE_LOCATION));
 	}
 
-	private CountdownCounter createCountdownCounter(long remainingDurationInSeconds, Set<Button> notifyButtons) {
-		return new CountdownCounter(remainingDurationInSeconds, broadcaster, this) {
+	private CountdownTask createCountdownTask(long remainingDurationInSeconds, Button notifyButton) {
+		return new CountdownTask(remainingDurationInSeconds, broadcaster, this) {
 
 			@Override
 			protected void eachRun() {
 				String newNotifyButtonText = NOTIFY_BUTTON_TEXT + getFormattedCountdown();
-				notifyButtons.forEach(notifyButton ->
-						access(notifyButton, () -> notifyButton.setText(newNotifyButtonText)));
-
-				Game game = table.getGame();
-				if (!game.isGameInProgress()) {
-					shutdown();
-				}
+				access(notifyButton, () -> notifyButton.setText(newNotifyButtonText));
 			}
 
 			@Override
 			protected void finalRun() {
-				notifyButtons.forEach(notifyButton -> access(notifyButton, () -> {
+				access(notifyButton, () -> {
 					notifyButton.setText(NOTIFY_BUTTON_TEXT);
 					notifyButton.setEnabled(true);
-				}));
+				});
 			}
 
 			@Override
-			protected void shutdownCleaning() {
-				notifyButtons.clear();
+			protected boolean isCanceled() {
+				Game game = table.getGame();
+				return !game.isGameInProgress();
 			}
 		};
 	}
