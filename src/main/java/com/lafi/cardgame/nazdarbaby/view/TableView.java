@@ -263,7 +263,7 @@ public class TableView extends ParameterizedView {
 		notifyButton.setEnabled(false);
 
 		CountdownTask countdownTask = createCountdownTask(remainingDurationInSeconds, notifyButton);
-		countdownService.addCountdownCounter(countdownTask);
+		countdownService.addCountdownTask(countdownTask);
 	}
 
 	private void addNotifyPossibility() {

@@ -551,7 +551,7 @@ public class BoardView extends ParameterizedView {
 		long countdownInSeconds = game.isEndOfSet() ? 2 * AUTO_NEXT_DELAY_IN_SECONDS : AUTO_NEXT_DELAY_IN_SECONDS;
 
 		CountdownTask countdownTask = createCountdownTask(countdownInSeconds, nextButton);
-		countdownService.addCountdownCounter(countdownTask);
+		countdownService.addCountdownTask(countdownTask);
 	}
 
 	private boolean everybodyLost() {
