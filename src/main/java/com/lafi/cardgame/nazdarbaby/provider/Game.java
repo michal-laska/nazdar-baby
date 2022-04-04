@@ -105,6 +105,8 @@ public final class Game {
 			calculatePoints();
 		} else {
 			activeUser = matchUsers.get(activeUserIndex);
+
+			setExpectedTakesForBot();
 		}
 	}
 
@@ -310,6 +312,8 @@ public final class Game {
 			user.resetActualTakes();
 			user.resetLastAddedPoints();
 		}
+
+		setExpectedTakesForBot();
 	}
 
 	private void calculatePoints() {
@@ -333,6 +337,18 @@ public final class Game {
 		for (User user : setUsers) {
 			float points = user.isWinner() ? winPoints : losePoints;
 			user.addPoints(points);
+		}
+	}
+
+	private void setExpectedTakesForBot() {
+		if (activeUser.isBot()) {
+			activeUser.setExpectedTakes(1); //TODO implement logic
+
+			if (isLastUser()) {
+				resetActiveUser();
+			} else {
+				changeActiveUser();
+			}
 		}
 	}
 }

@@ -133,7 +133,9 @@ public class TableView extends ParameterizedView {
 		H2 playersH2 = new H2("Players:");
 		add(playersH2);
 
-		for (User user : userProvider.getAllUsers()) {
+		List<User> allUsers = userProvider.getAllUsers();
+
+		for (User user : allUsers) {
 			boolean isCurrentUser = user.equals(currentUser);
 
 			if (isCurrentUser && user.isLoggedOut()) {
@@ -144,66 +146,34 @@ public class TableView extends ParameterizedView {
 			}
 		}
 
-		for (User user : userProvider.getAllUsers()) {
+		for (User user : allUsers) {
 			Label userName = new Label(user.getName());
 
 			if (user.isLoggedOut()) {
 				userName.getStyle().set("text-decoration", "line-through");
 			}
 
-			boolean isCurrentUser = user.equals(currentUser);
-
-			Checkbox readyCheckbox = new Checkbox("Ready", user.isReady());
-			readyCheckbox.setEnabled(isCurrentUser);
-			readyCheckbox.addClickListener(event -> {
-				boolean value = readyCheckbox.getValue();
-				user.setReady(value);
-
-				if (userProvider.getReadyUsersCount() < Table.MINIMUM_USERS) {
-					table.stopNewGameCountdown();
-				}
-
-				if (value) {
-					table.tryStartNewGame();
-				}
-
-				broadcast();
-			});
-
-			Checkbox logoutCheckbox = new Checkbox(Constant.LOGOUT_LABEL, user.isLoggedOut());
-			logoutCheckbox.setEnabled(isCurrentUser);
-
-			boolean tableHasLastOneLoggedInUser = userProvider.getPlayingUsers().size() == 1;
-
-			if (isCurrentUser && !user.isLoggedOut() && tableHasLastOneLoggedInUser) {
-				logoutCheckbox.setLabel(logoutCheckbox.getLabel() + " and delete table");
-				logoutCheckbox.getStyle().set(Constant.COLOR_STYLE, Constant.RED_COLOR);
-			}
-
-			logoutCheckbox.addClickListener(event -> {
-				boolean value = logoutCheckbox.getValue();
-				user.setLoggedOut(value);
-
-				if (userProvider.getReadyUsersCount() < Table.MINIMUM_USERS) {
-					table.stopNewGameCountdown();
-				}
-
-				if (value) {
-					if (tableHasLastOneLoggedInUser) {
-						tableProvider.delete(table);
-					} else {
-						table.tryStartNewGame();
-					}
-
-					navigateToTablesView();
-				}
-
-				broadcast();
-			});
-
 			Label userPoints = new Label("(" + user.getPoints() + Constant.POINTS_LABEL + ')');
 
-			HorizontalLayout horizontalLayout = new HorizontalLayout(userName, userPoints, readyCheckbox, logoutCheckbox);
+			boolean isCurrentUser = user.equals(currentUser);
+
+			Checkbox readyCheckbox = createReadyCheckbox(user, isCurrentUser);
+			Checkbox logoutCheckbox = createLogoutCheckbox(user, isCurrentUser);
+
+			HorizontalLayout horizontalLayout;
+			if (user.isBot()) {
+				Button removeButton = new Button("Remove");
+				horizontalLayout = new HorizontalLayout(userName, userPoints, removeButton);
+
+				removeButton.addClickListener(event -> {
+					userProvider.removeBot(user);
+					table.tryStartNewGame();
+					broadcast();
+				});
+			} else {
+				horizontalLayout = new HorizontalLayout(userName, userPoints, readyCheckbox, logoutCheckbox);
+			}
+
 			horizontalLayout.setDefaultVerticalComponentAlignment(Alignment.CENTER);
 			add(horizontalLayout);
 
@@ -226,6 +196,77 @@ public class TableView extends ParameterizedView {
 				}
 			}
 		}
+
+		if (currentUser != null) {
+			Button addBotButton = new Button("Add bot");
+			add(addBotButton);
+
+			addBotButton.addClickListener(event -> {
+				String botName = "BOT-" + System.currentTimeMillis();
+				userProvider.addBot(botName);
+				table.tryStartNewGame();
+				broadcast();
+			});
+		}
+	}
+
+	private Checkbox createReadyCheckbox(User user, boolean isCurrentUser) {
+		Checkbox readyCheckbox = new Checkbox("Ready", user.isReady());
+		readyCheckbox.setEnabled(isCurrentUser);
+
+		readyCheckbox.addClickListener(event -> {
+			boolean value = readyCheckbox.getValue();
+			user.setReady(value);
+
+			UserProvider userProvider = table.getUserProvider();
+			if (userProvider.getReadyUsersCount() < Table.MINIMUM_USERS) {
+				table.stopNewGameCountdown();
+			}
+
+			if (value) {
+				table.tryStartNewGame();
+			}
+
+			broadcast();
+		});
+
+		return readyCheckbox;
+	}
+
+	private Checkbox createLogoutCheckbox(User user, boolean isCurrentUser) {
+		Checkbox logoutCheckbox = new Checkbox(Constant.LOGOUT_LABEL, user.isLoggedOut());
+		logoutCheckbox.setEnabled(isCurrentUser);
+
+		UserProvider userProvider = table.getUserProvider();
+		boolean tableHasLastOneLoggedInUser = userProvider.getPlayingUsers().size() == 1;
+
+		if (isCurrentUser && !user.isLoggedOut() && tableHasLastOneLoggedInUser) {
+			logoutCheckbox.setLabel(logoutCheckbox.getLabel() + " and delete table");
+			logoutCheckbox.getStyle().set(Constant.COLOR_STYLE, Constant.RED_COLOR);
+		}
+
+		logoutCheckbox.addClickListener(event -> {
+			boolean value = logoutCheckbox.getValue();
+			user.setLoggedOut(value);
+
+			if (userProvider.getReadyUsersCount() < Table.MINIMUM_USERS) {
+				table.stopNewGameCountdown();
+			}
+
+			if (value) {
+				if (tableHasLastOneLoggedInUser) {
+					tableProvider.delete(table);
+				} else {
+					table.tryStartNewGame();
+				}
+
+				navigateToTablesView();
+			}
+
+			broadcast();
+		});
+
+		return logoutCheckbox;
 	}
 
 	private void addTableH1(VaadinIcon icon) {

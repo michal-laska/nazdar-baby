@@ -9,8 +9,9 @@ import java.util.Objects;
 
 public class User {
 
-	private final String name;
 	private final List<Card> cards = new ArrayList<>();
+	private final String name;
+	private final boolean isBot;
 
 	private int actualTakes;
 	private Integer expectedTakes;
@@ -20,7 +21,12 @@ public class User {
 	private Boolean terminator = false;
 
 	public User(String name) {
+		this(name, false);
+	}
+
+	public User(String name, boolean isBot) {
 		this.name = name;
+		this.isBot = isBot;
 	}
 
 	public String getName() {
@@ -65,6 +71,10 @@ public class User {
 
 	public float getPoints() {
 		return points;
+	}
+
+	public boolean isBot() {
+		return isBot;
 	}
 
 	public void addPoints(float points) {
