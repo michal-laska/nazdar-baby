@@ -208,6 +208,7 @@ public class BoardView extends ParameterizedView {
 
 		if (game.isLastUser()) {
 			game.resetActiveUser();
+			game.setExpectedTakesForBot();
 		} else {
 			game.changeActiveUser();
 		}

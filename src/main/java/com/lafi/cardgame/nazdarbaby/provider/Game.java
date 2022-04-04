@@ -95,6 +95,8 @@ public final class Game {
 			resetActiveUser();
 
 			startNewMatch();
+
+			setExpectedTakesForBot();
 		} else if (++activeUserIndex == matchUsers.size()) {
 			int winnerIndex = getWinnerIndex();
 			User winUser = matchUsers.get(winnerIndex);
@@ -186,6 +188,43 @@ public final class Game {
 
 	public boolean usersWantNewGame() {
 		return gameUsers.stream().noneMatch(user -> !user.wantNewGame() && !user.isLoggedOut());
+	}
+
+	public void setExpectedTakesForBot() {
+		if (!activeUser.isBot()) {
+			return;
+		}
+
+		if (activeUser.getExpectedTakes() == null) {
+			//TODO implement logic
+			int expectedTakes = 1;
+			if (isLastUserWithInvalidExpectedTakes(expectedTakes)) {
+				activeUser.setExpectedTakes(expectedTakes - 1);
+			} else {
+				activeUser.setExpectedTakes(expectedTakes);
+			}
+
+			if (isLastUser()) {
+				resetActiveUser();
+			} else {
+				changeActiveUser();
+			}
+		} else {
+			//TODO implement logic
+			List<Card> cards = activeUser.getCards();
+			Card selectedCard = cards.stream()
+					.filter(card -> !card.isPlaceholder())
+					.findFirst()
+					.get();
+
+			int matchUserIndex = matchUsers.indexOf(activeUser);
+			cardPlaceholders.set(matchUserIndex, selectedCard);
+
+			int cardIndex = cards.indexOf(selectedCard);
+			cards.set(cardIndex, CardProvider.CARD_PLACEHOLDER);
+
+			changeActiveUser();
+		}
 	}
 
 	private void resetReadyFlags() {
@@ -337,18 +376,6 @@ public final class Game {
 		for (User user : setUsers) {
 			float points = user.isWinner() ? winPoints : losePoints;
 			user.addPoints(points);
-		}
-	}
-
-	private void setExpectedTakesForBot() {
-		if (activeUser.isBot()) {
-			activeUser.setExpectedTakes(1); //TODO implement logic
-
-			if (isLastUser()) {
-				resetActiveUser();
-			} else {
-				changeActiveUser();
-			}
 		}
 	}
 }

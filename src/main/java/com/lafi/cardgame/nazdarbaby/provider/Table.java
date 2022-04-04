@@ -90,7 +90,7 @@ public class Table {
 	}
 
 	public boolean allNextButtonsWereClicked() {
-		return ++nextButtonClickCounter % game.getMatchUsers().size() == 0;
+		return ++nextButtonClickCounter % game.getMatchUsers().stream().filter(user -> !user.isBot()).count() == 0;
 	}
 
 	public String getInfo() {
