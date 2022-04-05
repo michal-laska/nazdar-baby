@@ -71,6 +71,7 @@ public final class Game {
 			Collections.shuffle(gameUsers);
 
 			cardProvider = new CardProvider(gameUsers.size());
+			botSimulator.setDeckOfCardsSize(cardProvider.getDeckOfCardsSize());
 
 			startNewGame();
 		} else {

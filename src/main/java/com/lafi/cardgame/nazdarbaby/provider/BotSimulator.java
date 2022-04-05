@@ -22,6 +22,7 @@ class BotSimulator {
 	private List<Card> cardPlaceholders;
 	private User activeUser;
 	private List<User> matchUsers;
+	private int deckOfCardsSize;
 
 	BotSimulator(Game game) {
 		this.game = game;
@@ -41,16 +42,19 @@ class BotSimulator {
 		playedOutCards.clear();
 	}
 
+	void setDeckOfCardsSize(int deckOfCardsSize) {
+		this.deckOfCardsSize = deckOfCardsSize;
+	}
+
 	void tryBotMove() {
 		if (!activeUser.isBot()) {
 			return;
 		}
 
 		if (activeUser.getExpectedTakes() == null) {
-			//TODO implement logic
-			int expectedTakes = 1;
+			int expectedTakes = guessExpectedTakes();
 			if (game.isLastUserWithInvalidExpectedTakes(expectedTakes)) {
-				activeUser.setExpectedTakes(expectedTakes - 1);
+				activeUser.setExpectedTakes(expectedTakes + 1);
 			} else {
 				activeUser.setExpectedTakes(expectedTakes);
 			}
@@ -69,6 +73,24 @@ class BotSimulator {
 
 			game.changeActiveUser();
 		}
+	}
+
+	private int guessExpectedTakes() {
+		int highestCardValue = 14; //TODO do it better
+		int oneColorCardsSize = deckOfCardsSize / Color.values().length;
+		double magicNumber = highestCardValue - ((double) oneColorCardsSize / matchUsers.size()) + 1;
+
+		double guess = 0;
+		for (Card card : activeUser.getCards()) {
+			int cardValue = card.getValue();
+			if (cardValue > magicNumber) {
+				++guess;
+			} else if (magicNumber - cardValue < 1) {
+				guess += magicNumber - cardValue;
+			}
+		}
+
+		return (int) guess;
 	}
 
 	private Card selectBotCard(List<Card> cards) {
