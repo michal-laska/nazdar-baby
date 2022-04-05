@@ -5,6 +5,8 @@ import com.lafi.cardgame.nazdarbaby.card.CardProvider;
 import com.lafi.cardgame.nazdarbaby.card.Color;
 import com.lafi.cardgame.nazdarbaby.user.User;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -14,6 +16,7 @@ import java.util.stream.Stream;
 class BotSimulator {
 
 	private final Set<Card> playedOutCards = new HashSet<>();
+	private final Random random = new Random();
 	private final Game game;
 
 	private List<Card> cardPlaceholders;
@@ -72,29 +75,32 @@ class BotSimulator {
 		Card leadingCard = cardPlaceholders.get(0);
 		Color leadingCardColor = leadingCard.getColor();
 
-		Stream<Card> validCardStream = cards.stream();
+		Stream<Card> playableCardStream = cards.stream();
 		if (leadingCard.isPlaceholder()) {
-			validCardStream = validCardStream.filter(card -> !card.isPlaceholder());
+			playableCardStream = playableCardStream.filter(card -> !card.isPlaceholder());
 		} else if (activeUser.hasColor(leadingCardColor)) {
-			validCardStream = validCardStream.filter(card -> card.getColor() == leadingCardColor);
+			playableCardStream = playableCardStream.filter(card -> card.getColor() == leadingCardColor);
 		} else if (activeUser.hasColor(Color.HEARTS)) {
-			validCardStream = validCardStream.filter(card -> card.getColor() == Color.HEARTS);
+			playableCardStream = playableCardStream.filter(card -> card.getColor() == Color.HEARTS);
 		} else {
-			validCardStream = validCardStream.filter(card -> !card.isPlaceholder());
-		}
-		List<Card> validCards = validCardStream.toList();
-
-		int validCardSize = validCards.size();
-		if (validCardSize == 1) {
-			return validCards.get(0);
+			playableCardStream = playableCardStream.filter(card -> !card.isPlaceholder());
 		}
 
-		//TODO gaps
+		List<Card> playableCards = playableCardStream.toList();
+		int playableCardsSize = playableCards.size();
+
+		if (playableCardsSize == 1) {
+			return playableCards.get(0);
+		}
+
+		if (noGapsInOneColor(playableCards)) {
+			int randomIndex = random.nextInt(playableCardsSize);
+			return playableCards.get(randomIndex);
+		}
 
 		//TODO implement logic
-		Random random = new Random();
-		int randomIndex = random.nextInt(validCardSize);
-		return validCards.get(randomIndex);
+		int randomIndex = random.nextInt(playableCardsSize);
+		return playableCards.get(randomIndex);
 	}
 
 	private void rememberCardsFromTable() {
@@ -102,5 +108,32 @@ class BotSimulator {
 			playedOutCards.addAll(cardPlaceholders);
 			playedOutCards.remove(CardProvider.CARD_PLACEHOLDER);
 		}
+	}
+
+	private boolean noGapsInOneColor(List<Card> playableCards) {
+		Card firstPlayableCard = playableCards.get(0);
+
+		boolean playableCardsInOneColor = playableCards.stream().allMatch(card -> card.getColor() == firstPlayableCard.getColor());
+		if (!playableCardsInOneColor) {
+			return false;
+		}
+
+		List<Card> playedOutCardsInSameColor = playedOutCards.stream()
+				.filter(card -> card.getColor() == firstPlayableCard.getColor())
+				.toList();
+
+		List<Card> knownCardsInOneColor = new ArrayList<>(playableCards);
+		knownCardsInOneColor.addAll(playedOutCardsInSameColor);
+
+		Collections.sort(knownCardsInOneColor);
+		Card firstCard = knownCardsInOneColor.get(0);
+
+		for (int i = 1; i < knownCardsInOneColor.size(); ++i) {
+			Card card = knownCardsInOneColor.get(i);
+			if (firstCard.getValue() + i != card.getValue()) {
+				return false;
+			}
+		}
+		return true;
 	}
 }
