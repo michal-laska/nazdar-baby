@@ -17,6 +17,7 @@ import java.util.stream.Stream;
 
 public final class Game {
 
+	private final BotSimulator botSimulator = new BotSimulator();
 	private final UserProvider userProvider;
 	private final PointProvider pointProvider;
 
@@ -193,37 +194,7 @@ public final class Game {
 	}
 
 	public void tryBotMove() {
-		if (!activeUser.isBot()) {
-			return;
-		}
-
-		if (activeUser.getExpectedTakes() == null) {
-			//TODO implement logic
-			int expectedTakes = 1;
-			if (isLastUserWithInvalidExpectedTakes(expectedTakes)) {
-				activeUser.setExpectedTakes(expectedTakes - 1);
-			} else {
-				activeUser.setExpectedTakes(expectedTakes);
-			}
-
-			if (isLastUser()) {
-				resetActiveUser();
-			} else {
-				changeActiveUser();
-			}
-		} else {
-			int matchUserIndex = matchUsers.indexOf(activeUser);
-
-			List<Card> cards = activeUser.getCards();
-			Card selectedCard = selectBotCard(cards);
-
-			cardPlaceholders.set(matchUserIndex, selectedCard);
-
-			int cardIndex = cards.indexOf(selectedCard);
-			cards.set(cardIndex, CardProvider.CARD_PLACEHOLDER);
-
-			changeActiveUser();
-		}
+		botSimulator.tryBotMove();
 	}
 
 	private void resetReadyFlags() {
@@ -378,30 +349,67 @@ public final class Game {
 		}
 	}
 
-	private Card selectBotCard(List<Card> cards) {
-		Card leadingCard = cardPlaceholders.get(0);
-		Color leadingCardColor = leadingCard.getColor();
+	private final class BotSimulator {
 
-		Stream<Card> validCardStream = cards.stream();
-		if (leadingCard.isPlaceholder()) {
-			validCardStream = validCardStream.filter(card -> !card.isPlaceholder());
-		} else if (activeUser.hasColor(leadingCardColor)) {
-			validCardStream = validCardStream.filter(card -> card.getColor() == leadingCardColor);
-		} else if (activeUser.hasColor(Color.HEARTS)) {
-			validCardStream = validCardStream.filter(card -> card.getColor() == Color.HEARTS);
-		} else {
-			validCardStream = validCardStream.filter(card -> !card.isPlaceholder());
+		private void tryBotMove() {
+			if (!activeUser.isBot()) {
+				return;
+			}
+
+			if (activeUser.getExpectedTakes() == null) {
+				//TODO implement logic
+				int expectedTakes = 1;
+				if (isLastUserWithInvalidExpectedTakes(expectedTakes)) {
+					activeUser.setExpectedTakes(expectedTakes - 1);
+				} else {
+					activeUser.setExpectedTakes(expectedTakes);
+				}
+
+				if (isLastUser()) {
+					resetActiveUser();
+				} else {
+					changeActiveUser();
+				}
+			} else {
+				int matchUserIndex = matchUsers.indexOf(activeUser);
+
+				List<Card> cards = activeUser.getCards();
+				Card selectedCard = botSimulator.selectBotCard(cards);
+
+				cardPlaceholders.set(matchUserIndex, selectedCard);
+
+				int cardIndex = cards.indexOf(selectedCard);
+				cards.set(cardIndex, CardProvider.CARD_PLACEHOLDER);
+
+				changeActiveUser();
+			}
 		}
-		List<Card> validCards = validCardStream.toList();
 
-		int validCardSize = validCards.size();
-		if (validCardSize == 1) {
-			return validCards.get(0);
+		private Card selectBotCard(List<Card> cards) {
+			Card leadingCard = cardPlaceholders.get(0);
+			Color leadingCardColor = leadingCard.getColor();
+
+			Stream<Card> validCardStream = cards.stream();
+			if (leadingCard.isPlaceholder()) {
+				validCardStream = validCardStream.filter(card -> !card.isPlaceholder());
+			} else if (activeUser.hasColor(leadingCardColor)) {
+				validCardStream = validCardStream.filter(card -> card.getColor() == leadingCardColor);
+			} else if (activeUser.hasColor(Color.HEARTS)) {
+				validCardStream = validCardStream.filter(card -> card.getColor() == Color.HEARTS);
+			} else {
+				validCardStream = validCardStream.filter(card -> !card.isPlaceholder());
+			}
+			List<Card> validCards = validCardStream.toList();
+
+			int validCardSize = validCards.size();
+			if (validCardSize == 1) {
+				return validCards.get(0);
+			}
+
+			//TODO implement logic
+			Random random = new Random();
+			int randomIndex = random.nextInt(validCardSize);
+			return validCards.get(randomIndex);
 		}
-
-		//TODO implement logic
-		Random random = new Random();
-		int randomIndex = random.nextInt(validCardSize);
-		return validCards.get(randomIndex);
 	}
 }
