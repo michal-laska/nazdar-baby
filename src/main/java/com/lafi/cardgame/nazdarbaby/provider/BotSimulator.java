@@ -5,12 +5,15 @@ import com.lafi.cardgame.nazdarbaby.card.CardProvider;
 import com.lafi.cardgame.nazdarbaby.card.Color;
 import com.lafi.cardgame.nazdarbaby.user.User;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.stream.Stream;
 
 class BotSimulator {
 
+	private final Set<Card> playedOutCards = new HashSet<>();
 	private final Game game;
 
 	private List<Card> cardPlaceholders;
@@ -27,10 +30,12 @@ class BotSimulator {
 
 	void setActiveUser(User activeUser) {
 		this.activeUser = activeUser;
+		rememberCardsFromTable();
 	}
 
 	void setMatchUsers(List<User> matchUsers) {
 		this.matchUsers = matchUsers;
+		playedOutCards.clear();
 	}
 
 	void tryBotMove() {
@@ -84,9 +89,18 @@ class BotSimulator {
 			return validCards.get(0);
 		}
 
+		//TODO gaps
+
 		//TODO implement logic
 		Random random = new Random();
 		int randomIndex = random.nextInt(validCardSize);
 		return validCards.get(randomIndex);
+	}
+
+	private void rememberCardsFromTable() {
+		if (cardPlaceholders != null) {
+			playedOutCards.addAll(cardPlaceholders);
+			playedOutCards.remove(CardProvider.CARD_PLACEHOLDER);
+		}
 	}
 }
