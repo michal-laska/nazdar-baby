@@ -11,13 +11,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Random;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public final class Game {
 
-	private final BotSimulator botSimulator = new BotSimulator();
+	private final BotSimulator botSimulator = new BotSimulator(this);
 	private final UserProvider userProvider;
 	private final PointProvider pointProvider;
 
@@ -105,18 +103,18 @@ public final class Game {
 			User winUser = matchUsers.get(winnerIndex);
 			winUser.increaseActualTakes();
 
-			activeUser = null;
+			setActiveUser(null);
 
 			calculatePoints();
 		} else {
-			activeUser = matchUsers.get(activeUserIndex);
+			setActiveUser(matchUsers.get(activeUserIndex));
 
 			tryBotMove();
 		}
 	}
 
 	public void resetActiveUser() {
-		activeUser = matchUsers.get(0);
+		setActiveUser(matchUsers.get(0));
 	}
 
 	public boolean isEndOfMatch() {
@@ -259,6 +257,17 @@ public final class Game {
 		cardPlaceholders = matchUsers.stream()
 				.map(user -> CardProvider.CARD_PLACEHOLDER)
 				.collect(Collectors.toList());
+		botSimulator.setCardPlaceholders(cardPlaceholders);
+	}
+
+	private void setActiveUser(User activeUser) {
+		this.activeUser = activeUser;
+		botSimulator.setActiveUser(activeUser);
+	}
+
+	private void setMatchUsers(List<User> matchUsers) {
+		this.matchUsers = matchUsers;
+		botSimulator.setMatchUsers(matchUsers);
 	}
 
 	private void initUserCards() {
@@ -307,7 +316,7 @@ public final class Game {
 		if (setNumber > 0) {
 			Collections.rotate(setUsers, -1);
 		}
-		matchUsers = new ArrayList<>(setUsers);
+		setMatchUsers(new ArrayList<>(setUsers));
 
 		matchNumber = 0;
 		resetActiveUser();
@@ -346,70 +355,6 @@ public final class Game {
 		for (User user : setUsers) {
 			float points = user.isWinner() ? winPoints : losePoints;
 			user.addPoints(points);
-		}
-	}
-
-	private final class BotSimulator {
-
-		private void tryBotMove() {
-			if (!activeUser.isBot()) {
-				return;
-			}
-
-			if (activeUser.getExpectedTakes() == null) {
-				//TODO implement logic
-				int expectedTakes = 1;
-				if (isLastUserWithInvalidExpectedTakes(expectedTakes)) {
-					activeUser.setExpectedTakes(expectedTakes - 1);
-				} else {
-					activeUser.setExpectedTakes(expectedTakes);
-				}
-
-				if (isLastUser()) {
-					resetActiveUser();
-				} else {
-					changeActiveUser();
-				}
-			} else {
-				int matchUserIndex = matchUsers.indexOf(activeUser);
-
-				List<Card> cards = activeUser.getCards();
-				Card selectedCard = botSimulator.selectBotCard(cards);
-
-				cardPlaceholders.set(matchUserIndex, selectedCard);
-
-				int cardIndex = cards.indexOf(selectedCard);
-				cards.set(cardIndex, CardProvider.CARD_PLACEHOLDER);
-
-				changeActiveUser();
-			}
-		}
-
-		private Card selectBotCard(List<Card> cards) {
-			Card leadingCard = cardPlaceholders.get(0);
-			Color leadingCardColor = leadingCard.getColor();
-
-			Stream<Card> validCardStream = cards.stream();
-			if (leadingCard.isPlaceholder()) {
-				validCardStream = validCardStream.filter(card -> !card.isPlaceholder());
-			} else if (activeUser.hasColor(leadingCardColor)) {
-				validCardStream = validCardStream.filter(card -> card.getColor() == leadingCardColor);
-			} else if (activeUser.hasColor(Color.HEARTS)) {
-				validCardStream = validCardStream.filter(card -> card.getColor() == Color.HEARTS);
-			} else {
-				validCardStream = validCardStream.filter(card -> !card.isPlaceholder());
-			}
-			List<Card> validCards = validCardStream.toList();
-
-			int validCardSize = validCards.size();
-			if (validCardSize == 1) {
-				return validCards.get(0);
-			}
-
-			//TODO implement logic
-			Random random = new Random();
-			int randomIndex = random.nextInt(validCardSize);
-			return validCards.get(randomIndex);
 		}
 	}
 }
