@@ -52,11 +52,13 @@ class BotSimulator {
 		}
 
 		if (activeUser.getExpectedTakes() == null) {
-			int expectedTakes = guessExpectedTakes();
-			if (game.isLastUserWithInvalidExpectedTakes(expectedTakes)) {
-				activeUser.setExpectedTakes(expectedTakes + 1);
+			double expectedTakes = guessExpectedTakes();
+			int expectedTakesFloored = (int) expectedTakes;
+			if (game.isLastUserWithInvalidExpectedTakes(expectedTakesFloored)) {
+				activeUser.setExpectedTakes(expectedTakesFloored + 1);
 			} else {
-				activeUser.setExpectedTakes(expectedTakes);
+				int expectedTakesRounded = (int) Math.round(expectedTakes);
+				activeUser.setExpectedTakes(expectedTakesRounded);
 			}
 
 			game.afterActiveUserSetExpectedTakes();
@@ -75,7 +77,7 @@ class BotSimulator {
 		}
 	}
 
-	private int guessExpectedTakes() {
+	private double guessExpectedTakes() {
 		int highestCardValue = 14; //TODO do it better
 		int oneColorCardsSize = deckOfCardsSize / Color.values().length;
 		double magicNumber = highestCardValue - ((double) oneColorCardsSize / matchUsers.size()) + 1;
@@ -90,7 +92,7 @@ class BotSimulator {
 			}
 		}
 
-		return (int) guess;
+		return guess;
 	}
 
 	private Card selectBotCard(List<Card> cards) {
