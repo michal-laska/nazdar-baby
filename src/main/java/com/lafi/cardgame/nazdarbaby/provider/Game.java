@@ -113,8 +113,13 @@ public final class Game {
 		}
 	}
 
-	public void resetActiveUser() {
-		setActiveUser(matchUsers.get(0));
+	public void afterActiveUserSetExpectedTakes() {
+		if (isLastUser()) {
+			resetActiveUser();
+			tryBotMove();
+		} else {
+			changeActiveUser();
+		}
 	}
 
 	public boolean isEndOfMatch() {
@@ -123,10 +128,6 @@ public final class Game {
 
 	public boolean isEndOfSet() {
 		return isEndOfMatch() && matchNumber == matchUsers.get(0).getCards().size();
-	}
-
-	public boolean isLastUser() {
-		return matchUsers.indexOf(activeUser) + 1 == matchUsers.size();
 	}
 
 	public boolean isLastUserWithInvalidExpectedTakes(int expectedTakes) {
@@ -191,8 +192,12 @@ public final class Game {
 		return gameUsers.stream().noneMatch(user -> !user.wantNewGame() && !user.isLoggedOut());
 	}
 
-	public void tryBotMove() {
-		botSimulator.tryBotMove();
+	private boolean isLastUser() {
+		return matchUsers.indexOf(activeUser) + 1 == matchUsers.size();
+	}
+
+	private void resetActiveUser() {
+		setActiveUser(matchUsers.get(0));
 	}
 
 	private void resetReadyFlags() {
@@ -268,6 +273,10 @@ public final class Game {
 	private void setMatchUsers(List<User> matchUsers) {
 		this.matchUsers = matchUsers;
 		botSimulator.setMatchUsers(matchUsers);
+	}
+
+	private void tryBotMove() {
+		botSimulator.tryBotMove();
 	}
 
 	private void initUserCards() {

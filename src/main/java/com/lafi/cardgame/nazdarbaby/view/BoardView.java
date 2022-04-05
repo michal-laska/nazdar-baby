@@ -205,14 +205,7 @@ public class BoardView extends ParameterizedView {
 		}
 
 		currentUser.setExpectedTakes(expectedTakes);
-
-		if (game.isLastUser()) {
-			game.resetActiveUser();
-			game.tryBotMove();
-		} else {
-			game.changeActiveUser();
-		}
-
+		game.afterActiveUserSetExpectedTakes();
 		expectedTakesField = null;
 
 		broadcast();

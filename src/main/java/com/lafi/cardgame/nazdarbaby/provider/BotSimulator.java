@@ -47,11 +47,7 @@ class BotSimulator {
 				activeUser.setExpectedTakes(expectedTakes);
 			}
 
-			if (game.isLastUser()) {
-				game.resetActiveUser();
-			} else {
-				game.changeActiveUser();
-			}
+			game.afterActiveUserSetExpectedTakes();
 		} else {
 			int matchUserIndex = matchUsers.indexOf(activeUser);
 
