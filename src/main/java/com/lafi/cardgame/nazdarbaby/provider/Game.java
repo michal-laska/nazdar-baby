@@ -11,7 +11,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class Game {
 
@@ -96,7 +98,7 @@ public final class Game {
 
 			startNewMatch();
 
-			setExpectedTakesForBot();
+			tryBotMove();
 		} else if (++activeUserIndex == matchUsers.size()) {
 			int winnerIndex = getWinnerIndex();
 			User winUser = matchUsers.get(winnerIndex);
@@ -108,7 +110,7 @@ public final class Game {
 		} else {
 			activeUser = matchUsers.get(activeUserIndex);
 
-			setExpectedTakesForBot();
+			tryBotMove();
 		}
 	}
 
@@ -190,7 +192,7 @@ public final class Game {
 		return gameUsers.stream().noneMatch(user -> !user.wantNewGame() && !user.isLoggedOut());
 	}
 
-	public void setExpectedTakesForBot() {
+	public void tryBotMove() {
 		if (!activeUser.isBot()) {
 			return;
 		}
@@ -210,14 +212,11 @@ public final class Game {
 				changeActiveUser();
 			}
 		} else {
-			//TODO implement logic
-			List<Card> cards = activeUser.getCards();
-			Card selectedCard = cards.stream()
-					.filter(card -> !card.isPlaceholder())
-					.findFirst()
-					.get();
-
 			int matchUserIndex = matchUsers.indexOf(activeUser);
+
+			List<Card> cards = activeUser.getCards();
+			Card selectedCard = selectBotCard(cards);
+
 			cardPlaceholders.set(matchUserIndex, selectedCard);
 
 			int cardIndex = cards.indexOf(selectedCard);
@@ -352,7 +351,7 @@ public final class Game {
 			user.resetLastAddedPoints();
 		}
 
-		setExpectedTakesForBot();
+		tryBotMove();
 	}
 
 	private void calculatePoints() {
@@ -377,5 +376,32 @@ public final class Game {
 			float points = user.isWinner() ? winPoints : losePoints;
 			user.addPoints(points);
 		}
+	}
+
+	private Card selectBotCard(List<Card> cards) {
+		Card leadingCard = cardPlaceholders.get(0);
+		Color leadingCardColor = leadingCard.getColor();
+
+		Stream<Card> validCardStream = cards.stream();
+		if (leadingCard.isPlaceholder()) {
+			validCardStream = validCardStream.filter(card -> !card.isPlaceholder());
+		} else if (activeUser.hasColor(leadingCardColor)) {
+			validCardStream = validCardStream.filter(card -> card.getColor() == leadingCardColor);
+		} else if (activeUser.hasColor(Color.HEARTS)) {
+			validCardStream = validCardStream.filter(card -> card.getColor() == Color.HEARTS);
+		} else {
+			validCardStream = validCardStream.filter(card -> !card.isPlaceholder());
+		}
+		List<Card> validCards = validCardStream.toList();
+
+		int validCardSize = validCards.size();
+		if (validCardSize == 1) {
+			return validCards.get(0);
+		}
+
+		//TODO implement logic
+		Random random = new Random();
+		int randomIndex = random.nextInt(validCardSize);
+		return validCards.get(randomIndex);
 	}
 }

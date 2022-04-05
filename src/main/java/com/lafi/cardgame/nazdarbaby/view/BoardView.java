@@ -208,7 +208,7 @@ public class BoardView extends ParameterizedView {
 
 		if (game.isLastUser()) {
 			game.resetActiveUser();
-			game.setExpectedTakesForBot();
+			game.tryBotMove();
 		} else {
 			game.changeActiveUser();
 		}
@@ -296,12 +296,12 @@ public class BoardView extends ParameterizedView {
 
 			List<Card> cardPlaceholders = game.getCardPlaceholders();
 
-			Card firstCard = cardPlaceholders.get(0);
-			if (!firstCard.isPlaceholder()) {
-				boolean userHasFirstCardColor = currentUser.hasColor(firstCard.getColor());
-				if (userHasFirstCardColor) {
-					if (card.getColor() != firstCard.getColor()) {
-						showWrongCardNotification(firstCard.getColor());
+			Card leadingCard = cardPlaceholders.get(0);
+			if (!leadingCard.isPlaceholder()) {
+				boolean userHasLeadingCardColor = currentUser.hasColor(leadingCard.getColor());
+				if (userHasLeadingCardColor) {
+					if (card.getColor() != leadingCard.getColor()) {
+						showWrongCardNotification(leadingCard.getColor());
 						return;
 					}
 				} else {
