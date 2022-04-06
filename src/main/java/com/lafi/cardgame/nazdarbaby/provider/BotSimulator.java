@@ -5,7 +5,6 @@ import com.lafi.cardgame.nazdarbaby.card.CardProvider;
 import com.lafi.cardgame.nazdarbaby.card.Color;
 import com.lafi.cardgame.nazdarbaby.user.User;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -141,28 +140,27 @@ class BotSimulator {
 
 	private boolean noGapsInOneColor(List<Card> playableCards) {
 		Card firstPlayableCard = playableCards.get(0);
-
 		boolean playableCardsInOneColor = playableCards.stream().allMatch(card -> card.getColor() == firstPlayableCard.getColor());
 		if (!playableCardsInOneColor) {
 			return false;
 		}
 
+		Collections.sort(playableCards);
+		Card lowestPlayableCard = playableCards.get(0);
+		Card highestPlayableCard = playableCards.get(playableCards.size() - 1);
+
+		int expectedSize = highestPlayableCard.getValue() - lowestPlayableCard.getValue() - playableCards.size() + 1;
+
+		if (expectedSize == 0) {
+			return true;
+		}
+
 		List<Card> playedOutCardsInSameColor = playedOutCards.stream()
-				.filter(card -> card.getColor() == firstPlayableCard.getColor())
+				.filter(card -> card.getColor() == lowestPlayableCard.getColor())
+				.filter(card -> card.getValue() > lowestPlayableCard.getValue())
+				.filter(card -> card.getValue() < highestPlayableCard.getValue())
 				.toList();
 
-		List<Card> knownCardsInOneColor = new ArrayList<>(playableCards);
-		knownCardsInOneColor.addAll(playedOutCardsInSameColor);
-
-		Collections.sort(knownCardsInOneColor);
-		Card firstCard = knownCardsInOneColor.get(0);
-
-		for (int i = 1; i < knownCardsInOneColor.size(); ++i) {
-			Card card = knownCardsInOneColor.get(i);
-			if (firstCard.getValue() + i != card.getValue()) {
-				return false;
-			}
-		}
-		return true;
+		return expectedSize == playedOutCardsInSameColor.size();
 	}
 }
