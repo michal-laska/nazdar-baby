@@ -193,7 +193,7 @@ public final class Game {
 		return gameUsers.stream().noneMatch(user -> !user.wantNewGame() && !user.isLoggedOut());
 	}
 
-	private boolean isLastUser() {
+	boolean isLastUser() {
 		return matchUsers.indexOf(activeUser) + 1 == matchUsers.size();
 	}
 

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -124,7 +125,7 @@ class BotSimulator {
 	}
 
 	private List<Card> getPlayableCards(List<Card> cards) {
-		Card leadingCard = cardPlaceholders.get(0);
+		Card leadingCard = getLeadingCard();
 		Color leadingCardColor = leadingCard.getColor();
 
 		Stream<Card> playableCardStream = cards.stream();
@@ -149,35 +150,100 @@ class BotSimulator {
 	}
 
 	private boolean noGapsInOneColor(List<Card> sortedPlayableCards) {
-		Card firstPlayableCard = sortedPlayableCards.get(0);
-		boolean playableCardsInOneColor = sortedPlayableCards.stream().allMatch(card -> card.getColor() == firstPlayableCard.getColor());
-		if (!playableCardsInOneColor) {
+		Card lowestCard = getLowestCard(sortedPlayableCards);
+		Card highestCard = getHighestCard(sortedPlayableCards);
+
+		boolean allPlayableCardsInOneColor = sortedPlayableCards.stream().allMatch(card -> card.getColor() == lowestCard.getColor());
+		if (!allPlayableCardsInOneColor) {
 			return false;
 		}
 
-		Card lowestPlayableCard = sortedPlayableCards.get(0);
-		Card highestPlayableCard = sortedPlayableCards.get(sortedPlayableCards.size() - 1);
+		int expectedPlayedOutCardSizeInOneColor = highestCard.getValue() - lowestCard.getValue() - sortedPlayableCards.size() + 1;
 
-		int expectedSize = highestPlayableCard.getValue() - lowestPlayableCard.getValue() - sortedPlayableCards.size() + 1;
-
-		if (expectedSize == 0) {
+		if (expectedPlayedOutCardSizeInOneColor == 0) {
 			return true;
 		}
 
-		List<Card> playedOutCardsInSameColor = playedOutCards.stream()
-				.filter(card -> card.getColor() == lowestPlayableCard.getColor())
-				.filter(card -> card.getValue() > lowestPlayableCard.getValue())
-				.filter(card -> card.getValue() < highestPlayableCard.getValue())
-				.toList();
+		long playedOutCardSizeInOneColor = playedOutCards.stream()
+				.filter(card -> card.getColor() == lowestCard.getColor())
+				.filter(card -> card.getValue() > lowestCard.getValue())
+				.filter(card -> card.getValue() < highestCard.getValue())
+				.count();
 
-		return expectedSize == playedOutCardsInSameColor.size();
+		return expectedPlayedOutCardSizeInOneColor == playedOutCardSizeInOneColor;
 	}
 
 	private Card selectLowCard(List<Card> sortedPlayableCards) {
-		return sortedPlayableCards.get(0);
+		Card lowestCard = getLowestCard(sortedPlayableCards);
+		Card leadingCard = getLeadingCard();
+
+		int winningCardIndex = game.getWinnerIndex();
+		Card winningCard = cardPlaceholders.get(winningCardIndex);
+
+		if (winningCard.isPlaceholder()) {
+			return lowestCard;
+		}
+
+		if (lowestCard.getColor() == Color.HEARTS) {
+			if (winningCard.getColor() == Color.HEARTS) {
+				return selectLowCard(sortedPlayableCards, winningCard);
+			}
+			if (game.isLastUser()) {
+				return getHighestCard(sortedPlayableCards);
+			}
+			return lowestCard;
+		} else if (lowestCard.getColor() == leadingCard.getColor()) {
+			if (winningCard.getColor() == Color.HEARTS) {
+				return getHighestCard(sortedPlayableCards);
+			}
+			return selectLowCard(sortedPlayableCards, winningCard);
+		}
+		return getHighestCard(sortedPlayableCards);
 	}
 
 	private Card selectHighCard(List<Card> sortedPlayableCards) {
-		return sortedPlayableCards.get(sortedPlayableCards.size() - 1);
+		return getHighestCard(sortedPlayableCards);
+	}
+
+	private Card getLeadingCard() {
+		return cardPlaceholders.get(0);
+	}
+
+	private Card getLowestCard(List<Card> cards) {
+		return cards.get(0);
+	}
+
+	private Card getHighestCard(List<Card> cards) {
+		return cards.get(cards.size() - 1);
+	}
+
+	private Optional<Card> getLowerCard(List<Card> sortedCards, Card theCard) {
+		List<Card> lowerCards = sortedCards.stream()
+				.filter(card -> card.getValue() < theCard.getValue())
+				.toList();
+
+		if (lowerCards.isEmpty()) {
+			return Optional.empty();
+		}
+
+		Card card = getHighestCard(lowerCards);
+		return Optional.of(card);
+	}
+
+	private Optional<Card> getHigherCard(List<Card> sortedCards, Card theCard) {
+		return sortedCards.stream()
+				.filter(card -> card.getValue() > theCard.getValue())
+				.findFirst();
+	}
+
+	private Card selectLowCard(List<Card> sortedPlayableCards, Card winningCard) {
+		Optional<Card> lowerCard = getLowerCard(sortedPlayableCards, winningCard);
+		if (lowerCard.isPresent()) {
+			return lowerCard.get();
+		}
+		if (game.isLastUser()) {
+			return getHighestCard(sortedPlayableCards);
+		}
+		return getHigherCard(sortedPlayableCards, winningCard).get();
 	}
 }
