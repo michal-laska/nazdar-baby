@@ -53,11 +53,14 @@ class BotSimulator {
 
 		if (activeUser.getExpectedTakes() == null) {
 			double expectedTakes = guessExpectedTakes();
-			int expectedTakesFloored = (int) expectedTakes;
-			if (game.isLastUserWithInvalidExpectedTakes(expectedTakesFloored)) {
-				activeUser.setExpectedTakes(expectedTakesFloored + 1);
+			int expectedTakesRounded = (int) Math.round(expectedTakes);
+			if (game.isLastUserWithInvalidExpectedTakes(expectedTakesRounded)) {
+				if (expectedTakes > expectedTakesRounded) {
+					activeUser.setExpectedTakes(expectedTakesRounded + 1);
+				} else {
+					activeUser.setExpectedTakes(expectedTakesRounded - 1);
+				}
 			} else {
-				int expectedTakesRounded = (int) Math.round(expectedTakes);
 				activeUser.setExpectedTakes(expectedTakesRounded);
 			}
 
@@ -85,10 +88,12 @@ class BotSimulator {
 		double guess = 0;
 		for (Card card : activeUser.getCards()) {
 			int cardValue = card.getValue();
+			double diff = magicNumber - cardValue;
+
 			if (cardValue > magicNumber) {
 				++guess;
-			} else if (magicNumber - cardValue < 1) {
-				guess += magicNumber - cardValue;
+			} else if (diff < 1) {
+				guess += diff;
 			}
 		}
 
