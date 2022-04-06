@@ -201,8 +201,51 @@ class BotSimulator {
 		return getHighestCard(sortedPlayableCards);
 	}
 
+	private Card selectLowCard(List<Card> sortedPlayableCards, Card winningCard) {
+		Optional<Card> lowerCard = getLowerCard(sortedPlayableCards, winningCard);
+		if (lowerCard.isPresent()) {
+			return lowerCard.get();
+		}
+		if (game.isLastUser()) {
+			return getHighestCard(sortedPlayableCards);
+		}
+		return getHigherCard(sortedPlayableCards, winningCard).get();
+	}
+
 	private Card selectHighCard(List<Card> sortedPlayableCards) {
-		return getHighestCard(sortedPlayableCards);
+		Card highestCard = getHighestCard(sortedPlayableCards);
+		Card leadingCard = getLeadingCard();
+
+		int winningCardIndex = game.getWinnerIndex();
+		Card winningCard = cardPlaceholders.get(winningCardIndex);
+
+		if (winningCard.isPlaceholder()) {
+			return highestCard;
+		}
+
+		if (highestCard.getColor() == Color.HEARTS) {
+			if (winningCard.getColor() == Color.HEARTS) {
+				return selectHighCard(sortedPlayableCards, winningCard);
+			}
+			return getLowestCard(sortedPlayableCards);
+		} else if (highestCard.getColor() == leadingCard.getColor()) {
+			if (winningCard.getColor() == Color.HEARTS) {
+				return getLowestCard(sortedPlayableCards);
+			}
+			return selectHighCard(sortedPlayableCards, winningCard);
+		}
+		return getLowestCard(sortedPlayableCards);
+	}
+
+	private Card selectHighCard(List<Card> sortedPlayableCards, Card winningCard) {
+		Optional<Card> higherCard = getHigherCard(sortedPlayableCards, winningCard);
+		if (higherCard.isPresent()) {
+			if (game.isLastUser()) {
+				return higherCard.get();
+			}
+			return getHighestCard(sortedPlayableCards);
+		}
+		return getLowestCard(sortedPlayableCards);
 	}
 
 	private Card getLeadingCard() {
@@ -234,16 +277,5 @@ class BotSimulator {
 		return sortedCards.stream()
 				.filter(card -> card.getValue() > theCard.getValue())
 				.findFirst();
-	}
-
-	private Card selectLowCard(List<Card> sortedPlayableCards, Card winningCard) {
-		Optional<Card> lowerCard = getLowerCard(sortedPlayableCards, winningCard);
-		if (lowerCard.isPresent()) {
-			return lowerCard.get();
-		}
-		if (game.isLastUser()) {
-			return getHighestCard(sortedPlayableCards);
-		}
-		return getHigherCard(sortedPlayableCards, winningCard).get();
 	}
 }
