@@ -42,9 +42,7 @@ class BotSimulator {
 
 	void setActiveUser(User activeUser) {
 		this.activeUser = activeUser;
-
 		rememberCardsFromTable();
-		collectKnownInfoAboutUsers();
 	}
 
 	void setUsers(List<User> users) {
@@ -59,7 +57,9 @@ class BotSimulator {
 	}
 
 	void tryBotMove() {
-		if (!activeUser.isBot()) {
+		collectKnownInfoAboutUsers();
+
+		if (activeUser == null || !activeUser.isBot()) {
 			return;
 		}
 

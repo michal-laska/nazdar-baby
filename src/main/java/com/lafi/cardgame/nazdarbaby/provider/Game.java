@@ -97,8 +97,6 @@ public class Game {
 			resetActiveUser();
 
 			startNewMatch();
-
-			tryBotMove();
 		} else if (++activeUserIndex == matchUsers.size()) {
 			int winnerIndex = getWinnerIndex();
 			User winUser = matchUsers.get(winnerIndex);
@@ -109,9 +107,9 @@ public class Game {
 			calculatePoints();
 		} else {
 			setActiveUser(matchUsers.get(activeUserIndex));
-
-			tryBotMove();
 		}
+
+		tryBotMove();
 	}
 
 	public void afterActiveUserSetExpectedTakes() {
@@ -316,6 +314,8 @@ public class Game {
 	private void startNewMatch() {
 		initCardPlaceholders();
 
+		tryBotMove();
+
 		if (everybodyLost || matchNumber++ == matchUsers.get(0).getCards().size()) {
 			everybodyLost = false;
 
@@ -342,8 +342,6 @@ public class Game {
 			user.resetActualTakes();
 			user.resetLastAddedPoints();
 		}
-
-		tryBotMove();
 	}
 
 	private void calculatePoints() {
