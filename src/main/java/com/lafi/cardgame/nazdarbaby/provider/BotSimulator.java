@@ -19,6 +19,9 @@ import java.util.stream.Stream;
 
 class BotSimulator {
 
+	//TODO do it better
+	private static final int HIGHEST_CARD_VALUE = 14;
+
 	private final Set<Card> playedOutCards = new HashSet<>();
 	private final Random random = new Random();
 	private final Game game;
@@ -89,9 +92,8 @@ class BotSimulator {
 	}
 
 	private double guessExpectedTakes(List<Card> cards) {
-		int highestCardValue = 14; //TODO do it better
 		int oneColorCardsSize = deckOfCardsSize / Color.values().length;
-		double magicNumber = highestCardValue - ((double) oneColorCardsSize / users.size()) + 1;
+		double magicNumber = HIGHEST_CARD_VALUE - ((double) oneColorCardsSize / users.size()) + 1;
 
 		boolean othersWithoutHearts = areOthersWithoutHearts(cards, oneColorCardsSize);
 
@@ -103,7 +105,7 @@ class BotSimulator {
 			if (cardValue > magicNumber) {
 				++guess;
 			} else if (card.getColor() == Color.HEARTS) {
-				if (othersWithoutHearts) {
+				if (othersWithoutHearts || isHighestRemainingHeart(cards, card)) {
 					++guess;
 				} else if (diff < 1) {
 					guess += Math.max(diff, 0.5);
@@ -126,13 +128,23 @@ class BotSimulator {
 			return true;
 		}
 
-		long numberOfKnownHearts = playedOutCards.stream()
-				.filter(card -> card.getColor() == Color.HEARTS)
-				.count();
-		numberOfKnownHearts += cards.stream()
-				.filter(card -> card.getColor() == Color.HEARTS)
-				.count();
+		long numberOfKnownHearts = getKnownHeartStream(cards).count();
 		return numberOfKnownHearts == oneColorCardsSize;
+	}
+
+	private boolean isHighestRemainingHeart(List<Card> cards, Card theCard) {
+		if (theCard.getColor() != Color.HEARTS) {
+			return false;
+		}
+
+		long higherKnownHeartsCount = getKnownHeartStream(cards)
+				.filter(card -> card.getValue() > theCard.getValue())
+				.count();
+		return higherKnownHeartsCount == HIGHEST_CARD_VALUE - theCard.getValue();
+	}
+
+	private Stream<Card> getKnownHeartStream(List<Card> cards) {
+		return Stream.concat(playedOutCards.stream(), cards.stream()).filter(card -> card.getColor() == Color.HEARTS);
 	}
 
 	private Card selectCard(List<Card> cards) {
