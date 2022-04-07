@@ -6,12 +6,16 @@ import com.lafi.cardgame.nazdarbaby.card.Color;
 import com.lafi.cardgame.nazdarbaby.user.User;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 class BotSimulator {
@@ -23,6 +27,7 @@ class BotSimulator {
 	private List<Card> cardPlaceholders;
 	private User activeUser;
 	private List<User> matchUsers;
+	private Map<User, UserInfo> userToUserInfo;
 	private int deckOfCardsSize;
 
 	BotSimulator(Game game) {
@@ -35,11 +40,15 @@ class BotSimulator {
 
 	void setActiveUser(User activeUser) {
 		this.activeUser = activeUser;
+
 		rememberCardsFromTable();
+		collectKnownInfoAboutUsers();
 	}
 
 	void setMatchUsers(List<User> matchUsers) {
 		this.matchUsers = matchUsers;
+		userToUserInfo = matchUsers.stream().collect(Collectors.toMap(Function.identity(), matchUser -> new UserInfo()));
+
 		playedOutCards.clear();
 	}
 
@@ -56,6 +65,7 @@ class BotSimulator {
 		if (activeUser.getExpectedTakes() == null) {
 			double expectedTakes = guessExpectedTakes(activeUserCards);
 			int expectedTakesRounded = (int) Math.round(expectedTakes);
+
 			if (game.isLastUserWithInvalidExpectedTakes(expectedTakesRounded)) {
 				if (expectedTakes > expectedTakesRounded) {
 					activeUser.setExpectedTakes(expectedTakesRounded + 1);
@@ -84,6 +94,8 @@ class BotSimulator {
 		int oneColorCardsSize = deckOfCardsSize / Color.values().length;
 		double magicNumber = highestCardValue - ((double) oneColorCardsSize / matchUsers.size()) + 1;
 
+		boolean othersWithoutHearts = areOthersWithoutHearts(cards, oneColorCardsSize);
+
 		double guess = 0;
 		for (Card card : cards) {
 			int cardValue = card.getValue();
@@ -91,14 +103,35 @@ class BotSimulator {
 
 			if (cardValue > magicNumber) {
 				++guess;
+			} else if (card.getColor() == Color.HEARTS) {
+				if (othersWithoutHearts) {
+					++guess;
+				} else {
+					guess += Math.max(diff, 0.5);
+				}
 			} else if (diff < 1) {
 				guess += diff;
-			} else if (card.getColor() == Color.HEARTS) {
-				guess += 0.5;
 			}
 		}
 
 		return guess;
+	}
+
+	private boolean areOthersWithoutHearts(List<Card> cards, int oneColorCardsSize) {
+		boolean othersWithoutHearts = userToUserInfo.entrySet().stream()
+				.filter(entry -> entry.getKey() != activeUser)
+				.noneMatch(entry -> entry.getValue().hasColor(Color.HEARTS));
+		if (othersWithoutHearts) {
+			return true;
+		}
+
+		long numberOfKnownHearts = playedOutCards.stream()
+				.filter(card -> card.getColor() == Color.HEARTS)
+				.count();
+		numberOfKnownHearts += cards.stream()
+				.filter(card -> card.getColor() == Color.HEARTS)
+				.count();
+		return numberOfKnownHearts == oneColorCardsSize;
 	}
 
 	private Card selectCard(List<Card> cards) {
@@ -148,6 +181,31 @@ class BotSimulator {
 		if (cardPlaceholders != null) {
 			playedOutCards.addAll(cardPlaceholders);
 			playedOutCards.remove(CardProvider.CARD_PLACEHOLDER);
+		}
+	}
+
+	private void collectKnownInfoAboutUsers() {
+		if (cardPlaceholders == null) {
+			return;
+		}
+
+		Card leadingCard = cardPlaceholders.get(0);
+		if (leadingCard.isPlaceholder()) {
+			return;
+		}
+
+		for (int i = 1; i < cardPlaceholders.size(); ++i) {
+			Card card = cardPlaceholders.get(i);
+			if (card.isPlaceholder()) {
+				break;
+			}
+
+			if (card.getColor() != leadingCard.getColor()) {
+				User user = matchUsers.get(i);
+				UserInfo userInfo = userToUserInfo.get(user);
+
+				userInfo.removeColor(leadingCard.getColor());
+			}
 		}
 	}
 
@@ -279,5 +337,18 @@ class BotSimulator {
 		return sortedCards.stream()
 				.filter(card -> card.getValue() > theCard.getValue())
 				.findFirst();
+	}
+
+	private static final class UserInfo {
+
+		private final Set<Color> colorsInHand = new HashSet<>(Arrays.asList(Color.values()));
+
+		private boolean hasColor(Color color) {
+			return colorsInHand.contains(color);
+		}
+
+		private void removeColor(Color color) {
+			colorsInHand.remove(color);
+		}
 	}
 }
