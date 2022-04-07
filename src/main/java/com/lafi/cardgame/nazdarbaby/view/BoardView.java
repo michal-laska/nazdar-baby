@@ -370,8 +370,6 @@ public class BoardView extends ParameterizedView {
 		UserProvider userProvider = table.getUserProvider();
 		User currentUser = userProvider.getCurrentUser();
 
-		boolean newGameOrLogout = game.getSetUsers().stream().anyMatch(setUser -> setUser.wantNewGame() || setUser.isLoggedOut());
-
 		for (User user : game.getSetUsers()) {
 			VerticalLayout pointsVL = new VerticalLayout();
 			pointsVL.setDefaultHorizontalComponentAlignment(Alignment.CENTER);
@@ -385,65 +383,78 @@ public class BoardView extends ParameterizedView {
 				style.set(BORDER_STYLE, ONE_PX_SOLID + GREEN_COLOR);
 			}
 
-			Checkbox newGameCheckbox = new Checkbox(user.wantNewGame());
-			pointsVL.add(newGameCheckbox);
-
-			boolean isCurrentUser = user.equals(currentUser);
-
-			newGameCheckbox.setEnabled(isCurrentUser);
-			newGameCheckbox.setIndeterminate(user.isLoggedOut());
-
-			if (user.isLoggedOut()) {
-				newGameCheckbox.setLabel(Constant.LOGOUT_LABEL);
-			} else if (user.wantNewGame()) {
-				newGameCheckbox.setLabel(NEW_GAME_LABEL);
-			} else {
-				String newGameCheckboxLabel = NEW_GAME_LABEL + " / " + Constant.LOGOUT_LABEL;
-				newGameCheckbox.setLabel(newGameCheckboxLabel);
+			if (!user.isBot()) {
+				Checkbox newGameCheckbox = createNewGameCheckbox(user);
+				pointsVL.add(newGameCheckbox);
 			}
-
-			if (isCurrentUser && newGameOrLogout) {
-				table.addCountdownCheckbox(this, newGameCheckbox);
-			}
-
-			newGameCheckbox.addClickListener(click -> {
-				if (user.isLoggedOut()) {
-					newGameCheckbox.setValue(false);
-					newGameCheckbox.setIndeterminate(false);
-				} else if (user.wantNewGame()) {
-					newGameCheckbox.setValue(true);
-					newGameCheckbox.setIndeterminate(true);
-				}
-
-				if (newGameCheckbox.isIndeterminate()) {
-					user.setLoggedOut(true);
-				} else if (Boolean.TRUE.equals(newGameCheckbox.getValue())) {
-					user.setNewGame(true);
-				} else {
-					user.resetAction();
-					table.stopNewGameCountdown();
-				}
-
-				if (game.usersWantNewGame()) {
-					game.setGameInProgress(false);
-					table.stopNewGameCountdown();
-
-					// some players can be in "waiting room"
-					broadcast(TableView.class, null);
-				}
-
-				broadcast();
-			});
 
 			Label userLabel = new Label(user.getName());
 			Label pointsLabel = new Label(user.getPoints() + Constant.POINTS_LABEL);
 			pointsVL.add(userLabel, pointsLabel);
 
+			boolean isCurrentUser = user.equals(currentUser);
 			if (isCurrentUser) {
 				userLabel.getStyle().set(FONT_WEIGHT_STYLE, BOLD);
 				pointsLabel.getStyle().set(FONT_WEIGHT_STYLE, BOLD);
 			}
 		}
+	}
+
+	private Checkbox createNewGameCheckbox(User user) {
+		UserProvider userProvider = table.getUserProvider();
+		User currentUser = userProvider.getCurrentUser();
+		boolean isCurrentUser = user.equals(currentUser);
+
+		Checkbox newGameCheckbox = new Checkbox(user.wantNewGame());
+		newGameCheckbox.setEnabled(isCurrentUser);
+		newGameCheckbox.setIndeterminate(user.isLoggedOut());
+
+		if (user.isLoggedOut()) {
+			newGameCheckbox.setLabel(Constant.LOGOUT_LABEL);
+		} else if (user.wantNewGame()) {
+			newGameCheckbox.setLabel(NEW_GAME_LABEL);
+		} else {
+			String newGameCheckboxLabel = NEW_GAME_LABEL + " / " + Constant.LOGOUT_LABEL;
+			newGameCheckbox.setLabel(newGameCheckboxLabel);
+		}
+
+		Game game = table.getGame();
+
+		boolean newGameOrLogout = game.getSetUsers().stream().anyMatch(setUser -> setUser.wantNewGame() || setUser.isLoggedOut());
+		if (isCurrentUser && newGameOrLogout) {
+			table.addCountdownCheckbox(this, newGameCheckbox);
+		}
+
+		newGameCheckbox.addClickListener(click -> {
+			if (user.isLoggedOut()) {
+				newGameCheckbox.setValue(false);
+				newGameCheckbox.setIndeterminate(false);
+			} else if (user.wantNewGame()) {
+				newGameCheckbox.setValue(true);
+				newGameCheckbox.setIndeterminate(true);
+			}
+
+			if (newGameCheckbox.isIndeterminate()) {
+				user.setLoggedOut(true);
+			} else if (Boolean.TRUE.equals(newGameCheckbox.getValue())) {
+				user.setNewGame(true);
+			} else {
+				user.resetAction();
+				table.stopNewGameCountdown();
+			}
+
+			if (game.usersWantNewGame()) {
+				game.setGameInProgress(false);
+				table.stopNewGameCountdown();
+
+				// some players can be in "waiting room"
+				broadcast(TableView.class, null);
+			}
+
+			broadcast();
+		});
+
+		return newGameCheckbox;
 	}
 
 	private HorizontalLayout getAndAddCardPlaceholdersHL() {

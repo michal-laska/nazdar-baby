@@ -162,6 +162,8 @@ public class TableView extends ParameterizedView {
 
 			HorizontalLayout horizontalLayout;
 			if (user.isBot()) {
+				user.setReady(true);
+
 				Button removeButton = new Button("Remove");
 				horizontalLayout = new HorizontalLayout(userName, userPoints, removeButton);
 

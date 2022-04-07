@@ -190,7 +190,9 @@ public final class Game {
 	}
 
 	public boolean usersWantNewGame() {
-		return gameUsers.stream().noneMatch(user -> !user.wantNewGame() && !user.isLoggedOut());
+		return gameUsers.stream()
+				.filter(user -> !user.isBot())
+				.noneMatch(user -> !user.wantNewGame() && !user.isLoggedOut());
 	}
 
 	boolean isLastUser() {
