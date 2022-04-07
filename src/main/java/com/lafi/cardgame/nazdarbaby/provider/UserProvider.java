@@ -16,7 +16,7 @@ import java.util.stream.Stream;
 public class UserProvider {
 
 	private final Map<VaadinSession, User> sessionToUser = new HashMap<>();
-	private final Set<User> bots = new HashSet<>();
+	private final Map<String, User> bots = new HashMap<>();
 	private final Set<VaadinSession> loggedInSessions = new HashSet<>();
 
 	private final SessionProvider sessionProvider;
@@ -32,15 +32,20 @@ public class UserProvider {
 		sessionToUser.put(session, user);
 	}
 
-	public void addBot(String botName) {
+	public boolean addBot(String botName) {
+		if (bots.containsKey(botName)) {
+			return false;
+		}
+
 		User bot = new User(botName, true);
 		bot.setReady(true);
 
-		bots.add(bot);
+		bots.put(botName, bot);
+		return true;
 	}
 
 	public void removeBot(User bot) {
-		bots.remove(bot);
+		bots.remove(bot.getName());
 	}
 
 	public void logInCurrentSession() {
@@ -87,7 +92,7 @@ public class UserProvider {
 
 	private Stream<User> getUserStream() {
 		Stream<User> userStream = sessionToUser.values().stream();
-		Stream<User> botStream = bots.stream();
+		Stream<User> botStream = bots.values().stream();
 
 		return Stream.concat(userStream, botStream);
 	}

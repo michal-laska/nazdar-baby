@@ -169,7 +169,12 @@ public class TableView extends ParameterizedView {
 
 				removeButton.addClickListener(event -> {
 					userProvider.removeBot(user);
+
+					if (userProvider.getReadyUsersCount() < Table.MINIMUM_USERS) {
+						table.stopNewGameCountdown();
+					}
 					table.tryStartNewGame();
+
 					broadcast();
 				});
 			} else {
@@ -204,12 +209,19 @@ public class TableView extends ParameterizedView {
 			add(addBotButton);
 
 			addBotButton.addClickListener(event -> {
-				String botName = "BOT-" + System.currentTimeMillis();
-				userProvider.addBot(botName);
+				addBot(userProvider);
 				table.tryStartNewGame();
 				broadcast();
 			});
 		}
+	}
+
+	private void addBot(UserProvider userProvider) {
+		String botName;
+		int botSuffix = 1;
+		do {
+			botName = "BOT-" + botSuffix++;
+		} while (!userProvider.addBot(botName));
 	}
 
 	private Checkbox createReadyCheckbox(User user, boolean isCurrentUser) {
