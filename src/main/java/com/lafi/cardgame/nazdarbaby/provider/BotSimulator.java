@@ -26,7 +26,7 @@ class BotSimulator {
 
 	private List<Card> cardPlaceholders;
 	private User activeUser;
-	private List<User> matchUsers;
+	private List<User> users;
 	private Map<User, UserInfo> userToUserInfo;
 	private int deckOfCardsSize;
 
@@ -45,9 +45,9 @@ class BotSimulator {
 		collectKnownInfoAboutUsers();
 	}
 
-	void setMatchUsers(List<User> matchUsers) {
-		this.matchUsers = matchUsers;
-		userToUserInfo = matchUsers.stream().collect(Collectors.toMap(Function.identity(), matchUser -> new UserInfo()));
+	void setUsers(List<User> users) {
+		this.users = users;
+		userToUserInfo = users.stream().collect(Collectors.toMap(Function.identity(), user -> new UserInfo()));
 
 		playedOutCards.clear();
 	}
@@ -78,9 +78,9 @@ class BotSimulator {
 
 			game.afterActiveUserSetExpectedTakes();
 		} else {
-			int matchUserIndex = matchUsers.indexOf(activeUser);
+			int userIndex = users.indexOf(activeUser);
 			Card selectedCard = selectCard(activeUserCards);
-			cardPlaceholders.set(matchUserIndex, selectedCard);
+			cardPlaceholders.set(userIndex, selectedCard);
 
 			int cardIndex = activeUserCards.indexOf(selectedCard);
 			activeUserCards.set(cardIndex, CardProvider.CARD_PLACEHOLDER);
@@ -92,7 +92,7 @@ class BotSimulator {
 	private double guessExpectedTakes(List<Card> cards) {
 		int highestCardValue = 14; //TODO do it better
 		int oneColorCardsSize = deckOfCardsSize / Color.values().length;
-		double magicNumber = highestCardValue - ((double) oneColorCardsSize / matchUsers.size()) + 1;
+		double magicNumber = highestCardValue - ((double) oneColorCardsSize / users.size()) + 1;
 
 		boolean othersWithoutHearts = areOthersWithoutHearts(cards, oneColorCardsSize);
 
@@ -201,7 +201,7 @@ class BotSimulator {
 			}
 
 			if (card.getColor() != leadingCard.getColor()) {
-				User user = matchUsers.get(i);
+				User user = users.get(i);
 				UserInfo userInfo = userToUserInfo.get(user);
 
 				userInfo.removeColor(leadingCard.getColor());

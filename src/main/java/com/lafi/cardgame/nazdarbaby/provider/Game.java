@@ -275,7 +275,7 @@ public final class Game {
 
 	private void setMatchUsers(List<User> matchUsers) {
 		this.matchUsers = matchUsers;
-		botSimulator.setMatchUsers(matchUsers);
+		botSimulator.setUsers(matchUsers);
 	}
 
 	private void tryBotMove() {
