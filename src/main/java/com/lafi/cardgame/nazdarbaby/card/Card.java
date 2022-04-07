@@ -65,6 +65,10 @@ public class Card implements Comparable<Card> {
 		return color == null;
 	}
 
+	public boolean isHigherThan(Card other) {
+		return this.compareTo(other) > 0;
+	}
+
 	@Override
 	public int compareTo(Card card) {
 		Integer thisValue = this.value + color.getCompareToValue();
@@ -89,5 +93,13 @@ public class Card implements Comparable<Card> {
 	@Override
 	public int hashCode() {
 		return Objects.hash(value, color);
+	}
+
+	@Override
+	public String toString() {
+		return "Card{" +
+				"value=" + value +
+				", color=" + color +
+				'}';
 	}
 }

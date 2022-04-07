@@ -132,15 +132,20 @@ class BotSimulator {
 		return numberOfKnownHearts == oneColorCardsSize;
 	}
 
-	private boolean isHighestRemainingHeart(List<Card> cards, Card theCard) {
+	boolean isHighestRemainingHeart(List<Card> cards, Card theCard) {
 		if (theCard.getColor() != Color.HEARTS) {
 			return false;
 		}
 
-		long higherKnownHeartsCount = getKnownHeartStream(cards)
+		Card winningCard = getWinningCard();
+		if (winningCard.isHigherThan(theCard)) {
+			return false;
+		}
+
+		List<Card> higherKnownHearts = getKnownHeartStream(cards)
 				.filter(card -> card.getValue() > theCard.getValue())
-				.count();
-		return higherKnownHeartsCount == HIGHEST_CARD_VALUE - theCard.getValue();
+				.toList();
+		return higherKnownHearts.size() == HIGHEST_CARD_VALUE - theCard.getValue();
 	}
 
 	private Stream<Card> getKnownHeartStream(List<Card> cards) {
@@ -247,9 +252,7 @@ class BotSimulator {
 	private Card selectLowCard(List<Card> sortedPlayableCards) {
 		Card lowestCard = getLowestCard(sortedPlayableCards);
 		Card leadingCard = getLeadingCard();
-
-		int winningCardIndex = game.getWinnerIndex();
-		Card winningCard = cardPlaceholders.get(winningCardIndex);
+		Card winningCard = getWinningCard();
 
 		if (winningCard.isPlaceholder()) {
 			return lowestCard;
@@ -286,9 +289,7 @@ class BotSimulator {
 	private Card selectHighCard(List<Card> sortedPlayableCards) {
 		Card highestCard = getHighestCard(sortedPlayableCards);
 		Card leadingCard = getLeadingCard();
-
-		int winningCardIndex = game.getWinnerIndex();
-		Card winningCard = cardPlaceholders.get(winningCardIndex);
+		Card winningCard = getWinningCard();
 
 		if (winningCard.isPlaceholder()) {
 			return highestCard;
@@ -317,6 +318,11 @@ class BotSimulator {
 			return getHighestCard(sortedPlayableCards);
 		}
 		return getLowestCard(sortedPlayableCards);
+	}
+
+	private Card getWinningCard() {
+		int winningCardIndex = game.getWinnerIndex();
+		return cardPlaceholders.get(winningCardIndex);
 	}
 
 	private Card getLeadingCard() {

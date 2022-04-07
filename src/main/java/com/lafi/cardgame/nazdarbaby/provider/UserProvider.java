@@ -13,7 +13,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public final class UserProvider {
+public class UserProvider {
 
 	private final Map<VaadinSession, User> sessionToUser = new HashMap<>();
 	private final Set<User> bots = new HashSet<>();
