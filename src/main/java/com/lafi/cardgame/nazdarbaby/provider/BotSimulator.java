@@ -106,8 +106,10 @@ class BotSimulator {
 			} else if (card.getColor() == Color.HEARTS) {
 				if (othersWithoutHearts) {
 					++guess;
-				} else {
+				} else if (diff < 1) {
 					guess += Math.max(diff, 0.5);
+				} else {
+					guess += 0.5;
 				}
 			} else if (diff < 1) {
 				guess += diff;
