@@ -7,7 +7,6 @@ import com.lafi.cardgame.nazdarbaby.user.User;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -137,18 +136,16 @@ class BotSimulator {
 	}
 
 	private Card selectCard(List<Card> cards) {
-		List<Card> playableCards = getPlayableCards(cards);
-		int playableCardsSize = playableCards.size();
+		List<Card> sortedPlayableCards = getSortedPlayableCards(cards);
+		int sortedPlayableCardsSize = sortedPlayableCards.size();
 
-		if (playableCardsSize == 1) {
-			return playableCards.get(0);
+		if (sortedPlayableCardsSize == 1) {
+			return sortedPlayableCards.get(0);
 		}
 
-		Collections.sort(playableCards);
-
-		if (noGapsInOneColor(playableCards)) {
-			int randomIndex = random.nextInt(playableCardsSize);
-			return playableCards.get(randomIndex);
+		if (noGapsInOneColor(sortedPlayableCards)) {
+			int randomIndex = random.nextInt(sortedPlayableCardsSize);
+			return sortedPlayableCards.get(randomIndex);
 		}
 
 		List<Card> activeUserCards = activeUser.getCards();
@@ -156,12 +153,12 @@ class BotSimulator {
 		int takesNeeded = activeUser.getExpectedTakes() - activeUser.getActualTakes();
 
 		if (takesGuessed > takesNeeded) {
-			return selectLowCard(playableCards);
+			return selectLowCard(sortedPlayableCards);
 		}
-		return selectHighCard(playableCards);
+		return selectHighCard(sortedPlayableCards);
 	}
 
-	private List<Card> getPlayableCards(List<Card> cards) {
+	private List<Card> getSortedPlayableCards(List<Card> cards) {
 		Card leadingCard = getLeadingCard();
 		Color leadingCardColor = leadingCard.getColor();
 
@@ -176,7 +173,7 @@ class BotSimulator {
 			playableCardStream = playableCardStream.filter(card -> !card.isPlaceholder());
 		}
 
-		return new ArrayList<>(playableCardStream.toList());
+		return new ArrayList<>(playableCardStream.sorted().toList());
 	}
 
 	private void rememberCardsFromTable() {
