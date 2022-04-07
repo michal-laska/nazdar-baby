@@ -95,7 +95,7 @@ class BotSimulator {
 		int oneColorCardsSize = deckOfCardsSize / Color.values().length;
 		double magicNumber = HIGHEST_CARD_VALUE - ((double) oneColorCardsSize / users.size()) + 1;
 
-		boolean othersWithoutHearts = areOthersWithoutHearts(cards, oneColorCardsSize);
+		boolean othersWithoutHearts = areOthersWithoutHearts();
 
 		double guess = 0;
 		for (Card card : cards) {
@@ -120,16 +120,10 @@ class BotSimulator {
 		return guess;
 	}
 
-	private boolean areOthersWithoutHearts(List<Card> cards, int oneColorCardsSize) {
-		boolean othersWithoutHearts = userToUserInfo.entrySet().stream()
+	private boolean areOthersWithoutHearts() {
+		return userToUserInfo.entrySet().stream()
 				.filter(entry -> entry.getKey() != activeUser)
 				.noneMatch(entry -> entry.getValue().hasColor(Color.HEARTS));
-		if (othersWithoutHearts) {
-			return true;
-		}
-
-		long numberOfKnownHearts = getKnownHeartStream(cards).count();
-		return numberOfKnownHearts == oneColorCardsSize;
 	}
 
 	boolean isHighestRemainingHeart(List<Card> cards, Card theCard) {
