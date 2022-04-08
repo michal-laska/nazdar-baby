@@ -7,6 +7,7 @@ import com.lafi.cardgame.nazdarbaby.user.User;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -23,13 +24,13 @@ class BotSimulator {
 	private static final int HIGHEST_CARD_VALUE = 14;
 
 	private final Set<Card> playedOutCards = new HashSet<>();
+	private final Map<User, Map<User, UserInfo>> botToOtherUsersInfo = new HashMap<>();
 	private final Random random = new Random();
 	private final Game game;
 
 	private List<Card> cardPlaceholders;
 	private User activeUser;
 	private List<User> users;
-	private Map<User, UserInfo> userToUserInfo;
 	private int deckOfCardsSize;
 
 	BotSimulator(Game game) {
@@ -47,9 +48,18 @@ class BotSimulator {
 
 	void setUsers(List<User> users) {
 		this.users = users;
-		userToUserInfo = users.stream().collect(Collectors.toMap(Function.identity(), user -> new UserInfo()));
 
 		playedOutCards.clear();
+		botToOtherUsersInfo.clear();
+
+		for (User theUser : users) {
+			if (theUser.isBot()) {
+				Map<User, UserInfo> otherUsersInfo = users.stream()
+						.filter(user -> !user.equals(theUser))
+						.collect(Collectors.toMap(Function.identity(), user -> new UserInfo()));
+				botToOtherUsersInfo.put(theUser, otherUsersInfo);
+			}
+		}
 	}
 
 	void setDeckOfCardsSize(int deckOfCardsSize) {
@@ -63,9 +73,8 @@ class BotSimulator {
 			return;
 		}
 
-		List<Card> activeUserCards = activeUser.getCards();
 		if (activeUser.getExpectedTakes() == null) {
-			double expectedTakes = guessExpectedTakes(activeUserCards);
+			double expectedTakes = guessExpectedTakes(activeUser);
 			int expectedTakesRounded = (int) Math.round(expectedTakes);
 
 			if (game.isLastUserWithInvalidExpectedTakes(expectedTakesRounded)) {
@@ -80,6 +89,8 @@ class BotSimulator {
 
 			game.afterActiveUserSetExpectedTakes();
 		} else {
+			List<Card> activeUserCards = activeUser.getCards();
+
 			int userIndex = users.indexOf(activeUser);
 			Card selectedCard = selectCard(activeUserCards);
 			cardPlaceholders.set(userIndex, selectedCard);
@@ -91,11 +102,12 @@ class BotSimulator {
 		}
 	}
 
-	private double guessExpectedTakes(List<Card> cards) {
-		int oneColorCardsSize = deckOfCardsSize / Color.values().length;
-		double magicNumber = HIGHEST_CARD_VALUE - ((double) oneColorCardsSize / users.size()) + 1;
+	private double guessExpectedTakes(User user) {
+		int numberOfCardsInOneColor = getNumberOfCardsInOneColor();
+		double magicNumber = HIGHEST_CARD_VALUE - ((double) numberOfCardsInOneColor / users.size()) + 1;
 
-		boolean othersWithoutHearts = areOthersWithoutHearts();
+		List<Card> cards = user.getCards();
+		boolean othersWithoutHearts = areOthersWithoutHearts(user);
 
 		double guess = 0;
 		for (Card card : cards) {
@@ -120,10 +132,13 @@ class BotSimulator {
 		return guess;
 	}
 
-	private boolean areOthersWithoutHearts() {
-		return userToUserInfo.entrySet().stream()
-				.filter(entry -> entry.getKey() != activeUser)
-				.noneMatch(entry -> entry.getValue().hasColor(Color.HEARTS));
+	private int getNumberOfCardsInOneColor() {
+		return deckOfCardsSize / Color.values().length;
+	}
+
+	private boolean areOthersWithoutHearts(User user) {
+		Map<User, UserInfo> otherUsersInfo = botToOtherUsersInfo.get(user);
+		return otherUsersInfo.values().stream().noneMatch(userInfo -> userInfo.hasColor(Color.HEARTS));
 	}
 
 	boolean isHighestRemainingHeart(List<Card> cards, Card theCard) {
@@ -136,17 +151,19 @@ class BotSimulator {
 			return false;
 		}
 
-		List<Card> higherKnownHearts = getKnownHeartStream(cards)
+		List<Card> higherKnownHearts = getKnownCardsInOneColorStream(cards, Color.HEARTS)
 				.filter(card -> card.getValue() > theCard.getValue())
 				.toList();
 		return higherKnownHearts.size() == HIGHEST_CARD_VALUE - theCard.getValue();
 	}
 
-	private Stream<Card> getKnownHeartStream(List<Card> cards) {
-		return Stream.concat(playedOutCards.stream(), cards.stream()).filter(card -> card.getColor() == Color.HEARTS);
+	private Stream<Card> getKnownCardsInOneColorStream(List<Card> cards, Color color) {
+		return Stream.concat(playedOutCards.stream(), cards.stream()).filter(card -> card.getColor() == color);
 	}
 
 	private Card selectCard(List<Card> cards) {
+		tryToRemoveColorsForOtherUsers(cards);
+
 		List<Card> sortedPlayableCards = getSortedPlayableCards(cards);
 		int sortedPlayableCardsSize = sortedPlayableCards.size();
 
@@ -159,14 +176,24 @@ class BotSimulator {
 			return sortedPlayableCards.get(randomIndex);
 		}
 
-		List<Card> activeUserCards = activeUser.getCards();
-		double takesGuessed = guessExpectedTakes(activeUserCards);
+		double takesGuessed = guessExpectedTakes(activeUser);
 		int takesNeeded = activeUser.getExpectedTakes() - activeUser.getActualTakes();
 
 		if (takesGuessed > takesNeeded) {
 			return selectLowCard(sortedPlayableCards);
 		}
 		return selectHighCard(sortedPlayableCards);
+	}
+
+	private void tryToRemoveColorsForOtherUsers(List<Card> cards) {
+		int numberOfCardsInOneColor = getNumberOfCardsInOneColor();
+		for (Color color : Color.values()) {
+			long knownCardsInOneColorSize = getKnownCardsInOneColorStream(cards, color).count();
+			if (knownCardsInOneColorSize == numberOfCardsInOneColor) {
+				Map<User, UserInfo> otherUsersInfo = botToOtherUsersInfo.get(activeUser);
+				otherUsersInfo.values().forEach(userInfo -> userInfo.removeColor(color));
+			}
+		}
 	}
 
 	private List<Card> getSortedPlayableCards(List<Card> cards) {
@@ -211,10 +238,14 @@ class BotSimulator {
 			}
 
 			if (card.getColor() != leadingCard.getColor()) {
-				User user = users.get(i);
-				UserInfo userInfo = userToUserInfo.get(user);
+				User affectedUser = users.get(i);
 
-				userInfo.removeColor(leadingCard.getColor());
+				for (Map<User, UserInfo> otherUsersInfo : botToOtherUsersInfo.values()) {
+					UserInfo userInfo = otherUsersInfo.get(affectedUser);
+					if (userInfo != null) {
+						userInfo.removeColor(leadingCard.getColor());
+					}
+				}
 			}
 		}
 	}
@@ -234,13 +265,13 @@ class BotSimulator {
 			return true;
 		}
 
-		long playedOutCardSizeInOneColor = playedOutCards.stream()
+		long playedOutCardInOneColorSize = playedOutCards.stream()
 				.filter(card -> card.getColor() == lowestCard.getColor())
 				.filter(card -> card.getValue() > lowestCard.getValue())
 				.filter(card -> card.getValue() < highestCard.getValue())
 				.count();
 
-		return expectedPlayedOutCardSizeInOneColor == playedOutCardSizeInOneColor;
+		return expectedPlayedOutCardSizeInOneColor == playedOutCardInOneColorSize;
 	}
 
 	private Card selectLowCard(List<Card> sortedPlayableCards) {
