@@ -314,13 +314,15 @@ public class Game {
 	private void startNewMatch() {
 		initCardPlaceholders();
 
-		tryBotMove();
-
 		if (everybodyLost || matchNumber++ == matchUsers.get(0).getCards().size()) {
 			everybodyLost = false;
 
 			startNewSet();
 			startNewMatch();
+
+			tryBotMove();
+		} else {
+			tryBotMove();
 		}
 	}
 

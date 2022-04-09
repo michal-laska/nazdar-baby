@@ -91,9 +91,9 @@ class BotSimulator {
 		} else {
 			List<Card> activeUserCards = activeUser.getCards();
 
-			int userIndex = users.indexOf(activeUser);
+			int activeUserIndex = getActiveUserIndex();
 			Card selectedCard = selectCard(activeUserCards);
-			cardPlaceholders.set(userIndex, selectedCard);
+			cardPlaceholders.set(activeUserIndex, selectedCard);
 
 			int cardIndex = activeUserCards.indexOf(selectedCard);
 			activeUserCards.set(cardIndex, CardProvider.CARD_PLACEHOLDER);
@@ -358,8 +358,63 @@ class BotSimulator {
 		return cards.get(0);
 	}
 
+	//TODO check selectXXXCard: low vs high
 	private Card getHighestCard(List<Card> cards) {
-		return cards.get(cards.size() - 1);
+		Card highestCard = cards.get(cards.size() - 1);
+		List<Card> highestCards = cards.stream()
+				.filter(card -> card.getValue() == highestCard.getValue())
+				.toList();
+
+		if (highestCards.size() == 1) {
+			return highestCard;
+		}
+
+		List<Card> possibleWinnerCards = highestCards.stream()
+				.filter(card -> isPossibleColorToWin(card.getColor()))
+				.toList();
+
+		if (possibleWinnerCards.isEmpty()) {
+			return getMostProbableCardToWin(highestCards);
+		}
+		if (possibleWinnerCards.size() == 1) {
+			return possibleWinnerCards.get(0);
+		}
+		return getMostProbableCardToWin(possibleWinnerCards);
+	}
+
+	private boolean isPossibleColorToWin(Color color) {
+		int activeUserIndex = getActiveUserIndex();
+		Map<User, UserInfo> otherUsersInfo = botToOtherUsersInfo.get(activeUser);
+
+		for (int i = activeUserIndex + 1; i < users.size(); ++i) {
+			User user = users.get(i);
+			UserInfo userInfo = otherUsersInfo.get(user);
+
+			if (!userInfo.hasColor(color) && userInfo.hasColor(Color.HEARTS)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private Card getMostProbableCardToWin(List<Card> cards) {
+		long lowestKnownCardsInOneColorSize = HIGHEST_CARD_VALUE;
+		Card mostProbableCardToWin = null;
+
+		List<Card> activeUserCards = activeUser.getCards();
+		for (Card card : cards) {
+			long knownCardsInOneColorSize = getKnownCardsInOneColorStream(activeUserCards, card.getColor()).count();
+			if (knownCardsInOneColorSize < lowestKnownCardsInOneColorSize) {
+				lowestKnownCardsInOneColorSize = knownCardsInOneColorSize;
+				mostProbableCardToWin = card;
+			}
+		}
+
+		return mostProbableCardToWin;
+	}
+
+	private int getActiveUserIndex() {
+		return users.indexOf(activeUser);
 	}
 
 	private Optional<Card> getLowerCard(List<Card> sortedCards, Card theCard) {
