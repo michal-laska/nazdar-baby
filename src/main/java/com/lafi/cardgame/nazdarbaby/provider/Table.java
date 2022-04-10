@@ -90,25 +90,30 @@ public class Table {
 	}
 
 	public boolean allNextButtonsWereClicked() {
-		return ++nextButtonClickCounter % game.getMatchUsers().size() == 0;
+		long nonBotMatchUsersCount = game.getMatchUsers().stream()
+				.filter(user -> !user.isBot())
+				.count();
+		return ++nextButtonClickCounter % nonBotMatchUsersCount == 0;
 	}
 
 	public String getInfo() {
-		if (game.isGameInProgress()) {
-			return "In progress, Playing = " + game.getMatchUsers().size();
-		}
-
 		int readyCounter = 0;
 		int notReadyCounter = 0;
+		int botCounter = 0;
 		for (User playingUser : userProvider.getPlayingUsers()) {
-			if (playingUser.isReady()) {
+			if (playingUser.isBot()) {
+				++botCounter;
+			} else if (playingUser.isReady()) {
 				++readyCounter;
 			} else {
 				++notReadyCounter;
 			}
 		}
 
-		return "Not started, Ready = " + readyCounter + ", Not ready = " + notReadyCounter;
+		if (game.isGameInProgress()) {
+			return "In progress, Players = " + notReadyCounter + ", Bots = " + botCounter;
+		}
+		return "Not started, Ready = " + readyCounter + ", Not ready = " + notReadyCounter + ", Bots = " + botCounter;
 	}
 
 	public boolean isFull() {

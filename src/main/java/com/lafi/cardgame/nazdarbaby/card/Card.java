@@ -65,10 +65,17 @@ public class Card implements Comparable<Card> {
 		return color == null;
 	}
 
+	public boolean isHigherThan(Card other) {
+		if (color == other.color) {
+			return value > other.value;
+		}
+		return other.color != Color.HEARTS;
+	}
+
 	@Override
 	public int compareTo(Card card) {
-		Integer thisValue = this.value + color.getCompareToValue();
-		Integer otherValue = card.value + card.color.getCompareToValue();
+		Integer thisValue = value + getColorValue(color);
+		Integer otherValue = card.value + getColorValue(card.color);
 
 		return thisValue.compareTo(otherValue);
 	}
@@ -89,5 +96,17 @@ public class Card implements Comparable<Card> {
 	@Override
 	public int hashCode() {
 		return Objects.hash(value, color);
+	}
+
+	@Override
+	public String toString() {
+		return "Card{" +
+				"value=" + value +
+				", color=" + color +
+				'}';
+	}
+
+	private int getColorValue(Color color) {
+		return color == null ? 0 : color.getCompareToValue();
 	}
 }
