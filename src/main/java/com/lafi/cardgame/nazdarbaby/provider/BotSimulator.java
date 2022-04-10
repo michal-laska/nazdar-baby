@@ -8,6 +8,7 @@ import com.lafi.cardgame.nazdarbaby.user.User;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -178,8 +179,8 @@ class BotSimulator {
 		}
 
 		if (noGapsInOneColor(sortedPlayableCards)) {
-			int randomIndex = random.nextInt(sortedPlayableCardsSize);
-			return sortedPlayableCards.get(randomIndex);
+			int index = random.nextInt(sortedPlayableCardsSize);
+			return sortedPlayableCards.get(index);
 		}
 
 		double takesGuessed = guessExpectedTakes(activeUser);
@@ -217,7 +218,10 @@ class BotSimulator {
 			playableCardStream = playableCardStream.filter(card -> !card.isPlaceholder());
 		}
 
-		return new ArrayList<>(playableCardStream.sorted().toList());
+		List<Card> sortedPlayableCards = playableCardStream
+				.sorted(Comparator.comparingInt(Card::getValue))
+				.toList();
+		return new ArrayList<>(sortedPlayableCards);
 	}
 
 	private void rememberCardsFromTable() {
@@ -362,7 +366,19 @@ class BotSimulator {
 	}
 
 	private Card getLowestCard(List<Card> cards) {
-		return cards.get(0);
+		List<Card> lowestRemainingCards = cards.stream()
+				.filter(card -> isLowestRemainingColor(cards, card))
+				.toList();
+
+		if (lowestRemainingCards.isEmpty()) {
+			Card lowestCardInHand = cards.get(0);
+			List<Card> lowestCardsInHands = cards.stream()
+					.filter(card -> card.getValue() == lowestCardInHand.getValue())
+					.toList();
+
+			return getLowestCardToLose(lowestCardsInHands);
+		}
+		return getLowestCardToLose(lowestRemainingCards);
 	}
 
 	private Card getHighestCard(List<Card> cards, boolean toWin) {
@@ -436,6 +452,24 @@ class BotSimulator {
 		return getMostProbableCardToWin(possibleWinnerCards);
 	}
 
+	private Card getLowestCardToLose(List<Card> cards) {
+		if (cards.size() == 1) {
+			return cards.get(0);
+		}
+
+		List<Card> possibleLoserCards = cards.stream()
+				.filter(card -> isPossibleColorToLose(card.getColor()))
+				.toList();
+
+		if (possibleLoserCards.isEmpty()) {
+			return getMostProbableCardToWin(cards);
+		}
+		if (possibleLoserCards.size() == 1) {
+			return possibleLoserCards.get(0);
+		}
+		return getMostProbableCardToWin(possibleLoserCards);
+	}
+
 	private boolean isPossibleColorToWin(Color color) {
 		int activeUserIndex = getActiveUserIndex();
 		Map<User, UserInfo> otherUsersInfo = botToOtherUsersInfo.get(activeUser);
@@ -451,20 +485,40 @@ class BotSimulator {
 		return true;
 	}
 
+	private boolean isPossibleColorToLose(Color color) {
+		int activeUserIndex = getActiveUserIndex();
+		Map<User, UserInfo> otherUsersInfo = botToOtherUsersInfo.get(activeUser);
+
+		for (int i = activeUserIndex + 1; i < users.size(); ++i) {
+			User user = users.get(i);
+			UserInfo userInfo = otherUsersInfo.get(user);
+
+			if (userInfo.hasColor(color) || userInfo.hasColor(Color.HEARTS)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private Card getMostProbableCardToWin(List<Card> cards) {
 		long lowestKnownCardsInOneColorSize = HIGHEST_CARD_VALUE;
-		Card mostProbableCardToWin = null;
+		List<Card> mostProbableCardsToWin = new ArrayList<>();
 
 		List<Card> activeUserCards = activeUser.getCards();
 		for (Card card : cards) {
 			long knownCardsInOneColorSize = getKnownCardsInOneColorStream(activeUserCards, card.getColor()).count();
 			if (knownCardsInOneColorSize < lowestKnownCardsInOneColorSize) {
 				lowestKnownCardsInOneColorSize = knownCardsInOneColorSize;
-				mostProbableCardToWin = card;
+
+				mostProbableCardsToWin.clear();
+				mostProbableCardsToWin.add(card);
+			} else if (knownCardsInOneColorSize == lowestKnownCardsInOneColorSize) {
+				mostProbableCardsToWin.add(card);
 			}
 		}
 
-		return mostProbableCardToWin;
+		int index = random.nextInt(mostProbableCardsToWin.size());
+		return mostProbableCardsToWin.get(index);
 	}
 
 	private int getActiveUserIndex() {
