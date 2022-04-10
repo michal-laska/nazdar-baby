@@ -208,6 +208,11 @@ public class TableView extends ParameterizedView {
 			Button addBotButton = new Button("Add bot");
 			add(addBotButton);
 
+			long botCount = userProvider.getPlayingUsers().stream()
+					.filter(User::isBot)
+					.count();
+			addBotButton.setEnabled(botCount + 1 < Table.MAXIMUM_USERS);
+
 			addBotButton.addClickListener(event -> {
 				addBot(userProvider);
 				table.tryStartNewGame();

@@ -329,25 +329,25 @@ class BotSimulator {
 
 		if (highestCard.getColor() == Color.HEARTS) {
 			if (winningCard.getColor() == Color.HEARTS) {
-				return selectHighCard(sortedPlayableCards, winningCard);
+				return selectHighCard(sortedPlayableCards, winningCard, highestCard);
 			}
 			return getLowestCard(sortedPlayableCards);
 		} else if (highestCard.getColor() == leadingCard.getColor()) {
 			if (winningCard.getColor() == Color.HEARTS) {
 				return getLowestCard(sortedPlayableCards);
 			}
-			return selectHighCard(sortedPlayableCards, winningCard);
+			return selectHighCard(sortedPlayableCards, winningCard, highestCard);
 		}
 		return getLowestCard(sortedPlayableCards);
 	}
 
-	private Card selectHighCard(List<Card> sortedPlayableCards, Card winningCard) {
+	private Card selectHighCard(List<Card> sortedPlayableCards, Card winningCard, Card highestCard) {
 		Optional<Card> higherCard = getHigherCard(sortedPlayableCards, winningCard);
 		if (higherCard.isPresent()) {
 			if (game.isLastUser()) {
 				return higherCard.get();
 			}
-			return getHighestCard(sortedPlayableCards, true);
+			return highestCard;
 		}
 		return getLowestCard(sortedPlayableCards);
 	}
