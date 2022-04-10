@@ -168,7 +168,7 @@ class BotSimulator {
 	}
 
 	private Card selectCard(List<Card> cards) {
-		tryToRemoveColorsForOtherUsers(cards);
+		removeColorsForOtherUsers(cards);
 
 		List<Card> sortedPlayableCards = getSortedPlayableCards(cards);
 		int sortedPlayableCardsSize = sortedPlayableCards.size();
@@ -191,7 +191,7 @@ class BotSimulator {
 		return selectHighCard(sortedPlayableCards);
 	}
 
-	private void tryToRemoveColorsForOtherUsers(List<Card> cards) {
+	private void removeColorsForOtherUsers(List<Card> cards) {
 		int numberOfCardsInOneColor = getNumberOfCardsInOneColor();
 		for (Color color : Color.values()) {
 			long knownCardsInOneColorSize = getKnownCardsInOneColorStream(cards, color).count();
