@@ -13,9 +13,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public final class UserProvider {
+public class UserProvider {
 
 	private final Map<VaadinSession, User> sessionToUser = new HashMap<>();
+	private final Map<String, User> bots = new HashMap<>();
 	private final Set<VaadinSession> loggedInSessions = new HashSet<>();
 
 	private final SessionProvider sessionProvider;
@@ -29,6 +30,22 @@ public final class UserProvider {
 		User user = new User(userName);
 
 		sessionToUser.put(session, user);
+	}
+
+	public boolean addBot(String botName) {
+		if (bots.containsKey(botName)) {
+			return false;
+		}
+
+		User bot = new User(botName, true);
+		bot.setReady(true);
+
+		bots.put(botName, bot);
+		return true;
+	}
+
+	public void removeBot(User bot) {
+		bots.remove(bot.getName());
 	}
 
 	public void logInCurrentSession() {
@@ -74,6 +91,9 @@ public final class UserProvider {
 	}
 
 	private Stream<User> getUserStream() {
-		return sessionToUser.values().stream();
+		Stream<User> userStream = sessionToUser.values().stream();
+		Stream<User> botStream = bots.values().stream();
+
+		return Stream.concat(userStream, botStream);
 	}
 }

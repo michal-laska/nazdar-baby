@@ -13,8 +13,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public final class Game {
+public class Game {
 
+	private final BotSimulator botSimulator = new BotSimulator(this);
 	private final UserProvider userProvider;
 	private final PointProvider pointProvider;
 
@@ -70,6 +71,7 @@ public final class Game {
 			Collections.shuffle(gameUsers);
 
 			cardProvider = new CardProvider(gameUsers.size());
+			botSimulator.setDeckOfCardsSize(cardProvider.getDeckOfCardsSize());
 
 			startNewGame();
 		} else {
@@ -100,16 +102,23 @@ public final class Game {
 			User winUser = matchUsers.get(winnerIndex);
 			winUser.increaseActualTakes();
 
-			activeUser = null;
+			setActiveUser(null);
 
 			calculatePoints();
 		} else {
-			activeUser = matchUsers.get(activeUserIndex);
+			setActiveUser(matchUsers.get(activeUserIndex));
 		}
+
+		tryBotMove();
 	}
 
-	public void resetActiveUser() {
-		activeUser = matchUsers.get(0);
+	public void afterActiveUserSetExpectedTakes() {
+		if (isLastUser()) {
+			resetActiveUser();
+			tryBotMove();
+		} else {
+			changeActiveUser();
+		}
 	}
 
 	public boolean isEndOfMatch() {
@@ -118,10 +127,6 @@ public final class Game {
 
 	public boolean isEndOfSet() {
 		return isEndOfMatch() && matchNumber == matchUsers.get(0).getCards().size();
-	}
-
-	public boolean isLastUser() {
-		return matchUsers.indexOf(activeUser) + 1 == matchUsers.size();
 	}
 
 	public boolean isLastUserWithInvalidExpectedTakes(int expectedTakes) {
@@ -183,7 +188,17 @@ public final class Game {
 	}
 
 	public boolean usersWantNewGame() {
-		return gameUsers.stream().noneMatch(user -> !user.wantNewGame() && !user.isLoggedOut());
+		return gameUsers.stream()
+				.filter(user -> !user.isBot())
+				.noneMatch(user -> !user.wantNewGame() && !user.isLoggedOut());
+	}
+
+	boolean isLastUser() {
+		return matchUsers.indexOf(activeUser) + 1 == matchUsers.size();
+	}
+
+	private void resetActiveUser() {
+		setActiveUser(matchUsers.get(0));
 	}
 
 	private void resetReadyFlags() {
@@ -248,6 +263,21 @@ public final class Game {
 		cardPlaceholders = matchUsers.stream()
 				.map(user -> CardProvider.CARD_PLACEHOLDER)
 				.collect(Collectors.toList());
+		botSimulator.setCardPlaceholders(cardPlaceholders);
+	}
+
+	private void setActiveUser(User activeUser) {
+		this.activeUser = activeUser;
+		botSimulator.setActiveUser(activeUser);
+	}
+
+	private void setMatchUsers(List<User> matchUsers) {
+		this.matchUsers = matchUsers;
+		botSimulator.setUsers(matchUsers);
+	}
+
+	private void tryBotMove() {
+		botSimulator.tryBotMove();
 	}
 
 	private void initUserCards() {
@@ -289,6 +319,10 @@ public final class Game {
 
 			startNewSet();
 			startNewMatch();
+
+			tryBotMove();
+		} else {
+			tryBotMove();
 		}
 	}
 
@@ -296,7 +330,7 @@ public final class Game {
 		if (setNumber > 0) {
 			Collections.rotate(setUsers, -1);
 		}
-		matchUsers = new ArrayList<>(setUsers);
+		setMatchUsers(new ArrayList<>(setUsers));
 
 		matchNumber = 0;
 		resetActiveUser();
