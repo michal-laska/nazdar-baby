@@ -7,6 +7,7 @@ import com.lafi.cardgame.nazdarbaby.user.User;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -112,6 +113,15 @@ class BotSimulator {
 				.filter(card -> card.getValue() > theCard.getValue())
 				.toList();
 		return higherKnownCardsInOneColor.size() == HIGHEST_CARD_VALUE - theCard.getValue();
+	}
+
+	private boolean isLowestRemainingColor(List<Card> cards, Card theCard) {
+		int lowestCardValue = deckOfCardsSize == 32 ? 7 : 2; //TODO do it better
+		List<Card> lowerKnownCardsInOneColor = getKnownCardsInOneColorStream(cards, theCard.getColor())
+				.filter(card -> card.getValue() < theCard.getValue())
+				.toList();
+
+		return lowerKnownCardsInOneColor.size() == theCard.getValue() - lowestCardValue;
 	}
 
 	private double guessExpectedTakes(User user) {
@@ -297,9 +307,9 @@ class BotSimulator {
 	}
 
 	private Card selectLowCard(List<Card> sortedPlayableCards, Card winningCard) {
-		Optional<Card> lowerCard = getLowerCard(sortedPlayableCards, winningCard);
-		if (lowerCard.isPresent()) {
-			return lowerCard.get();
+		Card lowerCard = getLowerCard(sortedPlayableCards, winningCard);
+		if (lowerCard != null) {
+			return lowerCard;
 		}
 		if (game.isLastUser()) {
 			return getHighestCard(sortedPlayableCards, false);
@@ -356,19 +366,56 @@ class BotSimulator {
 	}
 
 	private Card getHighestCard(List<Card> cards, boolean toWin) {
-		List<Card> highestRemainingCards = cards.stream()
-				.filter(card -> isHighestRemainingColor(cards, card))
-				.toList();
-
-		if (highestRemainingCards.isEmpty()) {
-			Card highestCardInHand = cards.get(cards.size() - 1);
-			List<Card> highestCardsInHands = cards.stream()
-					.filter(card -> card.getValue() == highestCardInHand.getValue())
+		if (toWin) {
+			List<Card> highestRemainingCards = cards.stream()
+					.filter(card -> isHighestRemainingColor(cards, card))
 					.toList();
 
-			return getHighestCardToWin(highestCardsInHands);
+			if (highestRemainingCards.isEmpty()) {
+				Card highestCardInHand = cards.get(cards.size() - 1);
+				List<Card> highestCardsInHands = cards.stream()
+						.filter(card -> card.getValue() == highestCardInHand.getValue())
+						.toList();
+
+				return getHighestCardToWin(highestCardsInHands);
+			}
+			return getHighestCardToWin(highestRemainingCards);
 		}
-		return getHighestCardToWin(highestRemainingCards);
+		return getRidOfCard(cards);
+	}
+
+	private Card getRidOfCard(List<Card> cards) {
+		List<Card> cardsToGetRidOf = cards.stream()
+				.filter(card -> !isLowestRemainingColor(cards, card))
+				.toList();
+
+		if (cardsToGetRidOf.isEmpty()) {
+			Card card = getRidOfColor(cards, cards);
+			if (card == null) {
+				return cards.get(cards.size() - 1);
+			}
+			return card;
+		}
+
+		Card card = getRidOfColor(cardsToGetRidOf, cards);
+		if (card == null) {
+			return cards.get(cards.size() - 1);
+		}
+		return card;
+	}
+
+	private Card getRidOfColor(List<Card> cardsToGetRidOf, List<Card> cardsInHand) {
+		List<Card> revertedCardsToGetRidOf = new ArrayList<>(cardsToGetRidOf);
+		Collections.reverse(revertedCardsToGetRidOf);
+
+		for (Card theCard : revertedCardsToGetRidOf) {
+			long cardsInColorCount = cardsInHand.stream().filter(card -> card.getColor() == theCard.getColor()).count();
+
+			if (cardsInColorCount == 1) {
+				return theCard;
+			}
+		}
+		return null;
 	}
 
 	private Card getHighestCardToWin(List<Card> cards) {
@@ -424,17 +471,15 @@ class BotSimulator {
 		return users.indexOf(activeUser);
 	}
 
-	private Optional<Card> getLowerCard(List<Card> sortedCards, Card theCard) {
+	private Card getLowerCard(List<Card> sortedCards, Card theCard) {
 		List<Card> lowerCards = sortedCards.stream()
 				.filter(card -> card.getValue() < theCard.getValue())
 				.toList();
 
 		if (lowerCards.isEmpty()) {
-			return Optional.empty();
+			return null;
 		}
-
-		Card card = lowerCards.get(lowerCards.size() - 1);
-		return Optional.of(card);
+		return lowerCards.get(lowerCards.size() - 1);
 	}
 
 	private Optional<Card> getHigherCard(List<Card> sortedCards, Card theCard) {
