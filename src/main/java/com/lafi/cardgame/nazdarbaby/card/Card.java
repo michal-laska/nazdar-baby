@@ -66,12 +66,15 @@ public class Card implements Comparable<Card> {
 	}
 
 	public boolean isHigherThan(Card other) {
-		return this.compareTo(other) > 0;
+		if (color == other.color) {
+			return value > other.value;
+		}
+		return other.color != Color.HEARTS;
 	}
 
 	@Override
 	public int compareTo(Card card) {
-		Integer thisValue = this.value + getColorValue(color);
+		Integer thisValue = value + getColorValue(color);
 		Integer otherValue = card.value + getColorValue(card.color);
 
 		return thisValue.compareTo(otherValue);

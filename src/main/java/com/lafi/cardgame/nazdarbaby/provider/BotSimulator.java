@@ -102,6 +102,18 @@ class BotSimulator {
 		}
 	}
 
+	boolean isHighestRemainingColor(List<Card> cards, Card theCard) {
+		Card winningCard = getWinningCard();
+		if (winningCard.isHigherThan(theCard)) {
+			return false;
+		}
+
+		List<Card> higherKnownCardsInOneColor = getKnownCardsInOneColorStream(cards, theCard.getColor())
+				.filter(card -> card.getValue() > theCard.getValue())
+				.toList();
+		return higherKnownCardsInOneColor.size() == HIGHEST_CARD_VALUE - theCard.getValue();
+	}
+
 	private double guessExpectedTakes(User user) {
 		int numberOfCardsInOneColor = getNumberOfCardsInOneColor();
 		double magicNumber = HIGHEST_CARD_VALUE - ((double) numberOfCardsInOneColor / users.size()) + 1;
@@ -117,7 +129,7 @@ class BotSimulator {
 			if (cardValue > magicNumber) {
 				++guess;
 			} else if (card.getColor() == Color.HEARTS) {
-				if (othersWithoutHearts || isHighestRemainingHeart(cards, card)) {
+				if (othersWithoutHearts || isHighestRemainingColor(cards, card)) {
 					++guess;
 				} else if (diff < 1) {
 					guess += Math.max(diff, 0.5);
@@ -139,22 +151,6 @@ class BotSimulator {
 	private boolean areOthersWithoutHearts(User user) {
 		Map<User, UserInfo> otherUsersInfo = botToOtherUsersInfo.get(user);
 		return otherUsersInfo.values().stream().noneMatch(userInfo -> userInfo.hasColor(Color.HEARTS));
-	}
-
-	boolean isHighestRemainingHeart(List<Card> cards, Card theCard) {
-		if (theCard.getColor() != Color.HEARTS) {
-			return false;
-		}
-
-		Card winningCard = getWinningCard();
-		if (winningCard.isHigherThan(theCard)) {
-			return false;
-		}
-
-		List<Card> higherKnownHearts = getKnownCardsInOneColorStream(cards, Color.HEARTS)
-				.filter(card -> card.getValue() > theCard.getValue())
-				.toList();
-		return higherKnownHearts.size() == HIGHEST_CARD_VALUE - theCard.getValue();
 	}
 
 	private Stream<Card> getKnownCardsInOneColorStream(List<Card> cards, Color color) {
@@ -251,8 +247,8 @@ class BotSimulator {
 	}
 
 	private boolean noGapsInOneColor(List<Card> sortedPlayableCards) {
-		Card lowestCard = getLowestCard(sortedPlayableCards);
-		Card highestCard = getHighestCard(sortedPlayableCards);
+		Card lowestCard = sortedPlayableCards.get(0);
+		Card highestCard = sortedPlayableCards.get(sortedPlayableCards.size() - 1);
 
 		boolean allPlayableCardsInOneColor = sortedPlayableCards.stream().allMatch(card -> card.getColor() == lowestCard.getColor());
 		if (!allPlayableCardsInOneColor) {
@@ -288,16 +284,16 @@ class BotSimulator {
 				return selectLowCard(sortedPlayableCards, winningCard);
 			}
 			if (game.isLastUser()) {
-				return getHighestCard(sortedPlayableCards);
+				return getHighestCard(sortedPlayableCards, false);
 			}
 			return lowestCard;
 		} else if (lowestCard.getColor() == leadingCard.getColor()) {
 			if (winningCard.getColor() == Color.HEARTS) {
-				return getHighestCard(sortedPlayableCards);
+				return getHighestCard(sortedPlayableCards, false);
 			}
 			return selectLowCard(sortedPlayableCards, winningCard);
 		}
-		return getHighestCard(sortedPlayableCards);
+		return getHighestCard(sortedPlayableCards, false);
 	}
 
 	private Card selectLowCard(List<Card> sortedPlayableCards, Card winningCard) {
@@ -306,19 +302,20 @@ class BotSimulator {
 			return lowerCard.get();
 		}
 		if (game.isLastUser()) {
-			return getHighestCard(sortedPlayableCards);
+			return getHighestCard(sortedPlayableCards, false);
 		}
 		return getHigherCard(sortedPlayableCards, winningCard).get();
 	}
 
 	private Card selectHighCard(List<Card> sortedPlayableCards) {
-		Card highestCard = getHighestCard(sortedPlayableCards);
-		Card leadingCard = getLeadingCard();
 		Card winningCard = getWinningCard();
+		Card highestCard = getHighestCard(sortedPlayableCards, true);
 
 		if (winningCard.isPlaceholder()) {
 			return highestCard;
 		}
+
+		Card leadingCard = getLeadingCard();
 
 		if (highestCard.getColor() == Color.HEARTS) {
 			if (winningCard.getColor() == Color.HEARTS) {
@@ -340,7 +337,7 @@ class BotSimulator {
 			if (game.isLastUser()) {
 				return higherCard.get();
 			}
-			return getHighestCard(sortedPlayableCards);
+			return getHighestCard(sortedPlayableCards, true);
 		}
 		return getLowestCard(sortedPlayableCards);
 	}
@@ -358,23 +355,33 @@ class BotSimulator {
 		return cards.get(0);
 	}
 
-	//TODO check selectXXXCard: low vs high
-	private Card getHighestCard(List<Card> cards) {
-		Card highestCard = cards.get(cards.size() - 1);
-		List<Card> highestCards = cards.stream()
-				.filter(card -> card.getValue() == highestCard.getValue())
+	private Card getHighestCard(List<Card> cards, boolean toWin) {
+		List<Card> highestRemainingCards = cards.stream()
+				.filter(card -> isHighestRemainingColor(cards, card))
 				.toList();
 
-		if (highestCards.size() == 1) {
-			return highestCard;
+		if (highestRemainingCards.isEmpty()) {
+			Card highestCardInHand = cards.get(cards.size() - 1);
+			List<Card> highestCardsInHands = cards.stream()
+					.filter(card -> card.getValue() == highestCardInHand.getValue())
+					.toList();
+
+			return getHighestCardToWin(highestCardsInHands);
+		}
+		return getHighestCardToWin(highestRemainingCards);
+	}
+
+	private Card getHighestCardToWin(List<Card> cards) {
+		if (cards.size() == 1) {
+			return cards.get(0);
 		}
 
-		List<Card> possibleWinnerCards = highestCards.stream()
+		List<Card> possibleWinnerCards = cards.stream()
 				.filter(card -> isPossibleColorToWin(card.getColor()))
 				.toList();
 
 		if (possibleWinnerCards.isEmpty()) {
-			return getMostProbableCardToWin(highestCards);
+			return getMostProbableCardToWin(cards);
 		}
 		if (possibleWinnerCards.size() == 1) {
 			return possibleWinnerCards.get(0);
@@ -426,7 +433,7 @@ class BotSimulator {
 			return Optional.empty();
 		}
 
-		Card card = getHighestCard(lowerCards);
+		Card card = lowerCards.get(lowerCards.size() - 1);
 		return Optional.of(card);
 	}
 
