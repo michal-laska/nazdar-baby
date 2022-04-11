@@ -8,7 +8,6 @@ import com.lafi.cardgame.nazdarbaby.user.User;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -219,7 +218,7 @@ class BotSimulator {
 		}
 
 		List<Card> sortedPlayableCards = playableCardStream
-				.sorted(Comparator.comparingInt(Card::getValue))
+				.sorted()
 				.toList();
 		return new ArrayList<>(sortedPlayableCards);
 	}
