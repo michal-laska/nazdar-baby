@@ -16,7 +16,7 @@ import java.util.stream.Stream;
 public class UserProvider {
 
 	private final Map<VaadinSession, User> sessionToUser = new HashMap<>();
-	private final Map<String, User> bots = new HashMap<>();
+	private final Map<String, User> botNameToBot = new HashMap<>();
 	private final Set<VaadinSession> loggedInSessions = new HashSet<>();
 
 	private final SessionProvider sessionProvider;
@@ -33,19 +33,19 @@ public class UserProvider {
 	}
 
 	public boolean addBot(String botName) {
-		if (bots.containsKey(botName)) {
+		if (botNameToBot.containsKey(botName)) {
 			return false;
 		}
 
 		User bot = new User(botName, true);
 		bot.setReady(true);
 
-		bots.put(botName, bot);
+		botNameToBot.put(botName, bot);
 		return true;
 	}
 
 	public void removeBot(User bot) {
-		bots.remove(bot.getName());
+		botNameToBot.remove(bot.getName());
 	}
 
 	public void logInCurrentSession() {
@@ -72,12 +72,11 @@ public class UserProvider {
 	public List<User> getAllUsers() {
 		return getUserStream()
 				.sorted(Comparator.comparing(User::getName))
-				.collect(Collectors.toList());
+				.toList();
 	}
 
 	public boolean userNameExist(String userName) {
-		return getUserStream()
-				.anyMatch(user -> user.getName().equals(userName));
+		return getUserStream().anyMatch(user -> user.getName().equals(userName));
 	}
 
 	public boolean arePlayingUsersReady() {
@@ -92,7 +91,7 @@ public class UserProvider {
 
 	private Stream<User> getUserStream() {
 		Stream<User> userStream = sessionToUser.values().stream();
-		Stream<User> botStream = bots.values().stream();
+		Stream<User> botStream = botNameToBot.values().stream();
 
 		return Stream.concat(userStream, botStream);
 	}

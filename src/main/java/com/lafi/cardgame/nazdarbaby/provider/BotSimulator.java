@@ -21,9 +21,6 @@ import java.util.stream.Stream;
 
 class BotSimulator {
 
-	//TODO do it better
-	private static final int HIGHEST_CARD_VALUE = 14;
-
 	private final Set<Card> playedOutCards = new HashSet<>();
 	private final Map<User, Map<User, UserInfo>> botToOtherUsersInfo = new HashMap<>();
 	private final Random random = new Random();
@@ -109,24 +106,29 @@ class BotSimulator {
 			return false;
 		}
 
-		List<Card> higherKnownCardsInOneColor = getKnownCardsInOneColorStream(cards, theCard.getColor())
+		long higherKnownCardsInOneColorSize = getKnownCardsInOneColorStream(cards, theCard.getColor())
 				.filter(card -> card.getValue() > theCard.getValue())
-				.toList();
-		return higherKnownCardsInOneColor.size() == HIGHEST_CARD_VALUE - theCard.getValue();
+				.count();
+		int highestCardValue = getHighestCardValue();
+
+		return higherKnownCardsInOneColorSize == highestCardValue - theCard.getValue();
 	}
 
 	private boolean isLowestRemainingColor(List<Card> cards, Card theCard) {
-		int lowestCardValue = deckOfCardsSize == 32 ? 7 : 2; //TODO do it better
-		List<Card> lowerKnownCardsInOneColor = getKnownCardsInOneColorStream(cards, theCard.getColor())
+		long lowerKnownCardsInOneColorSize = getKnownCardsInOneColorStream(cards, theCard.getColor())
 				.filter(card -> card.getValue() < theCard.getValue())
-				.toList();
+				.count();
 
-		return lowerKnownCardsInOneColor.size() == theCard.getValue() - lowestCardValue;
+		CardProvider cardProvider = game.getCardProvider();
+		int lowestCardValue = cardProvider.getLowestCardValue();
+
+		return lowerKnownCardsInOneColorSize == theCard.getValue() - lowestCardValue;
 	}
 
 	private double guessExpectedTakes(User user) {
+		int highestCardValue = getHighestCardValue();
 		int numberOfCardsInOneColor = getNumberOfCardsInOneColor();
-		double magicNumber = HIGHEST_CARD_VALUE - ((double) numberOfCardsInOneColor / users.size()) + 1;
+		double magicNumber = highestCardValue - ((double) numberOfCardsInOneColor / users.size()) + 1;
 
 		List<Card> cards = user.getCards();
 		boolean othersWithoutHearts = areOthersWithoutHearts(user);
@@ -500,7 +502,7 @@ class BotSimulator {
 	}
 
 	private Card getMostProbableCardToWin(List<Card> cards) {
-		long lowestKnownCardsInOneColorSize = HIGHEST_CARD_VALUE;
+		long lowestKnownCardsInOneColorSize = getHighestCardValue();
 		List<Card> mostProbableCardsToWin = new ArrayList<>();
 
 		List<Card> activeUserCards = activeUser.getCards();
@@ -518,6 +520,11 @@ class BotSimulator {
 
 		int index = random.nextInt(mostProbableCardsToWin.size());
 		return mostProbableCardsToWin.get(index);
+	}
+
+	private int getHighestCardValue() {
+		CardProvider cardProvider = game.getCardProvider();
+		return cardProvider.getHighestCardValue();
 	}
 
 	private int getActiveUserIndex() {
