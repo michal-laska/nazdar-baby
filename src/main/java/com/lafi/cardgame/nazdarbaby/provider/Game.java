@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class Game {
 
@@ -262,7 +261,7 @@ public class Game {
 	private void initCardPlaceholders() {
 		cardPlaceholders = matchUsers.stream()
 				.map(user -> CardProvider.CARD_PLACEHOLDER)
-				.collect(Collectors.toList());
+				.toList();
 		botSimulator.setCardPlaceholders(cardPlaceholders);
 	}
 
@@ -297,7 +296,14 @@ public class Game {
 			}
 		}
 
-		setUsers.forEach(user -> Collections.sort(user.getCards()));
+		setUsers.forEach(user -> user.getCards().sort(this::sortCardsOnTable));
+	}
+
+	private int sortCardsOnTable(Card card1, Card card2) {
+		Integer card1Value = card1.getValue() + card1.getColor().getCompareToValue();
+		Integer card2Value = card2.getValue() + card2.getColor().getCompareToValue();
+
+		return card1Value.compareTo(card2Value);
 	}
 
 	private int getUserCardsCount() {

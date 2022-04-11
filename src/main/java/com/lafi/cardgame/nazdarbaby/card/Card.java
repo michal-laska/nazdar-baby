@@ -74,10 +74,7 @@ public class Card implements Comparable<Card> {
 
 	@Override
 	public int compareTo(Card card) {
-		Integer thisValue = value + getColorValue(color);
-		Integer otherValue = card.value + getColorValue(card.color);
-
-		return thisValue.compareTo(otherValue);
+		return Integer.compare(value, card.getValue());
 	}
 
 	@Override
@@ -104,9 +101,5 @@ public class Card implements Comparable<Card> {
 				"value=" + value +
 				", color=" + color +
 				'}';
-	}
-
-	private int getColorValue(Color color) {
-		return color == null ? 0 : color.getCompareToValue();
 	}
 }
