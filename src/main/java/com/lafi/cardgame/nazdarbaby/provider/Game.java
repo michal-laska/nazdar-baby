@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class Game {
 
@@ -196,6 +197,10 @@ public class Game {
 		return matchUsers.indexOf(activeUser) + 1 == matchUsers.size();
 	}
 
+	CardProvider getCardProvider() {
+		return cardProvider;
+	}
+
 	private void resetActiveUser() {
 		setActiveUser(matchUsers.get(0));
 	}
@@ -261,7 +266,7 @@ public class Game {
 	private void initCardPlaceholders() {
 		cardPlaceholders = matchUsers.stream()
 				.map(user -> CardProvider.CARD_PLACEHOLDER)
-				.toList();
+				.collect(Collectors.toList());
 		botSimulator.setCardPlaceholders(cardPlaceholders);
 	}
 
