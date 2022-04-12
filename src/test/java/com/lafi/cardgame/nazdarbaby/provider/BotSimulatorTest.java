@@ -2,6 +2,7 @@ package com.lafi.cardgame.nazdarbaby.provider;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.lenient;
 
 import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.CardProvider;
@@ -30,6 +31,7 @@ class BotSimulatorTest {
 	@BeforeEach
 	void setUp() {
 		botSimulator = new BotSimulator(game);
+		lenient().doReturn(cardProvider).when(game).getCardProvider();
 	}
 
 	@Test
