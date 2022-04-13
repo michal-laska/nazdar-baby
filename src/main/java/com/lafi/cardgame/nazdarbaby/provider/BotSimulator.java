@@ -125,13 +125,12 @@ class BotSimulator {
 		return lowerKnownCardsInOneColorSize == theCard.getValue() - lowestCardValue;
 	}
 
-	private double guessExpectedTakes(User user) {
+	double guessExpectedTakes(User user) {
 		int highestCardValue = getHighestCardValue();
 		int numberOfCardsInOneColor = getNumberOfCardsInOneColor();
 		double magicNumber = highestCardValue - ((double) numberOfCardsInOneColor / users.size()) + 1;
 
 		List<Card> cards = user.getCards();
-		boolean othersWithoutHearts = areOthersWithoutHearts(user);
 
 		double guess = 0;
 		for (Card card : cards) {
@@ -141,7 +140,7 @@ class BotSimulator {
 			if (cardValue > magicNumber) {
 				++guess;
 			} else if (card.getColor() == Color.HEARTS) {
-				if (othersWithoutHearts || isHighestRemainingColor(cards, card)) {
+				if (areOthersWithoutHearts(user, card) || isHighestRemainingColor(cards, card)) {
 					++guess;
 				} else if (diff < 1) {
 					guess += Math.max(diff, 0.5);
@@ -160,7 +159,12 @@ class BotSimulator {
 		return deckOfCardsSize / Color.values().length;
 	}
 
-	private boolean areOthersWithoutHearts(User user) {
+	boolean areOthersWithoutHearts(User user, Card theCard) {
+		Card winningCard = getWinningCard();
+		if (winningCard.isHigherThan(theCard)) {
+			return false;
+		}
+
 		Map<User, UserInfo> otherUsersInfo = botToOtherUsersInfo.get(user);
 		return otherUsersInfo.values().stream().noneMatch(userInfo -> userInfo.hasColor(Color.HEARTS));
 	}
@@ -193,7 +197,7 @@ class BotSimulator {
 		return selectHighCard(sortedPlayableCards);
 	}
 
-	private void removeColorsForOtherUsers(List<Card> cards) {
+	void removeColorsForOtherUsers(List<Card> cards) {
 		int numberOfCardsInOneColor = getNumberOfCardsInOneColor();
 		for (Color color : Color.values()) {
 			long knownCardsInOneColorSize = getKnownCardsInOneColorStream(cards, color).count();
