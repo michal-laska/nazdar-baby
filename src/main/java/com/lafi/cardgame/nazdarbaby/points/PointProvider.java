@@ -4,7 +4,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public final class PointProvider {
+public class PointProvider {
 
 	public static final Map<Integer, Map<Integer, Float>> NUMBER_OF_USERS_TO_WINNER_MAP;
 

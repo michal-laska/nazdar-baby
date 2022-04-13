@@ -7,10 +7,13 @@ import static org.mockito.Mockito.lenient;
 import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.CardProvider;
 import com.lafi.cardgame.nazdarbaby.card.Color;
+import com.lafi.cardgame.nazdarbaby.user.User;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -21,7 +24,8 @@ class BotSimulatorTest {
 
 	private static final Card CARD_PLACEHOLDER = CardProvider.CARD_PLACEHOLDER;
 
-	private final CardProvider cardProvider = new CardProvider(3);
+	private final List<User> bots = List.of(new User("user1", true), new User("user2", true), new User("user3", true));
+	private final CardProvider cardProvider = new CardProvider(bots.size());
 	private final List<Card> deckOfCards = cardProvider.getShuffledDeckOfCards();
 
 	@Mock
@@ -31,123 +35,220 @@ class BotSimulatorTest {
 	@BeforeEach
 	void setUp() {
 		botSimulator = new BotSimulator(game);
+		botSimulator.setUsers(bots);
+		botSimulator.setDeckOfCardsSize(deckOfCards.size());
+
 		lenient().doReturn(cardProvider).when(game).getCardProvider();
 	}
 
-	@Test
-	void isHighestRemainingColor_heartsVsSpades_returnFalse() {
-		List<Card> cardPlaceholders = List.of(getHeart(7), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
-		botSimulator.setCardPlaceholders(cardPlaceholders);
-		doReturn(0).when(game).getWinnerIndex();
+	@Nested
+	class IsHighestRemainingColorTest {
 
-		Card card = getSpade(14);
-		boolean highestRemainingHeart = isHighestRemainingColor(card);
+		@Test
+		void heartsVsSpades_returnFalse() {
+			List<Card> cardPlaceholders = List.of(getHeart(7), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
 
-		assertThat(highestRemainingHeart).isFalse();
+			Card card = getSpade(14);
+			boolean highestRemainingHeart = isHighestRemainingColor(card);
+
+			assertThat(highestRemainingHeart).isFalse();
+		}
+
+		@Test
+		void spadesVsDiamonds_returnFalse() {
+			List<Card> cardPlaceholders = List.of(getSpade(7), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
+
+			Card card = getCard(14, Color.DIAMONDS);
+			boolean highestRemainingHeart = isHighestRemainingColor(card);
+
+			assertThat(highestRemainingHeart).isFalse();
+		}
+
+		@Test
+		void jackVsKing_returnFalse() {
+			List<Card> cardPlaceholders = List.of(getSpade(11), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
+
+			Card card = getSpade(13);
+			boolean highestRemainingHeart = isHighestRemainingColor(card);
+
+			assertThat(highestRemainingHeart).isFalse();
+		}
+
+		@Test
+		void jackVsAce_returnTrue() {
+			List<Card> cardPlaceholders = List.of(getSpade(11), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
+
+			Card card = getSpade(14);
+			boolean highestRemainingHeart = isHighestRemainingColor(card);
+
+			assertThat(highestRemainingHeart).isTrue();
+		}
+
+		@Test
+		void winningCardIsHigher_returnFalse() {
+			List<Card> cardPlaceholders = List.of(getSpade(12), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
+
+			Card card = getSpade(11);
+			boolean highestRemainingHeart = isHighestRemainingColor(card);
+
+			assertThat(highestRemainingHeart).isFalse();
+		}
+
+		@Test
+		void notAllHigherCardsAreKnown_returnFalse() {
+			List<Card> cardPlaceholders = List.of(getHeart(12), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
+
+			Card card = getHeart(13);
+			boolean highestRemainingHeart = isHighestRemainingColor(card);
+
+			assertThat(highestRemainingHeart).isFalse();
+		}
+
+		@Test
+		void aceOfHearts_returnTrue() {
+			List<Card> cardPlaceholders = List.of(getHeart(12), getSpade(14), CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
+
+			Card card = getHeart(14);
+			boolean highestRemainingHeart = isHighestRemainingColor(card);
+
+			assertThat(highestRemainingHeart).isTrue();
+		}
+
+		@Test
+		void twoHighestCardsInHand_returnTrue() {
+			List<Card> cardPlaceholders = List.of(getSpade(12), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
+
+			Card ace = getSpade(14);
+			Card king = getSpade(13);
+			boolean highestRemainingHeart = botSimulator.isHighestRemainingColor(List.of(king, ace), king);
+
+			assertThat(highestRemainingHeart).isTrue();
+		}
+
+		@Test
+		void highestRemainingCard_returnTrue() {
+			rememberCards(getHearts(13, 14));
+			List<Card> cardPlaceholders = List.of(getSpade(14), getHeart(11), CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
+			doReturn(1).when(game).getWinnerIndex();
+
+			Card card = getHeart(12);
+			boolean highestRemainingHeart = isHighestRemainingColor(card);
+
+			assertThat(highestRemainingHeart).isTrue();
+		}
 	}
 
-	@Test
-	void isHighestRemainingColor_spadesVsDiamonds_returnFalse() {
-		List<Card> cardPlaceholders = List.of(getSpade(7), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
-		botSimulator.setCardPlaceholders(cardPlaceholders);
-		doReturn(0).when(game).getWinnerIndex();
+	@Nested
+	class GuessExpectedTakesTest {
 
-		Card card = getCard(14, Color.DIAMONDS);
-		boolean highestRemainingHeart = isHighestRemainingColor(card);
+		@Test
+		void othersCanHaveHigherHeart_returnHalfPoint() {
+			rememberCards(getHearts(10, 11, 12, 13, 14));
+			List<Card> cardPlaceholders = List.of(getHeart(7), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
 
-		assertThat(highestRemainingHeart).isFalse();
+			User bot = bots.get(0);
+			bot.addCard(getHeart(8));
+
+			botSimulator.setActiveUser(bot);
+			botSimulator.removeColorsForOtherUsers(bot.getCards());
+
+			double expectedTakes = botSimulator.guessExpectedTakes(bot);
+			assertThat(expectedTakes).isEqualTo(0.5);
+		}
+
+		@Test
+		void haveToPlayLastLowerHeart_returnZero() {
+			rememberCards(getHearts(9, 10, 11, 12, 13, 14));
+			List<Card> cardPlaceholders = List.of(getHeart(8), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
+
+			User bot = bots.get(0);
+			bot.addCard(getHeart(7));
+
+			botSimulator.setActiveUser(bot);
+			botSimulator.removeColorsForOtherUsers(bot.getCards());
+
+			double expectedTakes = botSimulator.guessExpectedTakes(bot);
+			assertThat(expectedTakes).isEqualTo(0.5); //TODO isEqualTo 0
+		}
 	}
 
-	@Test
-	void isHighestRemainingColor_jackVsKing_returnFalse() {
-		List<Card> cardPlaceholders = List.of(getSpade(11), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
-		botSimulator.setCardPlaceholders(cardPlaceholders);
-		doReturn(0).when(game).getWinnerIndex();
+	@Nested
+	class AreOthersWithoutHeartsTest {
 
-		Card card = getSpade(13);
-		boolean highestRemainingHeart = isHighestRemainingColor(card);
+		@Test
+		void higherHeartOnTheTable_returnFalse() {
+			rememberCards(getHearts(9, 10, 11, 12, 13, 14));
+			List<Card> cardPlaceholders = List.of(getHeart(8), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
 
-		assertThat(highestRemainingHeart).isFalse();
+			User bot = bots.get(0);
+			Card card = getHeart(7);
+			bot.addCard(card);
+
+			botSimulator.setActiveUser(bot);
+			botSimulator.removeColorsForOtherUsers(bot.getCards());
+
+			boolean areOthersWithoutHearts = botSimulator.areOthersWithoutHearts(bot, card);
+			assertThat(areOthersWithoutHearts).isFalse();
+		}
+
+		@Test
+		void othersCanHaveHearts_returnFalse() {
+			rememberCards(getHearts(10, 11, 12, 13, 14));
+			List<Card> cardPlaceholders = List.of(getSpade(8), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
+
+			User bot = bots.get(0);
+			Card card = getHeart(7);
+			bot.addCard(card);
+
+			botSimulator.setActiveUser(bot);
+			botSimulator.removeColorsForOtherUsers(bot.getCards());
+
+			boolean areOthersWithoutHearts = botSimulator.areOthersWithoutHearts(bot, card);
+			assertThat(areOthersWithoutHearts).isFalse();
+		}
+
+		@Test
+		void othersWithoutHearts_returnTrue() {
+			rememberCards(getHearts(9, 10, 11, 12, 13, 14));
+			List<Card> cardPlaceholders = List.of(getHeart(7), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
+
+			User bot = bots.get(0);
+			Card card = getHeart(8);
+			bot.addCard(card);
+
+			botSimulator.setActiveUser(bot);
+			botSimulator.removeColorsForOtherUsers(bot.getCards());
+
+			boolean areOthersWithoutHearts = botSimulator.areOthersWithoutHearts(bot, card);
+			assertThat(areOthersWithoutHearts).isTrue();
+		}
 	}
 
-	@Test
-	void isHighestRemainingColor_jackVsAce_returnTrue() {
-		List<Card> cardPlaceholders = List.of(getSpade(11), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
-		botSimulator.setCardPlaceholders(cardPlaceholders);
-		doReturn(0).when(game).getWinnerIndex();
-
-		Card card = getSpade(14);
-		boolean highestRemainingHeart = isHighestRemainingColor(card);
-
-		assertThat(highestRemainingHeart).isTrue();
-	}
-
-	@Test
-	void isHighestRemainingColor_winningCardIsHigher_returnFalse() {
-		List<Card> cardPlaceholders = List.of(getSpade(12), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
-		botSimulator.setCardPlaceholders(cardPlaceholders);
-		doReturn(0).when(game).getWinnerIndex();
-
-		Card card = getSpade(11);
-		boolean highestRemainingHeart = isHighestRemainingColor(card);
-
-		assertThat(highestRemainingHeart).isFalse();
-	}
-
-	@Test
-	void isHighestRemainingColor_notAllHigherCardsAreKnown_returnFalse() {
-		List<Card> cardPlaceholders = List.of(getHeart(12), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
-		botSimulator.setCardPlaceholders(cardPlaceholders);
-		doReturn(0).when(game).getWinnerIndex();
-
-		Card card = getHeart(13);
-		boolean highestRemainingHeart = isHighestRemainingColor(card);
-
-		assertThat(highestRemainingHeart).isFalse();
-	}
-
-	@Test
-	void isHighestRemainingColor_aceOfHearts_returnTrue() {
-		List<Card> cardPlaceholders = List.of(getHeart(12), getSpade(14), CARD_PLACEHOLDER);
-		botSimulator.setCardPlaceholders(cardPlaceholders);
-		doReturn(0).when(game).getWinnerIndex();
-
-		Card card = getHeart(14);
-		boolean highestRemainingHeart = isHighestRemainingColor(card);
-
-		assertThat(highestRemainingHeart).isTrue();
-	}
-
-	@Test
-	void isHighestRemainingColor_twoHighestCardsInHand_returnTrue() {
-		List<Card> cardPlaceholders = List.of(getSpade(12), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
-		botSimulator.setCardPlaceholders(cardPlaceholders);
-		doReturn(0).when(game).getWinnerIndex();
-
-		Card ace = getSpade(14);
-		Card king = getSpade(13);
-		boolean highestRemainingHeart = botSimulator.isHighestRemainingColor(List.of(king, ace), king);
-
-		assertThat(highestRemainingHeart).isTrue();
-	}
-
-	@Test
-	void isHighestRemainingColor_highestRemainingCard_returnTrue() {
-		List<Card> cardPlaceholders = List.of(CARD_PLACEHOLDER, getHeart(14), getHeart(13));
-		botSimulator.setCardPlaceholders(cardPlaceholders);
+	private void rememberCards(List<Card> cards) {
+		botSimulator.setCardPlaceholders(cards);
 		botSimulator.setActiveUser(null);
-		cardPlaceholders = List.of(getSpade(14), getHeart(11), CARD_PLACEHOLDER);
-		botSimulator.setCardPlaceholders(cardPlaceholders);
-		doReturn(1).when(game).getWinnerIndex();
-
-		Card card = getHeart(12);
-		boolean highestRemainingHeart = isHighestRemainingColor(card);
-
-		assertThat(highestRemainingHeart).isTrue();
 	}
 
 	private boolean isHighestRemainingColor(Card card) {
 		return botSimulator.isHighestRemainingColor(List.of(card), card);
+	}
+
+	private List<Card> getHearts(int... values) {
+		return Arrays.stream(values).mapToObj(this::getHeart).toList();
 	}
 
 	private Card getHeart(int value) {
