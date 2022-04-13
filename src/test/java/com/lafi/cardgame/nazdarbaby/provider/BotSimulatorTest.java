@@ -25,15 +25,17 @@ class BotSimulatorTest {
 	private static final Card CARD_PLACEHOLDER = CardProvider.CARD_PLACEHOLDER;
 
 	private final List<User> bots = List.of(new User("user1", true), new User("user2", true), new User("user3", true));
-	private final CardProvider cardProvider = new CardProvider(bots.size());
-	private final List<Card> deckOfCards = cardProvider.getShuffledDeckOfCards();
 
 	@Mock
 	private Game game;
+	private List<Card> deckOfCards;
 	private BotSimulator botSimulator;
 
 	@BeforeEach
 	void setUp() {
+		CardProvider cardProvider = new CardProvider(bots.size());
+		deckOfCards = cardProvider.getShuffledDeckOfCards();
+
 		botSimulator = new BotSimulator(game);
 		botSimulator.setUsers(bots);
 		botSimulator.setDeckOfCardsSize(deckOfCards.size());
@@ -151,7 +153,7 @@ class BotSimulatorTest {
 	class GuessExpectedTakesTest {
 
 		@Test
-		void othersCanHaveHigherHeart_returnHalfPoint() {
+		void othersCanHaveHigherHeart_returnHalf() {
 			rememberCards(getHearts(10, 11, 12, 13, 14));
 			List<Card> cardPlaceholders = List.of(getHeart(7), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
 			botSimulator.setCardPlaceholders(cardPlaceholders);
@@ -167,6 +169,22 @@ class BotSimulatorTest {
 		}
 
 		@Test
+		void othersCanHaveLowerHeart_returnOne() {
+			rememberCards(getHearts(10, 11, 12, 13, 14));
+			List<Card> cardPlaceholders = List.of(getHeart(7), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
+
+			User bot = bots.get(0);
+			bot.addCard(getHeart(9));
+
+			botSimulator.setActiveUser(bot);
+			botSimulator.removeColorsForOtherUsers(bot.getCards());
+
+			double expectedTakes = botSimulator.guessExpectedTakes(bot);
+			assertThat(expectedTakes).isEqualTo(1);
+		}
+
+		@Test
 		void haveToPlayLastLowerHeart_returnZero() {
 			rememberCards(getHearts(9, 10, 11, 12, 13, 14));
 			List<Card> cardPlaceholders = List.of(getHeart(8), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
@@ -179,7 +197,7 @@ class BotSimulatorTest {
 			botSimulator.removeColorsForOtherUsers(bot.getCards());
 
 			double expectedTakes = botSimulator.guessExpectedTakes(bot);
-			assertThat(expectedTakes).isEqualTo(0.5); //TODO isEqualTo 0
+			assertThat(expectedTakes).isEqualTo(0.5);
 		}
 	}
 
