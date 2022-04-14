@@ -44,7 +44,7 @@ class BotSimulatorTest {
 	}
 
 	@Nested
-	class IsHighestRemainingColorTest {
+	class IsHighestRemainingCardInColorTest {
 
 		@Test
 		void heartsVsSpades_returnFalse() {
@@ -52,7 +52,7 @@ class BotSimulatorTest {
 			botSimulator.setCardPlaceholders(cardPlaceholders);
 
 			Card card = getSpade(14);
-			boolean highestRemainingHeart = isHighestRemainingColor(card);
+			boolean highestRemainingHeart = isHighestRemainingCardInColor(card);
 
 			assertThat(highestRemainingHeart).isFalse();
 		}
@@ -63,7 +63,7 @@ class BotSimulatorTest {
 			botSimulator.setCardPlaceholders(cardPlaceholders);
 
 			Card card = getCard(14, Color.DIAMONDS);
-			boolean highestRemainingHeart = isHighestRemainingColor(card);
+			boolean highestRemainingHeart = isHighestRemainingCardInColor(card);
 
 			assertThat(highestRemainingHeart).isFalse();
 		}
@@ -74,7 +74,7 @@ class BotSimulatorTest {
 			botSimulator.setCardPlaceholders(cardPlaceholders);
 
 			Card card = getSpade(13);
-			boolean highestRemainingHeart = isHighestRemainingColor(card);
+			boolean highestRemainingHeart = isHighestRemainingCardInColor(card);
 
 			assertThat(highestRemainingHeart).isFalse();
 		}
@@ -85,7 +85,7 @@ class BotSimulatorTest {
 			botSimulator.setCardPlaceholders(cardPlaceholders);
 
 			Card card = getSpade(14);
-			boolean highestRemainingHeart = isHighestRemainingColor(card);
+			boolean highestRemainingHeart = isHighestRemainingCardInColor(card);
 
 			assertThat(highestRemainingHeart).isTrue();
 		}
@@ -96,7 +96,7 @@ class BotSimulatorTest {
 			botSimulator.setCardPlaceholders(cardPlaceholders);
 
 			Card card = getSpade(11);
-			boolean highestRemainingHeart = isHighestRemainingColor(card);
+			boolean highestRemainingHeart = isHighestRemainingCardInColor(card);
 
 			assertThat(highestRemainingHeart).isFalse();
 		}
@@ -107,7 +107,7 @@ class BotSimulatorTest {
 			botSimulator.setCardPlaceholders(cardPlaceholders);
 
 			Card card = getHeart(13);
-			boolean highestRemainingHeart = isHighestRemainingColor(card);
+			boolean highestRemainingHeart = isHighestRemainingCardInColor(card);
 
 			assertThat(highestRemainingHeart).isFalse();
 		}
@@ -118,7 +118,7 @@ class BotSimulatorTest {
 			botSimulator.setCardPlaceholders(cardPlaceholders);
 
 			Card card = getHeart(14);
-			boolean highestRemainingHeart = isHighestRemainingColor(card);
+			boolean highestRemainingHeart = isHighestRemainingCardInColor(card);
 
 			assertThat(highestRemainingHeart).isTrue();
 		}
@@ -130,7 +130,7 @@ class BotSimulatorTest {
 
 			Card ace = getSpade(14);
 			Card king = getSpade(13);
-			boolean highestRemainingHeart = botSimulator.isHighestRemainingColor(List.of(king, ace), king);
+			boolean highestRemainingHeart = botSimulator.isHighestRemainingCardInColor(List.of(king, ace), king);
 
 			assertThat(highestRemainingHeart).isTrue();
 		}
@@ -143,7 +143,7 @@ class BotSimulatorTest {
 			doReturn(1).when(game).getWinnerIndex();
 
 			Card card = getHeart(12);
-			boolean highestRemainingHeart = isHighestRemainingColor(card);
+			boolean highestRemainingHeart = isHighestRemainingCardInColor(card);
 
 			assertThat(highestRemainingHeart).isTrue();
 		}
@@ -261,8 +261,8 @@ class BotSimulatorTest {
 		botSimulator.setActiveUser(null);
 	}
 
-	private boolean isHighestRemainingColor(Card card) {
-		return botSimulator.isHighestRemainingColor(List.of(card), card);
+	private boolean isHighestRemainingCardInColor(Card card) {
+		return botSimulator.isHighestRemainingCardInColor(List.of(card), card);
 	}
 
 	private List<Card> getHearts(int... values) {
