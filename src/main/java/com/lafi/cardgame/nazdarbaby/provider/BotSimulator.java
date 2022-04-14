@@ -114,7 +114,7 @@ class BotSimulator {
 		return higherKnownCardsInOneColorSize == highestCardValue - theCard.getValue();
 	}
 
-	private boolean isLowestRemainingColor(List<Card> cards, Card theCard) {
+	private boolean isLowestRemainingCardInColor(List<Card> cards, Card theCard) {
 		long lowerKnownCardsInOneColorSize = getKnownCardsInOneColorStream(cards, theCard.getColor())
 				.filter(card -> card.getValue() < theCard.getValue())
 				.count();
@@ -372,7 +372,7 @@ class BotSimulator {
 
 	private Card getLowestCard(List<Card> cards) {
 		List<Card> lowestRemainingCards = cards.stream()
-				.filter(card -> isLowestRemainingColor(cards, card))
+				.filter(card -> isLowestRemainingCardInColor(cards, card))
 				.toList();
 
 		if (lowestRemainingCards.isEmpty()) {
@@ -407,7 +407,7 @@ class BotSimulator {
 
 	private Card getRidOfCard(List<Card> cards) {
 		List<Card> cardsToGetRidOf = cards.stream()
-				.filter(card -> !isLowestRemainingColor(cards, card))
+				.filter(card -> !isLowestRemainingCardInColor(cards, card))
 				.toList();
 
 		if (cardsToGetRidOf.isEmpty()) {
