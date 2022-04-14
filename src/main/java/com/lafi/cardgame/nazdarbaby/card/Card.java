@@ -66,6 +66,9 @@ public class Card implements Comparable<Card> {
 	}
 
 	public boolean isHigherThan(Card other) {
+		if (isPlaceholder()) {
+			return false;
+		}
 		if (color == other.color) {
 			return value > other.value;
 		}
