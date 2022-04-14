@@ -100,7 +100,7 @@ class BotSimulator {
 		}
 	}
 
-	boolean isHighestRemainingColor(List<Card> cards, Card theCard) {
+	boolean isHighestRemainingCardInColor(List<Card> cards, Card theCard) {
 		Card winningCard = getWinningCard();
 		if (winningCard.isHigherThan(theCard)) {
 			return false;
@@ -140,7 +140,7 @@ class BotSimulator {
 			if (cardValue > magicNumber) {
 				++guess;
 			} else if (card.getColor() == Color.HEARTS) {
-				if (areOthersWithoutHearts(user, card) || isHighestRemainingColor(cards, card)) {
+				if (areOthersWithoutHearts(user, card) || isHighestRemainingCardInColor(cards, card)) {
 					++guess;
 				} else if (diff < 1) {
 					guess += Math.max(diff, 0.5);
@@ -389,7 +389,7 @@ class BotSimulator {
 	private Card getHighestCard(List<Card> cards, boolean toWin) {
 		if (toWin) {
 			List<Card> highestRemainingCards = cards.stream()
-					.filter(card -> isHighestRemainingColor(cards, card))
+					.filter(card -> isHighestRemainingCardInColor(cards, card))
 					.toList();
 
 			if (highestRemainingCards.isEmpty()) {
@@ -451,9 +451,6 @@ class BotSimulator {
 		if (possibleWinnerCards.isEmpty()) {
 			return getMostProbableCardToWin(cards);
 		}
-		if (possibleWinnerCards.size() == 1) {
-			return possibleWinnerCards.get(0);
-		}
 		return getMostProbableCardToWin(possibleWinnerCards);
 	}
 
@@ -468,9 +465,6 @@ class BotSimulator {
 
 		if (possibleLoserCards.isEmpty()) {
 			return getMostProbableCardToWin(cards);
-		}
-		if (possibleLoserCards.size() == 1) {
-			return possibleLoserCards.get(0);
 		}
 		return getMostProbableCardToWin(possibleLoserCards);
 	}
@@ -506,6 +500,10 @@ class BotSimulator {
 	}
 
 	private Card getMostProbableCardToWin(List<Card> cards) {
+		if (cards.size() == 1) {
+			return cards.get(0);
+		}
+
 		long lowestKnownCardsInOneColorSize = getHighestCardValue();
 		List<Card> mostProbableCardsToWin = new ArrayList<>();
 
