@@ -132,12 +132,13 @@ public class Table {
 			return;
 		}
 
+		stopNewGameCountdown();
+
 		boolean allBots = playingUsers.stream().allMatch(User::isBot);
 		if (allBots) {
 			return;
 		}
 
-		stopNewGameCountdown();
 		resetLastNotificationTime();
 
 		nextButtonClickCounter = 0;
