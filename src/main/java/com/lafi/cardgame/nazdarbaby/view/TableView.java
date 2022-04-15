@@ -19,7 +19,6 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
@@ -130,8 +129,28 @@ public class TableView extends ParameterizedView {
 			addUserNameHL();
 		}
 
+		HorizontalLayout playersHL = new HorizontalLayout();
+		playersHL.setDefaultVerticalComponentAlignment(Alignment.BASELINE);
+		add(playersHL);
+
 		H2 playersH2 = new H2("Players:");
-		add(playersH2);
+		playersHL.add(playersH2);
+
+		if (currentUser != null) {
+			Button addBotButton = new Button("Add bot");
+			playersHL.add(addBotButton);
+
+			long botCount = userProvider.getPlayingUsers().stream()
+					.filter(User::isBot)
+					.count();
+			addBotButton.setEnabled(botCount + 1 < Table.MAXIMUM_USERS);
+
+			addBotButton.addClickListener(event -> {
+				addBot(userProvider);
+				table.tryStartNewGame();
+				broadcast();
+			});
+		}
 
 		List<User> allUsers = userProvider.getAllUsers();
 
@@ -202,22 +221,6 @@ public class TableView extends ParameterizedView {
 					}
 				}
 			}
-		}
-
-		if (currentUser != null) {
-			Button addBotButton = new Button("Add bot");
-			add(addBotButton);
-
-			long botCount = userProvider.getPlayingUsers().stream()
-					.filter(User::isBot)
-					.count();
-			addBotButton.setEnabled(botCount + 1 < Table.MAXIMUM_USERS);
-
-			addBotButton.addClickListener(event -> {
-				addBot(userProvider);
-				table.tryStartNewGame();
-				broadcast();
-			});
 		}
 	}
 
@@ -331,7 +334,7 @@ public class TableView extends ParameterizedView {
 		Button notifyButton = new Button(NOTIFY_BUTTON_TEXT);
 
 		HorizontalLayout redirectHL = new HorizontalLayout(notifyLabel, notifyButton);
-		redirectHL.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
+		redirectHL.setDefaultVerticalComponentAlignment(Alignment.CENTER);
 		add(redirectHL);
 
 		notifyButton.addClickListener(clickEvent -> {
@@ -356,7 +359,7 @@ public class TableView extends ParameterizedView {
 		Button spectateButton = new Button("Spectate");
 
 		HorizontalLayout spectateHL = new HorizontalLayout(spectateLabel, spectateButton);
-		spectateHL.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
+		spectateHL.setDefaultVerticalComponentAlignment(Alignment.CENTER);
 		add(spectateHL);
 
 		spectateButton.addClickListener(clickEvent -> navigateToTableName(BoardView.ROUTE_LOCATION));
