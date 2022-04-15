@@ -55,7 +55,7 @@ public class BoardView extends ParameterizedView {
 	private final List<Label> cardPlaceholderLabels = new ArrayList<>();
 
 	private IntegerField expectedTakesField;
-	private boolean autoNext = true;
+	private boolean autoNextMatch = true;
 	private Image preselectedCardImage;
 
 	public BoardView(Broadcaster broadcaster, TableProvider tableProvider, CountdownService countdownService) {
@@ -346,8 +346,12 @@ public class BoardView extends ParameterizedView {
 	}
 
 	private Checkbox getAutoNextCheckbox() {
-		Checkbox autoNextCheckbox = new Checkbox("Auto " + NEXT_BUTTON_TEXT.toLowerCase(), autoNext);
-		autoNextCheckbox.addClickListener(click -> autoNext = autoNextCheckbox.getValue());
+		Checkbox autoNextCheckbox = new Checkbox("Auto " + NEXT_BUTTON_TEXT.toLowerCase(), autoNextMatch);
+
+		autoNextCheckbox.addClickListener(click -> {
+			autoNextMatch = autoNextCheckbox.getValue();
+			showView();
+		});
 
 		return autoNextCheckbox;
 	}
@@ -405,9 +409,16 @@ public class BoardView extends ParameterizedView {
 		User currentUser = userProvider.getCurrentUser();
 		boolean isCurrentUser = user.equals(currentUser);
 
+		Game game = table.getGame();
+
 		Checkbox newGameCheckbox = new Checkbox(user.wantNewGame());
-		newGameCheckbox.setEnabled(isCurrentUser);
 		newGameCheckbox.setIndeterminate(user.isLoggedOut());
+
+		boolean enabled = isCurrentUser;
+		if (autoNextMatch) {
+			enabled &= !game.isEndOfMatch();
+		}
+		newGameCheckbox.setEnabled(enabled);
 
 		if (user.isLoggedOut()) {
 			newGameCheckbox.setLabel(Constant.LOGOUT_LABEL);
@@ -417,8 +428,6 @@ public class BoardView extends ParameterizedView {
 			String newGameCheckboxLabel = NEW_GAME_LABEL + " / " + Constant.LOGOUT_LABEL;
 			newGameCheckbox.setLabel(newGameCheckboxLabel);
 		}
-
-		Game game = table.getGame();
 
 		boolean newGameOrLogout = game.getSetUsers().stream().anyMatch(setUser -> setUser.wantNewGame() || setUser.isLoggedOut());
 		if (isCurrentUser && newGameOrLogout) {
@@ -540,7 +549,7 @@ public class BoardView extends ParameterizedView {
 		if (everybodyLost() && !game.isEndOfSet()) {
 			nextButton.setText("Next set - everybody lost");
 			add(yourTurnGif);
-		} else if (autoNext) {
+		} else if (autoNextMatch) {
 			runAutoNextTimer(nextButton);
 		} else {
 			add(yourTurnGif);
@@ -576,7 +585,7 @@ public class BoardView extends ParameterizedView {
 
 			@Override
 			protected void finalRun() {
-				if (autoNext) {
+				if (autoNextMatch) {
 					access(nextButton, nextButton::click);
 				} else {
 					setNextButtonsText(NEXT_BUTTON_TEXT);
