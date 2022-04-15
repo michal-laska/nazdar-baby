@@ -14,15 +14,27 @@ public abstract class CountdownTask {
 
 	private final Broadcaster broadcaster;
 	private final BroadcastListener listener;
+	private final boolean reusePreviousCountdownTime;
 
 	private long countdownInSeconds;
 
 	protected CountdownTask(long countdownInSeconds, Broadcaster broadcaster, BroadcastListener listener) {
+		this(countdownInSeconds, broadcaster, listener, false);
+	}
+
+	protected CountdownTask(long countdownInSeconds, Broadcaster broadcaster, BroadcastListener listener, boolean reusePreviousCountdownTime) {
 		this.countdownInSeconds = countdownInSeconds;
 		this.broadcaster = broadcaster;
 		this.listener = listener;
+		this.reusePreviousCountdownTime = reusePreviousCountdownTime;
 
 		broadcaster.register(listener);
+	}
+
+	void reusePreviousCountdownTime(CountdownTask previousCountdownTask) {
+		if (reusePreviousCountdownTime) {
+			this.countdownInSeconds = previousCountdownTask.countdownInSeconds;
+		}
 	}
 
 	protected String getFormattedCountdown() {

@@ -32,7 +32,6 @@ public class Table {
 
 	private Instant lastNotificationTime;
 	private Instant lastNewGameTime;
-	private int nextButtonClickCounter;
 	private int passwordHash;
 
 	Table(String tableName, Broadcaster broadcaster, CountdownService countdownService, SessionProvider sessionProvider, PointProvider pointProvider) {
@@ -89,11 +88,10 @@ public class Table {
 		}
 	}
 
-	public boolean allNextButtonsWereClicked() {
-		long nonBotMatchUsersCount = game.getMatchUsers().stream()
+	public boolean allUsersClickedNextMatchButton() {
+		return game.getMatchUsers().stream()
 				.filter(user -> !user.isBot())
-				.count();
-		return ++nextButtonClickCounter % nonBotMatchUsersCount == 0;
+				.allMatch(User::isReady);
 	}
 
 	public String getInfo() {
@@ -140,8 +138,6 @@ public class Table {
 		}
 
 		resetLastNotificationTime();
-
-		nextButtonClickCounter = 0;
 		game.setGameInProgress(true);
 	}
 

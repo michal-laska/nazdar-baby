@@ -323,6 +323,8 @@ public class Game {
 	}
 
 	private void startNewMatch() {
+		matchUsers.forEach(User::resetAction);
+
 		initCardPlaceholders();
 
 		if (everybodyLost || matchNumber++ == matchUsers.get(0).getCards().size()) {

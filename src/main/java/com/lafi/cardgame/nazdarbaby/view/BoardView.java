@@ -29,15 +29,10 @@ import com.vaadin.flow.router.Route;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 @Route(BoardView.ROUTE_LOCATION)
 public class BoardView extends ParameterizedView {
 
 	static final String ROUTE_LOCATION = "board";
-
-	private static final Logger LOGGER = LoggerFactory.getLogger(BoardView.class);
 
 	private static final String NEW_GAME_LABEL = "New game";
 
@@ -66,8 +61,6 @@ public class BoardView extends ParameterizedView {
 	public void receiveBroadcast(String message) {
 		if (message == null) {
 			access(this::showView);
-		} else if (isInteger(message)) {
-			access(() -> removeBoldFontWeightStyleFromCardPlaceholderLabel(message));
 		} else {
 			access(() -> Notification.show(message));
 		}
@@ -350,7 +343,12 @@ public class BoardView extends ParameterizedView {
 
 		autoNextCheckbox.addClickListener(click -> {
 			autoNextMatch = autoNextCheckbox.getValue();
-			showView();
+
+			UserProvider userProvider = table.getUserProvider();
+			User currentUser = userProvider.getCurrentUser();
+			currentUser.setReady(false);
+
+			broadcast();
 		});
 
 		return autoNextCheckbox;
@@ -416,7 +414,7 @@ public class BoardView extends ParameterizedView {
 
 		boolean enabled = isCurrentUser;
 		if (autoNextMatch) {
-			enabled &= !game.isEndOfMatch();
+			enabled &= currentUser.isReady() || !game.isEndOfMatch();
 		}
 		newGameCheckbox.setEnabled(enabled);
 
@@ -542,22 +540,36 @@ public class BoardView extends ParameterizedView {
 		cardPlaceholderVL.getStyle().set(BORDER_STYLE, ONE_PX_SOLID + BLUE_COLOR);
 
 		Button nextButton = new Button(NEXT_BUTTON_TEXT);
-		autoNextVL.add(nextButton);
-
 		Image yourTurnGif = getYourTurnGif();
+
+		UserProvider userProvider = table.getUserProvider();
+		User currentUser = userProvider.getCurrentUser();
 
 		if (everybodyLost() && !game.isEndOfSet()) {
 			nextButton.setText("Next set - everybody lost");
+			autoNextVL.add(nextButton);
+
 			add(yourTurnGif);
 		} else if (autoNextMatch) {
-			runAutoNextTimer(nextButton);
-		} else {
+			if (!currentUser.isReady()) {
+				autoNextVL.add(nextButton);
+				runAutoNextTimer(nextButton);
+			}
+		} else if (!currentUser.isReady()) {
+			autoNextVL.add(nextButton);
 			add(yourTurnGif);
 		}
 
-		cardPlaceholderLabels.forEach(label -> label.getStyle().set(FONT_WEIGHT_STYLE, BOLD));
+		List<User> matchUsers = game.getMatchUsers();
+		for (int i = 0; i < matchUsers.size(); ++i) {
+			User matchUser = matchUsers.get(i);
+			if (!matchUser.isReady()) {
+				Label cardPlaceholderLabel = cardPlaceholderLabels.get(i);
+				cardPlaceholderLabel.getStyle().set(FONT_WEIGHT_STYLE, BOLD);
+			}
+		}
 
-		nextButton.addClickListener(click -> nextButtonClickAction(autoNextVL, nextButton, yourTurnGif));
+		nextButton.addClickListener(click -> nextButtonClickAction());
 	}
 
 	private void runAutoNextTimer(Button nextButton) {
@@ -575,7 +587,7 @@ public class BoardView extends ParameterizedView {
 	}
 
 	private CountdownTask createCountdownTask(long countdownInSeconds, Button nextButton) {
-		return new CountdownTask(countdownInSeconds, broadcaster, this) {
+		return new CountdownTask(countdownInSeconds, broadcaster, this, true) {
 
 			@Override
 			protected void eachRun() {
@@ -603,31 +615,23 @@ public class BoardView extends ParameterizedView {
 		};
 	}
 
-	private void nextButtonClickAction(VerticalLayout autoNextVL, Button nextButton, Image yourTurnGif) {
+	private void nextButtonClickAction() {
 		//noinspection SynchronizeOnNonFinalField
 		synchronized (table) {
-			autoNextVL.remove(nextButton);
-			remove(yourTurnGif);
+			UserProvider userProvider = table.getUserProvider();
+			User currentUser = userProvider.getCurrentUser();
+			currentUser.setReady(true);
 
-			Game game = table.getGame();
-			if (table.allNextButtonsWereClicked()) {
+			if (table.allUsersClickedNextMatchButton()) {
+				Game game = table.getGame();
 				try {
 					game.changeActiveUser();
 				} catch (EndGameException e) {
 					game.startNewGame();
 				}
-
-				broadcast();
-			} else {
-				UserProvider userProvider = table.getUserProvider();
-				User currentUser = userProvider.getCurrentUser();
-
-				List<User> matchUsers = game.getMatchUsers();
-				int indexOfCurrentUser = matchUsers.indexOf(currentUser);
-
-				String indexOfCurrentUserStr = String.valueOf(indexOfCurrentUser);
-				broadcast(indexOfCurrentUserStr);
 			}
+
+			broadcast();
 		}
 	}
 
@@ -638,25 +642,5 @@ public class BoardView extends ParameterizedView {
 		yourTurnGif.setHeight(Constant.IMAGE_HEIGHT);
 
 		return yourTurnGif;
-	}
-
-	private boolean isInteger(String maybeInt) {
-		try {
-			Integer.parseInt(maybeInt);
-			return true;
-		} catch (NumberFormatException e) {
-			return false;
-		}
-	}
-
-	private void removeBoldFontWeightStyleFromCardPlaceholderLabel(String indexStr) {
-		try {
-			int index = Integer.parseInt(indexStr);
-
-			Label cardPlaceholderLabel = cardPlaceholderLabels.get(index);
-			cardPlaceholderLabel.getStyle().remove(FONT_WEIGHT_STYLE);
-		} catch (IndexOutOfBoundsException e) {
-			LOGGER.warn("Known race condition problem - not a big deal");
-		}
 	}
 }
