@@ -60,11 +60,7 @@ public abstract class VerticalLayoutWithBroadcast extends VerticalLayout impleme
 	}
 
 	protected void broadcast() {
-		broadcast(null);
-	}
-
-	protected void broadcast(String message) {
-		broadcast(getClass(), message);
+		broadcast(getClass(), null);
 	}
 
 	protected void broadcast(Class<? extends VerticalLayoutWithBroadcast> clazz, String message) {

@@ -10,7 +10,7 @@ import org.apache.commons.lang3.time.DurationFormatUtils;
 public abstract class CountdownTask {
 
 	private static final String FORMATTED_COUNTDOWN_SPLITTER = " (";
-	protected static final String FORMATTED_COUNTDOWN_REGEX_SPLITTER = FORMATTED_COUNTDOWN_SPLITTER.replaceAll("[\\W]", "\\\\$0");
+	protected static final String FORMATTED_COUNTDOWN_REGEX_SPLITTER = FORMATTED_COUNTDOWN_SPLITTER.replaceAll("\\W", "\\\\$0");
 
 	private final Broadcaster broadcaster;
 	private final BroadcastListener listener;
