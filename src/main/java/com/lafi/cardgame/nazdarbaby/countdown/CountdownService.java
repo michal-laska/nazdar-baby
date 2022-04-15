@@ -33,7 +33,10 @@ public class CountdownService implements Runnable {
 	}
 
 	public void addCountdownTask(CountdownTask countdownTask) {
-		listenerToTask.put(countdownTask.getListener(), countdownTask);
+		CountdownTask previousCountdownTask = listenerToTask.put(countdownTask.getListener(), countdownTask);
+		if (previousCountdownTask != null) {
+			countdownTask.reusePreviousCountdownTime(previousCountdownTask);
+		}
 
 		if (executorService == null) {
 			startCountdown();
