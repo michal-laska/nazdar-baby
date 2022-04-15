@@ -325,7 +325,7 @@ public class TableView extends ParameterizedView {
 
 		notifyButton.setEnabled(false);
 
-		CountdownTask countdownTask = createCountdownTask(remainingDurationInSeconds, notifyButton);
+		CountdownTask countdownTask = createNotificationCountdownTask(remainingDurationInSeconds, notifyButton);
 		countdownService.addCountdownTask(countdownTask);
 	}
 
@@ -365,7 +365,7 @@ public class TableView extends ParameterizedView {
 		spectateButton.addClickListener(clickEvent -> navigateToTableName(BoardView.ROUTE_LOCATION));
 	}
 
-	private CountdownTask createCountdownTask(long remainingDurationInSeconds, Button notifyButton) {
+	private CountdownTask createNotificationCountdownTask(long remainingDurationInSeconds, Button notifyButton) {
 		return new CountdownTask(remainingDurationInSeconds, broadcaster, this) {
 
 			@Override
