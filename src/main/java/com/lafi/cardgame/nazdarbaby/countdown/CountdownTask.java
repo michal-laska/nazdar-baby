@@ -32,8 +32,8 @@ public abstract class CountdownTask {
 	}
 
 	void reusePreviousCountdownTime(CountdownTask previousCountdownTask) {
-		if (reusePreviousCountdownTime) {
-			this.countdownInSeconds = previousCountdownTask.countdownInSeconds;
+		if (reusePreviousCountdownTime && previousCountdownTask != null) {
+			countdownInSeconds = previousCountdownTask.countdownInSeconds;
 		}
 	}
 

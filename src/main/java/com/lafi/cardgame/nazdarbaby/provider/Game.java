@@ -208,6 +208,7 @@ public class Game {
 	private void resetReadyFlags() {
 		gameUsers.stream()
 				.filter(User::isReady)
+				.filter(user -> !user.isBot())
 				.forEach(user -> user.setReady(false));
 	}
 
@@ -323,7 +324,9 @@ public class Game {
 	}
 
 	private void startNewMatch() {
-		matchUsers.forEach(User::resetAction);
+		matchUsers.stream()
+				.filter(user -> !user.isBot())
+				.forEach(User::resetAction);
 
 		initCardPlaceholders();
 
