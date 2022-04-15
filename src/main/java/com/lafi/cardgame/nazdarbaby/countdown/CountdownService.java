@@ -42,13 +42,11 @@ public class CountdownService implements Runnable {
 
 	private void removeCountdownTask(CountdownTask countdownTask) {
 		BroadcastListener broadcastListener = countdownTask.getListener();
-
 		CountdownTask removedCountdownTask = listenerToTask.remove(broadcastListener);
+
 		if (!countdownTask.equals(removedCountdownTask)) {
 			addCountdownTask(removedCountdownTask);
-		}
-
-		if (listenerToTask.isEmpty()) {
+		} else if (listenerToTask.isEmpty()) {
 			executorService.shutdown();
 			executorService = null;
 		}
