@@ -121,18 +121,27 @@ public class Table {
 	}
 
 	public void tryStartNewGame() {
-		if (userProvider.arePlayingUsersReady()) {
-			List<User> playingUsers = userProvider.getPlayingUsers();
-			int numberOfPlayingUsers = playingUsers.size();
-
-			if (numberOfPlayingUsers >= MINIMUM_USERS && numberOfPlayingUsers <= MAXIMUM_USERS) {
-				stopNewGameCountdown();
-				resetLastNotificationTime();
-
-				nextButtonClickCounter = 0;
-				game.setGameInProgress(true);
-			}
+		if (!userProvider.arePlayingUsersReady()) {
+			return;
 		}
+
+		List<User> playingUsers = userProvider.getPlayingUsers();
+
+		int numberOfPlayingUsers = playingUsers.size();
+		if (numberOfPlayingUsers < MINIMUM_USERS || numberOfPlayingUsers > MAXIMUM_USERS) {
+			return;
+		}
+
+		boolean allBots = playingUsers.stream().allMatch(User::isBot);
+		if (allBots) {
+			return;
+		}
+
+		stopNewGameCountdown();
+		resetLastNotificationTime();
+
+		nextButtonClickCounter = 0;
+		game.setGameInProgress(true);
 	}
 
 	public boolean verifyPasswordHash(int passwordHash) {
