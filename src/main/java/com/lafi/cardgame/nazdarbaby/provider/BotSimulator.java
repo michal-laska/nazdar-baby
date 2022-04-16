@@ -223,10 +223,9 @@ class BotSimulator {
 			playableCardStream = playableCardStream.filter(card -> !card.isPlaceholder());
 		}
 
-		List<Card> sortedPlayableCards = playableCardStream
+		return playableCardStream
 				.sorted()
-				.toList();
-		return new ArrayList<>(sortedPlayableCards);
+				.collect(Collectors.toList());
 	}
 
 	private void rememberCardsFromTable() {
