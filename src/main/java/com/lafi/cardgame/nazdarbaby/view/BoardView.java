@@ -44,7 +44,7 @@ public class BoardView extends ParameterizedView {
 	public static final String BLUE_COLOR = "blue";
 	public static final String GREEN_COLOR = "green";
 
-	private static final String NEXT_BUTTON_TEXT = "Next match";
+	private static final String NEXT_MATCH_BUTTON_TEXT = "Next match";
 	private static final int AUTO_NEXT_DELAY_IN_SECONDS = 5;
 
 	private final List<Label> cardPlaceholderLabels = new ArrayList<>();
@@ -339,10 +339,10 @@ public class BoardView extends ParameterizedView {
 	}
 
 	private Checkbox getAutoNextCheckbox() {
-		Checkbox autoNextCheckbox = new Checkbox("Auto " + NEXT_BUTTON_TEXT.toLowerCase(), autoNextMatch);
+		Checkbox autoNextMatchCheckbox = new Checkbox("Auto " + NEXT_MATCH_BUTTON_TEXT.toLowerCase(), autoNextMatch);
 
-		autoNextCheckbox.addClickListener(click -> {
-			autoNextMatch = autoNextCheckbox.getValue();
+		autoNextMatchCheckbox.addClickListener(click -> {
+			autoNextMatch = autoNextMatchCheckbox.getValue();
 
 			UserProvider userProvider = table.getUserProvider();
 			User currentUser = userProvider.getCurrentUser();
@@ -351,7 +351,7 @@ public class BoardView extends ParameterizedView {
 			broadcast();
 		});
 
-		return autoNextCheckbox;
+		return autoNextMatchCheckbox;
 	}
 
 	private Label getInProgressGameTypeLabel() {
@@ -539,24 +539,26 @@ public class BoardView extends ParameterizedView {
 		VerticalLayout cardPlaceholderVL = (VerticalLayout) cardPlaceholdersHL.getComponentAt(winnerIndex);
 		cardPlaceholderVL.getStyle().set(BORDER_STYLE, ONE_PX_SOLID + BLUE_COLOR);
 
-		Button nextButton = new Button(NEXT_BUTTON_TEXT);
+		Button nextMatchButton = new Button(NEXT_MATCH_BUTTON_TEXT);
+		autoNextVL.add(nextMatchButton);
+
 		Image yourTurnGif = getYourTurnGif();
 
 		UserProvider userProvider = table.getUserProvider();
 		User currentUser = userProvider.getCurrentUser();
 
 		if (everybodyLost() && !game.isEndOfSet()) {
-			nextButton.setText("Next set - everybody lost");
-			autoNextVL.add(nextButton);
-
+			nextMatchButton.setText("Next set - everybody lost");
 			add(yourTurnGif);
 		} else if (autoNextMatch) {
-			if (!currentUser.isReady()) {
-				autoNextVL.add(nextButton);
-				runAutoNextTimer(nextButton);
+			if (currentUser.isReady()) {
+				disableNextMatchButton(nextMatchButton);
+			} else {
+				runAutoNextTimer(nextMatchButton);
 			}
-		} else if (!currentUser.isReady()) {
-			autoNextVL.add(nextButton);
+		} else if (currentUser.isReady()) {
+			disableNextMatchButton(nextMatchButton);
+		} else {
 			add(yourTurnGif);
 		}
 
@@ -569,14 +571,14 @@ public class BoardView extends ParameterizedView {
 			}
 		}
 
-		nextButton.addClickListener(click -> nextButtonClickAction());
+		nextMatchButton.addClickListener(click -> nextMatchButtonClickAction(nextMatchButton));
 	}
 
-	private void runAutoNextTimer(Button nextButton) {
+	private void runAutoNextTimer(Button nextMatchButton) {
 		Game game = table.getGame();
 		long countdownInSeconds = game.isEndOfSet() ? 2 * AUTO_NEXT_DELAY_IN_SECONDS : AUTO_NEXT_DELAY_IN_SECONDS;
 
-		CountdownTask countdownTask = createCountdownTask(countdownInSeconds, nextButton);
+		CountdownTask countdownTask = createCountdownTask(countdownInSeconds, nextMatchButton);
 		countdownService.addCountdownTask(countdownTask);
 	}
 
@@ -586,38 +588,43 @@ public class BoardView extends ParameterizedView {
 				.allMatch(style -> Constant.RED_COLOR.equals(style.get(Constant.COLOR_STYLE)));
 	}
 
-	private CountdownTask createCountdownTask(long countdownInSeconds, Button nextButton) {
+	private CountdownTask createCountdownTask(long countdownInSeconds, Button nextMatchButton) {
 		return new CountdownTask(countdownInSeconds, broadcaster, this, true) {
 
 			@Override
 			protected void eachRun() {
-				String nextButtonText = NEXT_BUTTON_TEXT + getFormattedCountdown();
-				setNextButtonsText(nextButtonText);
+				String nextMatchButtonText = NEXT_MATCH_BUTTON_TEXT + getFormattedCountdown();
+				setNextMatchButtonText(nextMatchButtonText);
 			}
 
 			@Override
 			protected void finalRun() {
 				if (autoNextMatch) {
-					access(nextButton, nextButton::click);
+					access(nextMatchButton, nextMatchButton::click);
 				} else {
-					setNextButtonsText(NEXT_BUTTON_TEXT);
+					setNextMatchButtonText(NEXT_MATCH_BUTTON_TEXT);
 				}
 			}
 
 			@Override
 			protected boolean isCanceled() {
-				return !nextButton.isAttached();
+				return nextMatchButton.isDisableOnClick();
 			}
 
-			private void setNextButtonsText(String text) {
-				access(nextButton, () -> nextButton.setText(text));
+			private void setNextMatchButtonText(String text) {
+				access(nextMatchButton, () -> nextMatchButton.setText(text));
 			}
 		};
 	}
 
-	private void nextButtonClickAction() {
+	private void nextMatchButtonClickAction(Button nextMatchButton) {
 		//noinspection SynchronizeOnNonFinalField
 		synchronized (table) {
+			if (nextMatchButton.isDisableOnClick()) {
+				return;
+			}
+			disableNextMatchButton(nextMatchButton);
+
 			UserProvider userProvider = table.getUserProvider();
 			User currentUser = userProvider.getCurrentUser();
 			currentUser.setReady(true);
@@ -633,6 +640,11 @@ public class BoardView extends ParameterizedView {
 
 			broadcast();
 		}
+	}
+
+	private void disableNextMatchButton(Button nextMatchButton) {
+		nextMatchButton.setDisableOnClick(true);
+		nextMatchButton.click();
 	}
 
 	private Image getYourTurnGif() {
