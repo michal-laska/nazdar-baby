@@ -76,7 +76,7 @@ class BotSimulator {
 			int expectedTakesRounded = (int) Math.round(expectedTakes);
 
 			if (game.isLastUserWithInvalidExpectedTakes(expectedTakesRounded)) {
-				if (expectedTakes > expectedTakesRounded) {
+				if (expectedTakes > expectedTakesRounded || expectedTakesRounded == 0) {
 					activeUser.setExpectedTakes(expectedTakesRounded + 1);
 				} else {
 					activeUser.setExpectedTakes(expectedTakesRounded - 1);
