@@ -256,6 +256,23 @@ class BotSimulatorTest {
 		}
 	}
 
+	@Nested
+	class TryBotMoveTest {
+
+		@Test
+		void expectedTakes_cannotBeNegative() {
+			List<Card> cardPlaceholders = List.of(CARD_PLACEHOLDER, CARD_PLACEHOLDER, CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
+			User bot = bots.get(0);
+			botSimulator.setActiveUser(bot);
+			doReturn(true).when(game).isLastUserWithInvalidExpectedTakes(0);
+
+			botSimulator.tryBotMove();
+
+			assertThat(bot.getExpectedTakes()).isEqualTo(1);
+		}
+	}
+
 	private void rememberCards(List<Card> cards) {
 		botSimulator.setCardPlaceholders(cards);
 		botSimulator.setActiveUser(null);
