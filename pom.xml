@@ -145,7 +145,7 @@
                 </executions>
                 <configuration>
                     <!-- https://nodejs.org/dist/latest/ -->
-                    <nodeVersion>v17.9.0</nodeVersion>
+                    <nodeVersion>v18.0.0</nodeVersion>
                 </configuration>
             </plugin>
         </plugins>
