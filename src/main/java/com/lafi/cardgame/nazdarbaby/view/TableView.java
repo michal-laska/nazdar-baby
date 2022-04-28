@@ -210,7 +210,7 @@ public class TableView extends ParameterizedView {
 					} else if (numberOfPlayingUsers > Table.MAXIMUM_USERS) {
 						Notification.show("Maximum number of players is " + Table.MAXIMUM_USERS);
 					}
-				} else if (userProvider.getReadyUsersCount() >= Table.MINIMUM_USERS) {
+				} else if (userProvider.getReadyUsersCount() >= Table.MINIMUM_USERS && userProvider.getReadyUsersCount() > botCount) {
 					if (user.isReady()) {
 						table.addCountdownCheckbox(this, readyCheckbox);
 					} else {
@@ -238,7 +238,7 @@ public class TableView extends ParameterizedView {
 			user.setReady(value);
 
 			UserProvider userProvider = table.getUserProvider();
-			if (userProvider.getReadyUsersCount() < Table.MINIMUM_USERS) {
+			if (userProvider.getReadyUsersCount() < Table.MINIMUM_USERS || userProvider.getReadyUsersCount() > Table.MAXIMUM_USERS) {
 				table.stopNewGameCountdown();
 			}
 
