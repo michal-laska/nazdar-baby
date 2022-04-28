@@ -201,6 +201,8 @@ public class TableView extends ParameterizedView {
 			add(horizontalLayout);
 
 			if (isCurrentUser) {
+				long readyUsersCount = userProvider.getReadyUsersCount();
+
 				if (userProvider.arePlayingUsersReady()) {
 					List<User> playingUsers = userProvider.getPlayingUsers();
 					int numberOfPlayingUsers = playingUsers.size();
@@ -210,7 +212,7 @@ public class TableView extends ParameterizedView {
 					} else if (numberOfPlayingUsers > Table.MAXIMUM_USERS) {
 						Notification.show("Maximum number of players is " + Table.MAXIMUM_USERS);
 					}
-				} else if (userProvider.getReadyUsersCount() >= Table.MINIMUM_USERS && userProvider.getReadyUsersCount() > botCount) {
+				} else if (readyUsersCount >= Table.MINIMUM_USERS && readyUsersCount > botCount) {
 					if (user.isReady()) {
 						table.addCountdownCheckbox(this, readyCheckbox);
 					} else {
@@ -238,7 +240,8 @@ public class TableView extends ParameterizedView {
 			user.setReady(value);
 
 			UserProvider userProvider = table.getUserProvider();
-			if (userProvider.getReadyUsersCount() < Table.MINIMUM_USERS || userProvider.getReadyUsersCount() > Table.MAXIMUM_USERS) {
+			long readyUsersCount = userProvider.getReadyUsersCount();
+			if (readyUsersCount < Table.MINIMUM_USERS || readyUsersCount > Table.MAXIMUM_USERS) {
 				table.stopNewGameCountdown();
 			}
 
