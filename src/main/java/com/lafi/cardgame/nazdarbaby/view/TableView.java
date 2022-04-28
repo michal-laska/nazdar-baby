@@ -129,28 +129,23 @@ public class TableView extends ParameterizedView {
 			addUserNameHL();
 		}
 
-		HorizontalLayout playersHL = new HorizontalLayout();
+		H2 playersH2 = new H2("Players:");
+		Button addBotButton = new Button("Add bot");
+
+		HorizontalLayout playersHL = new HorizontalLayout(playersH2, addBotButton);
 		playersHL.setDefaultVerticalComponentAlignment(Alignment.BASELINE);
 		add(playersHL);
 
-		H2 playersH2 = new H2("Players:");
-		playersHL.add(playersH2);
+		long botCount = userProvider.getPlayingUsers().stream()
+				.filter(User::isBot)
+				.count();
+		addBotButton.setEnabled(currentUser != null && botCount + 1 < Table.MAXIMUM_USERS);
 
-		if (currentUser != null) {
-			Button addBotButton = new Button("Add bot");
-			playersHL.add(addBotButton);
-
-			long botCount = userProvider.getPlayingUsers().stream()
-					.filter(User::isBot)
-					.count();
-			addBotButton.setEnabled(botCount + 1 < Table.MAXIMUM_USERS);
-
-			addBotButton.addClickListener(event -> {
-				addBot(userProvider);
-				table.tryStartNewGame();
-				broadcast();
-			});
-		}
+		addBotButton.addClickListener(event -> {
+			addBot(userProvider);
+			table.tryStartNewGame();
+			broadcast();
+		});
 
 		List<User> allUsers = userProvider.getAllUsers();
 
@@ -184,7 +179,7 @@ public class TableView extends ParameterizedView {
 				user.setReady(true);
 
 				Button removeButton = new Button("Remove");
-				horizontalLayout = new HorizontalLayout(userName, userPoints, removeButton);
+				removeButton.setEnabled(currentUser != null);
 
 				removeButton.addClickListener(event -> {
 					userProvider.removeBot(user);
@@ -196,6 +191,8 @@ public class TableView extends ParameterizedView {
 
 					broadcast();
 				});
+
+				horizontalLayout = new HorizontalLayout(userName, userPoints, removeButton);
 			} else {
 				horizontalLayout = new HorizontalLayout(userName, userPoints, readyCheckbox, logoutCheckbox);
 			}
