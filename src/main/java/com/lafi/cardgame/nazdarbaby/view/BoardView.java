@@ -549,7 +549,11 @@ public class BoardView extends ParameterizedView {
 
 		if (everybodyLost() && !game.isEndOfSet()) {
 			nextMatchButton.setText("Next set - everybody lost");
-			add(yourTurnGif);
+			if (currentUser.isReady()) {
+				disableNextMatchButton(nextMatchButton);
+			} else {
+				add(yourTurnGif);
+			}
 		} else if (autoNextMatch) {
 			if (currentUser.isReady()) {
 				disableNextMatchButton(nextMatchButton);
