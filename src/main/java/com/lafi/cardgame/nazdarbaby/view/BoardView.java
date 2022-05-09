@@ -233,9 +233,10 @@ public class BoardView extends ParameterizedView {
 		autoNextVL.add(getAutoNextCheckbox());
 
 		if (game.isEndOfMatch()) {
-			handleEndOfMatch(cardPlaceholdersHL, autoNextVL);
+			Button nextMatchButton = handleEndOfMatch(cardPlaceholdersHL);
+			autoNextVL.add(nextMatchButton);
 		} else if (game.isActiveUser()) {
-			add(getYourTurnGif());
+			addYourTurnGif();
 		}
 	}
 
@@ -532,38 +533,30 @@ public class BoardView extends ParameterizedView {
 		}
 	}
 
-	private void handleEndOfMatch(HorizontalLayout cardPlaceholdersHL, VerticalLayout autoNextVL) {
+	private Button handleEndOfMatch(HorizontalLayout cardPlaceholdersHL) {
 		Game game = table.getGame();
 
 		int winnerIndex = game.getWinnerIndex();
 		VerticalLayout cardPlaceholderVL = (VerticalLayout) cardPlaceholdersHL.getComponentAt(winnerIndex);
 		cardPlaceholderVL.getStyle().set(BORDER_STYLE, ONE_PX_SOLID + BLUE_COLOR);
 
-		Button nextMatchButton = new Button(NEXT_MATCH_BUTTON_TEXT);
-		autoNextVL.add(nextMatchButton);
+		Button nextMatchButton = new Button();
 
-		Image yourTurnGif = getYourTurnGif();
+		if (everybodyLost() && !game.isEndOfSet()) {
+			nextMatchButton.setText("Next set - everybody lost");
+		} else {
+			nextMatchButton.setText(NEXT_MATCH_BUTTON_TEXT);
+		}
 
 		UserProvider userProvider = table.getUserProvider();
 		User currentUser = userProvider.getCurrentUser();
 
-		if (everybodyLost() && !game.isEndOfSet()) {
-			nextMatchButton.setText("Next set - everybody lost");
-			if (currentUser.isReady()) {
-				disableNextMatchButton(nextMatchButton);
-			} else {
-				add(yourTurnGif);
-			}
-		} else if (autoNextMatch) {
-			if (currentUser.isReady()) {
-				disableNextMatchButton(nextMatchButton);
-			} else {
-				runAutoNextTimer(nextMatchButton);
-			}
-		} else if (currentUser.isReady()) {
+		if (currentUser.isReady()) {
 			disableNextMatchButton(nextMatchButton);
+		} else if (autoNextMatch && NEXT_MATCH_BUTTON_TEXT.equals(nextMatchButton.getText())) {
+			runAutoNextTimer(nextMatchButton);
 		} else {
-			add(yourTurnGif);
+			addYourTurnGif();
 		}
 
 		List<User> matchUsers = game.getMatchUsers();
@@ -576,6 +569,8 @@ public class BoardView extends ParameterizedView {
 		}
 
 		nextMatchButton.addClickListener(click -> nextMatchButtonClickAction(nextMatchButton));
+
+		return nextMatchButton;
 	}
 
 	private void runAutoNextTimer(Button nextMatchButton) {
@@ -651,12 +646,12 @@ public class BoardView extends ParameterizedView {
 		nextMatchButton.click();
 	}
 
-	private Image getYourTurnGif() {
+	private void addYourTurnGif() {
 		Image yourTurnGif = new Image();
 
 		yourTurnGif.setSrc("gif/your_turn.gif");
 		yourTurnGif.setHeight(Constant.IMAGE_HEIGHT);
 
-		return yourTurnGif;
+		add(yourTurnGif);
 	}
 }
