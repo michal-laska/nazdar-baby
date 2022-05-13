@@ -639,15 +639,18 @@ public class BoardView extends ParameterizedView {
 			return;
 		}
 
+		Style style = hasStyle.getStyle();
+		String whiteBorder = ONE_PX_SOLID + "white";
+		style.set(BORDER_STYLE, whiteBorder);
+
 		CountdownTask countdownTask = new CountdownTask(Long.MAX_VALUE, broadcaster, this) {
 
 			@Override
 			protected void eachRun() {
-				Style style = hasStyle.getStyle();
-				if (style.has(BORDER_STYLE)) {
-					access(component, () -> style.remove(BORDER_STYLE));
-				} else {
+				if (whiteBorder.equals(style.get(BORDER_STYLE))) {
 					access(component, () -> style.set(BORDER_STYLE, ONE_PX_SOLID + BLUE_COLOR));
+				} else {
+					access(component, () -> style.set(BORDER_STYLE, whiteBorder));
 				}
 			}
 
