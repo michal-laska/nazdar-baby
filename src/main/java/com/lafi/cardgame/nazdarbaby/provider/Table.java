@@ -73,10 +73,9 @@ public class Table {
 		if (lastNewGameTime == null) {
 			lastNewGameTime = Instant.now();
 		}
-		long remainingDurationInSeconds = TimeUtil.getRemainingDurationInSeconds(lastNewGameTime, 1);
 
-		CountdownTask countdownTask = createCountdownTask(remainingDurationInSeconds, listener, countdownCheckbox);
-		countdownService.addCountdownTask(countdownTask);
+		long remainingDurationInSeconds = TimeUtil.getRemainingDurationInSeconds(lastNewGameTime, 1);
+		addCountdownTask(remainingDurationInSeconds, listener, countdownCheckbox);
 	}
 
 	public void stopNewGameCountdown() {
@@ -149,8 +148,8 @@ public class Table {
 		this.passwordHash = passwordHash;
 	}
 
-	private CountdownTask createCountdownTask(long remainingDurationInSeconds, BroadcastListener listener, Checkbox countdownCheckbox) {
-		return new CountdownTask(remainingDurationInSeconds, broadcaster, listener) {
+	private void addCountdownTask(long remainingDurationInSeconds, BroadcastListener listener, Checkbox countdownCheckbox) {
+		CountdownTask countdownTask = new CountdownTask(remainingDurationInSeconds, broadcaster, listener) {
 
 			@Override
 			protected void eachRun() {
@@ -194,6 +193,8 @@ public class Table {
 				tryStartNewGame();
 			}
 		};
+
+		countdownService.addCountdownTask(countdownTask);
 	}
 
 	private void resetLastNotificationTime() {

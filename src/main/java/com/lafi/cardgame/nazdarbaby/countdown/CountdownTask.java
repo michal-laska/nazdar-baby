@@ -32,7 +32,10 @@ public abstract class CountdownTask {
 	}
 
 	void reusePreviousCountdownTime(CountdownTask previousCountdownTask) {
-		if (reusePreviousCountdownTime && previousCountdownTask != null && previousCountdownTask.countdownInSeconds >= 0) {
+		if (reusePreviousCountdownTime
+				&& previousCountdownTask != null
+				&& previousCountdownTask.reusePreviousCountdownTime
+				&& previousCountdownTask.countdownInSeconds >= 0) {
 			countdownInSeconds = previousCountdownTask.countdownInSeconds;
 		}
 	}

@@ -13,6 +13,7 @@ import com.lafi.cardgame.nazdarbaby.provider.UserProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
 import com.lafi.cardgame.nazdarbaby.util.Constant;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasStyle;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
@@ -122,6 +123,7 @@ public class BoardView extends ParameterizedView {
 
 			if (game.isActiveUser()) {
 				expectedTakesField.focus();
+				addExpectedTakesFieldBlinking();
 			} else {
 				expectedTakesField.addFocusListener(focusEvent -> notYourTurnAction());
 				expectedTakesField.addBlurListener(blurEvent -> {
@@ -151,6 +153,7 @@ public class BoardView extends ParameterizedView {
 		} else if (game.isActiveUser()) {
 			makeExpectedTakesFieldValid();
 			expectedTakesField.focus();
+			addExpectedTakesFieldBlinking();
 		}
 	}
 
@@ -235,8 +238,17 @@ public class BoardView extends ParameterizedView {
 		if (game.isEndOfMatch()) {
 			Button nextMatchButton = handleEndOfMatch(cardPlaceholdersHL);
 			autoNextVL.add(nextMatchButton);
-		} else if (game.isActiveUser()) {
-			addYourTurnGif();
+		} else if (game.isActiveUser() && expectedTakesField == null) {
+			UserProvider userProvider = table.getUserProvider();
+			User currentUser = userProvider.getCurrentUser();
+
+			List<User> matchUsers = game.getMatchUsers();
+			int currentUserIndex = matchUsers.indexOf(currentUser);
+
+			VerticalLayout cardPlaceholderVL = (VerticalLayout) cardPlaceholdersHL.getComponentAt(currentUserIndex);
+			Image image = (Image) cardPlaceholderVL.getComponentAt(1);
+
+			addBlinking(image);
 		}
 	}
 
@@ -301,8 +313,8 @@ public class BoardView extends ParameterizedView {
 			}
 
 			List<User> matchUsers = game.getMatchUsers();
-			int matchUserIndex = matchUsers.indexOf(currentUser);
-			cardPlaceholders.set(matchUserIndex, card);
+			int currentUserIndex = matchUsers.indexOf(currentUser);
+			cardPlaceholders.set(currentUserIndex, card);
 
 			int cardIndex = cards.indexOf(card);
 			cards.set(cardIndex, CardProvider.CARD_PLACEHOLDER);
@@ -557,7 +569,7 @@ public class BoardView extends ParameterizedView {
 		} else if (autoNextMatch && NEXT_MATCH_BUTTON_TEXT.equals(nextMatchButton.getText())) {
 			runAutoNextTimer(nextMatchButton);
 		} else {
-			addYourTurnGif();
+			addBlinking(nextMatchButton);
 		}
 
 		List<User> matchUsers = game.getMatchUsers();
@@ -578,8 +590,7 @@ public class BoardView extends ParameterizedView {
 		Game game = table.getGame();
 		long countdownInSeconds = game.isEndOfSet() ? 2 * AUTO_NEXT_DELAY_IN_SECONDS : AUTO_NEXT_DELAY_IN_SECONDS;
 
-		CountdownTask countdownTask = createCountdownTask(countdownInSeconds, nextMatchButton);
-		countdownService.addCountdownTask(countdownTask);
+		addNextMatchCountdownTask(countdownInSeconds, nextMatchButton);
 	}
 
 	private boolean everybodyLost() {
@@ -588,8 +599,8 @@ public class BoardView extends ParameterizedView {
 				.allMatch(style -> Constant.RED_COLOR.equals(style.get(Constant.COLOR_STYLE)));
 	}
 
-	private CountdownTask createCountdownTask(long countdownInSeconds, Button nextMatchButton) {
-		return new CountdownTask(countdownInSeconds, broadcaster, this, true) {
+	private void addNextMatchCountdownTask(long countdownInSeconds, Button nextMatchButton) {
+		CountdownTask countdownTask = new CountdownTask(countdownInSeconds, broadcaster, this, true) {
 
 			@Override
 			protected void eachRun() {
@@ -615,6 +626,37 @@ public class BoardView extends ParameterizedView {
 				access(nextMatchButton, () -> nextMatchButton.setText(text));
 			}
 		};
+
+		countdownService.addCountdownTask(countdownTask);
+	}
+
+	private void addExpectedTakesFieldBlinking() {
+		addBlinking(expectedTakesField);
+	}
+
+	private void addBlinking(Component component) {
+		if (!(component instanceof HasStyle hasStyle)) {
+			return;
+		}
+
+		CountdownTask countdownTask = new CountdownTask(Long.MAX_VALUE, broadcaster, this) {
+
+			@Override
+			protected void eachRun() {
+				Style style = hasStyle.getStyle();
+				if (style.has(BORDER_STYLE)) {
+					access(component, () -> style.remove(BORDER_STYLE));
+				} else {
+					access(component, () -> style.set(BORDER_STYLE, ONE_PX_SOLID + BLUE_COLOR));
+				}
+			}
+
+			@Override
+			protected void finalRun() {
+			}
+		};
+
+		countdownService.addCountdownTask(countdownTask);
 	}
 
 	private void nextMatchButtonClickAction(Button nextMatchButton) {
@@ -645,14 +687,5 @@ public class BoardView extends ParameterizedView {
 	private void disableNextMatchButton(Button nextMatchButton) {
 		nextMatchButton.setDisableOnClick(true);
 		nextMatchButton.click();
-	}
-
-	private void addYourTurnGif() {
-		Image yourTurnGif = new Image();
-
-		yourTurnGif.setSrc("gif/your_turn.gif");
-		yourTurnGif.setHeight(Constant.IMAGE_HEIGHT);
-
-		add(yourTurnGif);
 	}
 }
