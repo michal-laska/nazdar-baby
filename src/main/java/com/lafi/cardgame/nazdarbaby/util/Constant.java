@@ -7,8 +7,6 @@ import java.nio.charset.StandardCharsets;
 
 public final class Constant {
 
-	public static final String IMAGE_HEIGHT = "3cm";
-
 	public static final String POINTS_LABEL = " points";
 
 	public static final String LOGOUT_LABEL = "Logout";

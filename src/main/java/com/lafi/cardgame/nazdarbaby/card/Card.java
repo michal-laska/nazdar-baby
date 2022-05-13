@@ -1,6 +1,5 @@
 package com.lafi.cardgame.nazdarbaby.card;
 
-import com.lafi.cardgame.nazdarbaby.util.Constant;
 import com.vaadin.flow.component.html.Image;
 
 import java.util.Objects;
@@ -48,7 +47,7 @@ public class Card implements Comparable<Card> {
 	public Image getImage() {
 		Image image = new Image();
 		image.setSrc(imageSrc);
-		image.setHeight(Constant.IMAGE_HEIGHT);
+		image.setHeight("3cm");
 
 		return image;
 	}

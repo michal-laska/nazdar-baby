@@ -325,8 +325,7 @@ public class TableView extends ParameterizedView {
 
 		notifyButton.setEnabled(false);
 
-		CountdownTask countdownTask = createNotificationCountdownTask(remainingDurationInSeconds, notifyButton);
-		countdownService.addCountdownTask(countdownTask);
+		addNotificationCountdownTask(remainingDurationInSeconds, notifyButton);
 	}
 
 	private void addNotifyPossibility() {
@@ -365,8 +364,8 @@ public class TableView extends ParameterizedView {
 		spectateButton.addClickListener(clickEvent -> navigateToTableName(BoardView.ROUTE_LOCATION));
 	}
 
-	private CountdownTask createNotificationCountdownTask(long remainingDurationInSeconds, Button notifyButton) {
-		return new CountdownTask(remainingDurationInSeconds, broadcaster, this) {
+	private void addNotificationCountdownTask(long remainingDurationInSeconds, Button notifyButton) {
+		CountdownTask countdownTask = new CountdownTask(remainingDurationInSeconds, broadcaster, this) {
 
 			@Override
 			protected void eachRun() {
@@ -388,6 +387,8 @@ public class TableView extends ParameterizedView {
 				return !game.isGameInProgress();
 			}
 		};
+
+		countdownService.addCountdownTask(countdownTask);
 	}
 
 	private void createPasswordAction(PasswordField createPasswordField, PasswordField confirmPasswordField) {
