@@ -53,11 +53,13 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 			TextField tableNameField = new TextField();
 			tableNameField.setPlaceholder("Table name");
 			tableNameField.focus();
-			tableNameField.addKeyUpListener(Key.ENTER, event -> addTableAction(tableNameField));
+
 			tableNameField.addInputListener(inputEvent -> UiUtil.makeFieldValid(tableNameField));
+			tableNameField.addBlurListener(blurEvent -> UiUtil.makeFieldValid(tableNameField));
 
 			Button createTableButton = new Button("Create");
 			createTableButton.addClickListener(clickEvent -> addTableAction(tableNameField));
+			tableNameField.addKeyUpListener(Key.ENTER, event -> addTableAction(tableNameField));
 
 			createTableHL = new HorizontalLayout(tableNameField, createTableButton);
 		}
