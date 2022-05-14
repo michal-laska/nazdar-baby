@@ -23,7 +23,7 @@ public final class UiUtil {
 	}
 
 	public static void createNavigationToTablesView(VerticalLayoutWithBroadcast verticalLayout) {
-		Label redirectLabel = new Label("Create or join to another table");
+		Label redirectLabel = new Label("Create a new table or join to another one");
 		Button redirectButton = new Button(Constant.OK_LABEL);
 		redirectButton.addClickListener(e -> verticalLayout.navigateToTablesView());
 

@@ -36,7 +36,6 @@ public class TableView extends ParameterizedView {
 	private static final String ENTER_PASSWORD_PLACEHOLDER = "Enter password";
 	private static final String NOTIFY_BUTTON_TEXT = "Notify";
 
-	private HorizontalLayout userNameHL;
 	private TextField nameField;
 
 	public TableView(Broadcaster broadcaster, TableProvider tableProvider, CountdownService countdownService) {
@@ -79,39 +78,39 @@ public class TableView extends ParameterizedView {
 	}
 
 	private void addUserNameHL() {
-		if (userNameHL == null) {
+		if (nameField == null) {
 			nameField = new TextField();
 			nameField.setPlaceholder("Your name");
-			nameField.focus();
+			nameField.setAutofocus(true);
 
 			nameField.addInputListener(inputEvent -> UiUtil.makeFieldValid(nameField));
+			nameField.addBlurListener(blurEvent -> UiUtil.makeFieldValid(nameField));
 			nameField.addKeyUpListener(Key.ENTER, event -> addUserAction(nameField));
-
-			Button okButton = new Button(Constant.OK_LABEL);
-			okButton.addClickListener(click -> addUserAction(nameField));
-
-			userNameHL = new HorizontalLayout(nameField, okButton);
-		} else {
-			nameField.focus();
 		}
+
+		Button okButton = new Button(Constant.OK_LABEL);
+		okButton.addClickListener(click -> addUserAction(nameField));
+
+		HorizontalLayout userNameHL = new HorizontalLayout(nameField, okButton);
 		add(userNameHL);
 	}
 
 	private void addUserAction(TextField nameField) {
 		String userName = nameField.getValue();
-		UserProvider userProvider = table.getUserProvider();
 
 		if (StringUtils.isBlank(userName)) {
 			UiUtil.invalidateFieldWithFocus(nameField, "Name cannot be blank");
 			return;
 		}
+
+		UserProvider userProvider = table.getUserProvider();
+
 		if (userProvider.userNameExist(userName)) {
 			UiUtil.invalidateFieldWithFocus(nameField, "Name already exists");
 			return;
 		}
 
 		userProvider.addUser(userName);
-		remove(userNameHL);
 
 		broadcast();
 	}
@@ -304,7 +303,6 @@ public class TableView extends ParameterizedView {
 	}
 
 	private void showGameInProgress() {
-		userNameHL = null;
 		removeAll();
 
 		Label gameInProgressLabel = new Label("Game in progress");
@@ -432,12 +430,14 @@ public class TableView extends ParameterizedView {
 		PasswordField createPasswordField = new PasswordField("Create table password (optional)");
 		createPasswordField.setMinWidth(minimalWidth);
 		createPasswordField.setPlaceholder(ENTER_PASSWORD_PLACEHOLDER);
-		createPasswordField.focus();
+		createPasswordField.setAutofocus(true);
 		add(createPasswordField);
 
 		PasswordField confirmPasswordField = new PasswordField();
 		confirmPasswordField.setMinWidth(minimalWidth);
 		confirmPasswordField.setPlaceholder("Confirm password");
+
+		confirmPasswordField.addBlurListener(blurEvent -> UiUtil.makeFieldValid(confirmPasswordField));
 
 		createPasswordField.addKeyUpListener(Key.ENTER, event -> createPasswordAction(createPasswordField, confirmPasswordField));
 		confirmPasswordField.addKeyUpListener(Key.ENTER, event -> createPasswordAction(createPasswordField, confirmPasswordField));
@@ -459,7 +459,7 @@ public class TableView extends ParameterizedView {
 
 		PasswordField passwordField = new PasswordField("Table is password protected");
 		passwordField.setPlaceholder(ENTER_PASSWORD_PLACEHOLDER);
-		passwordField.focus();
+		passwordField.setAutofocus(true);
 		passwordField.addKeyUpListener(Key.ENTER, event -> loginToTableAction(passwordField));
 		passwordField.addInputListener(inputEvent -> UiUtil.makeFieldValid(passwordField));
 
