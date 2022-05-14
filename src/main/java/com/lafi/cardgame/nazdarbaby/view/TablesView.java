@@ -52,7 +52,6 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 		if (createTableHL == null) {
 			TextField tableNameField = new TextField();
 			tableNameField.setPlaceholder("Table name");
-			tableNameField.focus();
 
 			tableNameField.addInputListener(inputEvent -> UiUtil.makeFieldValid(tableNameField));
 			tableNameField.addBlurListener(blurEvent -> UiUtil.makeFieldValid(tableNameField));
@@ -63,6 +62,10 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 
 			createTableHL = new HorizontalLayout(tableNameField, createTableButton);
 		}
+
+		TextField tableNameField = (TextField) createTableHL.getComponentAt(0);
+		tableNameField.focus();
+
 		add(createTableHL);
 
 		Label joinTableLabel = new Label("Join table:");
