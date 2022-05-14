@@ -1,5 +1,6 @@
 package com.lafi.cardgame.nazdarbaby.view;
 
+import com.lafi.cardgame.nazdarbaby.Application;
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.layout.VerticalLayoutWithBroadcast;
 import com.lafi.cardgame.nazdarbaby.provider.Table;
@@ -23,7 +24,7 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 
 	public static final String ROUTE_LOCATION = StringUtils.EMPTY;
 
-	private HorizontalLayout createTableHL;
+	private TextField tableNameField;
 
 	public TablesView(Broadcaster broadcaster, TableProvider tableProvider) {
 		super(broadcaster, tableProvider);
@@ -43,29 +44,26 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 	private void showView() {
 		removeAll();
 
-		H1 tablesH1 = new H1("Nazdar baby");
+		H1 tablesH1 = new H1(Application.APP_NAME);
 		add(tablesH1);
 
 		Label newTableLabel = new Label("Create table:");
 		add(newTableLabel);
 
-		if (createTableHL == null) {
-			TextField tableNameField = new TextField();
+		if (tableNameField == null) {
+			tableNameField = new TextField();
 			tableNameField.setPlaceholder("Table name");
 
 			tableNameField.addInputListener(inputEvent -> UiUtil.makeFieldValid(tableNameField));
 			tableNameField.addBlurListener(blurEvent -> UiUtil.makeFieldValid(tableNameField));
-
-			Button createTableButton = new Button("Create");
-			createTableButton.addClickListener(clickEvent -> addTableAction(tableNameField));
 			tableNameField.addKeyUpListener(Key.ENTER, event -> addTableAction(tableNameField));
-
-			createTableHL = new HorizontalLayout(tableNameField, createTableButton);
 		}
-
-		TextField tableNameField = (TextField) createTableHL.getComponentAt(0);
 		tableNameField.focus();
 
+		Button createTableButton = new Button("Create");
+		createTableButton.addClickListener(clickEvent -> addTableAction(tableNameField));
+
+		HorizontalLayout createTableHL = new HorizontalLayout(tableNameField, createTableButton);
 		add(createTableHL);
 
 		Label joinTableLabel = new Label("Join table:");

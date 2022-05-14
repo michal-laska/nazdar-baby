@@ -13,7 +13,7 @@ import org.springframework.boot.web.servlet.support.SpringBootServletInitializer
 @PWA(name = Application.APP_NAME, shortName = Application.APP_NAME)
 public class Application extends SpringBootServletInitializer implements AppShellConfigurator {
 
-	static final String APP_NAME = "Nazdar baby";
+	public static final String APP_NAME = "Nazdar baby";
 
 	public static void main(String[] args) {
 		SpringApplication.run(Application.class, args);
