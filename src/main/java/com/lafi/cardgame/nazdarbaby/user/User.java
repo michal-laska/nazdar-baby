@@ -2,15 +2,18 @@ package com.lafi.cardgame.nazdarbaby.user;
 
 import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.Color;
+import org.apache.commons.lang3.RandomUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public class User {
 
 	private final List<Card> cards = new ArrayList<>();
 	private final String name;
+	private final Integer takeoverCode;
 	private final boolean isBot;
 
 	private int actualTakes;
@@ -20,17 +23,42 @@ public class User {
 	private Float lastAddedPoints;
 	private Boolean terminator = false;
 
-	public User(String name) {
-		this(name, false);
+	public User(String name, Set<Integer> takeoverCodes) {
+		this(name, false, takeoverCodes);
 	}
 
-	public User(String name, boolean isBot) {
+	public User(String name) {
+		this(name, true, null);
+	}
+
+	private User(String name, boolean isBot, Set<Integer> takeoverCodes) {
 		this.name = name;
 		this.isBot = isBot;
+
+		if (isBot) {
+			takeoverCode = null;
+		} else {
+			int randomInt;
+			do {
+				randomInt = RandomUtils.nextInt(1_000, 10_000);
+			} while (takeoverCodes.contains(randomInt));
+
+			takeoverCodes.add(randomInt);
+
+			takeoverCode = randomInt;
+		}
 	}
 
 	public String getName() {
 		return name;
+	}
+
+	public Integer getTakeoverCode() {
+		return takeoverCode;
+	}
+
+	public boolean isBot() {
+		return isBot;
 	}
 
 	public int getActualTakes() {
@@ -71,10 +99,6 @@ public class User {
 
 	public float getPoints() {
 		return points;
-	}
-
-	public boolean isBot() {
-		return isBot;
 	}
 
 	public void addPoints(float points) {

@@ -4,6 +4,7 @@ import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.CardProvider;
 import com.lafi.cardgame.nazdarbaby.card.Color;
 import com.lafi.cardgame.nazdarbaby.user.User;
+import org.apache.commons.lang3.RandomUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,7 +14,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -23,7 +23,6 @@ class BotSimulator {
 
 	private final Set<Card> playedOutCards = new HashSet<>();
 	private final Map<User, Map<User, UserInfo>> botToOtherUsersInfo = new HashMap<>();
-	private final Random random = new Random();
 	private final Game game;
 
 	private List<Card> cardPlaceholders;
@@ -184,7 +183,7 @@ class BotSimulator {
 		}
 
 		if (noGapsInOneColor(sortedPlayableCards)) {
-			int index = random.nextInt(sortedPlayableCardsSize);
+			int index = RandomUtils.nextInt(0, sortedPlayableCardsSize);
 			return sortedPlayableCards.get(index);
 		}
 
@@ -519,7 +518,7 @@ class BotSimulator {
 			}
 		}
 
-		int index = random.nextInt(mostProbableCardsToWin.size());
+		int index = RandomUtils.nextInt(0, mostProbableCardsToWin.size());
 		return mostProbableCardsToWin.get(index);
 	}
 
