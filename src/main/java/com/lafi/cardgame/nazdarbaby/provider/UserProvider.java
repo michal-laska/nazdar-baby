@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -18,6 +20,7 @@ public class UserProvider {
 	private final Map<VaadinSession, User> sessionToUser = new HashMap<>();
 	private final Map<String, User> botNameToBot = new HashMap<>();
 	private final Set<VaadinSession> loggedInSessions = new HashSet<>();
+	private final Set<Integer> takeoverCodes = new HashSet<>();
 
 	private final SessionProvider sessionProvider;
 
@@ -27,9 +30,39 @@ public class UserProvider {
 
 	public void addUser(String userName) {
 		VaadinSession session = sessionProvider.getSession();
-		User user = new User(userName);
+		User user = new User(userName, takeoverCodes);
 
 		sessionToUser.put(session, user);
+	}
+
+	public boolean takeoverUser(Integer takeoverCode) {
+		if (takeoverCode == null) {
+			return false;
+		}
+
+		Optional<User> userOptional = getPlayingUsers().stream()
+				.filter(user -> Objects.equals(user.getTakeoverCode(), takeoverCode))
+				.findFirst();
+
+		if (userOptional.isEmpty()) {
+			return false;
+		}
+
+		User user = userOptional.get();
+
+		VaadinSession oldSession = sessionToUser.entrySet().stream()
+				.filter(entry -> entry.getValue().equals(user))
+				.findFirst()
+				.get()
+				.getKey();
+		sessionToUser.remove(oldSession);
+		loggedInSessions.remove(oldSession);
+
+		VaadinSession newSession = sessionProvider.getSession();
+		sessionToUser.put(newSession, user);
+		loggedInSessions.add(newSession);
+
+		return true;
 	}
 
 	public boolean addBot(String botName) {
@@ -37,7 +70,7 @@ public class UserProvider {
 			return false;
 		}
 
-		User bot = new User(botName, true);
+		User bot = new User(botName);
 		bot.setReady(true);
 
 		botNameToBot.put(botName, bot);

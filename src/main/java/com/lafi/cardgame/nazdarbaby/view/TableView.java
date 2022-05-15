@@ -20,6 +20,7 @@ import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
@@ -173,7 +174,7 @@ public class TableView extends ParameterizedView {
 			Checkbox readyCheckbox = createReadyCheckbox(user, isCurrentUser);
 			Checkbox logoutCheckbox = createLogoutCheckbox(user, isCurrentUser);
 
-			HorizontalLayout horizontalLayout;
+			HorizontalLayout horizontalLayout = new HorizontalLayout(userName, userPoints);
 			if (user.isBot()) {
 				user.setReady(true);
 
@@ -191,9 +192,16 @@ public class TableView extends ParameterizedView {
 					broadcast();
 				});
 
-				horizontalLayout = new HorizontalLayout(userName, userPoints, removeButton);
+				horizontalLayout.add(removeButton);
 			} else {
-				horizontalLayout = new HorizontalLayout(userName, userPoints, readyCheckbox, logoutCheckbox);
+				horizontalLayout.add(readyCheckbox, logoutCheckbox);
+
+				if (isCurrentUser) {
+					String text = "(Takeover code = " + user.getTakeoverCode() + ')';
+					Label takeoverLabel = new Label(text);
+
+					horizontalLayout.add(takeoverLabel);
+				}
 			}
 
 			horizontalLayout.setDefaultVerticalComponentAlignment(Alignment.CENTER);
@@ -310,6 +318,7 @@ public class TableView extends ParameterizedView {
 
 		addNotifyPossibility();
 		addSpectatePossibility();
+		addTakeoverUserPossibility();
 
 		UiUtil.createNavigationToTablesView(this);
 	}
@@ -360,6 +369,35 @@ public class TableView extends ParameterizedView {
 		add(spectateHL);
 
 		spectateButton.addClickListener(clickEvent -> navigateToTableName(BoardView.ROUTE_LOCATION));
+	}
+
+	private void addTakeoverUserPossibility() {
+		Label takeoverLabel = new Label("Takeover user");
+
+		IntegerField takeoverField = new IntegerField();
+		takeoverField.setPlaceholder("Enter code");
+		takeoverField.addBlurListener(blurEvent -> UiUtil.makeFieldValid(takeoverField));
+		takeoverField.addKeyUpListener(Key.ENTER, event -> takeoverAction(takeoverField));
+
+		Button takeoverButton = new Button("Takeover");
+		takeoverButton.addClickListener(clickEvent -> takeoverAction(takeoverField));
+
+		HorizontalLayout spectateHL = new HorizontalLayout(takeoverLabel, takeoverField, takeoverButton);
+		spectateHL.setDefaultVerticalComponentAlignment(Alignment.CENTER);
+		add(spectateHL);
+	}
+
+	private void takeoverAction(IntegerField takeoverField) {
+		UserProvider userProvider = table.getUserProvider();
+		Integer takeoverCode = takeoverField.getValue();
+
+		boolean success = userProvider.takeoverUser(takeoverCode);
+
+		if (success) {
+			navigateToTableName(BoardView.ROUTE_LOCATION);
+		} else {
+			UiUtil.invalidateFieldWithFocus(takeoverField, "Wrong code");
+		}
 	}
 
 	private void addNotificationCountdownTask(long remainingDurationInSeconds, Button notifyButton) {

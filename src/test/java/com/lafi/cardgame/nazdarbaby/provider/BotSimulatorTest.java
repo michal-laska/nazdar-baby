@@ -24,7 +24,7 @@ class BotSimulatorTest {
 
 	private static final Card CARD_PLACEHOLDER = CardProvider.CARD_PLACEHOLDER;
 
-	private final List<User> bots = List.of(new User("user1", true), new User("user2", true), new User("user3", true));
+	private final List<User> bots = List.of(new User("user1"), new User("user2"), new User("user3"));
 
 	@Mock
 	private Game game;
