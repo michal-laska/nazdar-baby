@@ -104,7 +104,11 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 			tableButton.setIconAfterText(true);
 		}
 
-		tableButton.addClickListener(clickEvent -> navigate(TableView.ROUTE_LOCATION, tableName));
+		tableButton.addClickListener(clickEvent -> {
+			navigate(TableView.ROUTE_LOCATION, tableName);
+			// following line needs to be here in case of navigation from table to board
+			broadcast(TableView.class, tableName, null);
+		});
 
 		String tableInfo = table.getInfo();
 		Label tableInfoLabel = new Label(tableInfo);
