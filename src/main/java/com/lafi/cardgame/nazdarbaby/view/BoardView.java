@@ -469,7 +469,7 @@ public class BoardView extends ParameterizedView {
 				table.stopNewGameCountdown();
 
 				// some players can be in "waiting room"
-				broadcast(TableView.class, null);
+				broadcast(TableView.class);
 			}
 
 			broadcast();

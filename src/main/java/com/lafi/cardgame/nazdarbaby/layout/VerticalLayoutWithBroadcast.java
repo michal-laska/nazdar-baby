@@ -60,11 +60,19 @@ public abstract class VerticalLayoutWithBroadcast extends VerticalLayout impleme
 	}
 
 	protected void broadcast() {
-		broadcast(getClass(), null);
+		broadcast(getClass());
+	}
+
+	protected void broadcast(Class<? extends VerticalLayoutWithBroadcast> clazz) {
+		broadcast(clazz, null);
 	}
 
 	protected void broadcast(Class<? extends VerticalLayoutWithBroadcast> clazz, String message) {
 		String tableName = getTableName();
+		broadcast(clazz, tableName, message);
+	}
+
+	protected void broadcast(Class<? extends VerticalLayoutWithBroadcast> clazz, String tableName, String message) {
 		broadcaster.broadcast(clazz, tableName, message);
 	}
 
