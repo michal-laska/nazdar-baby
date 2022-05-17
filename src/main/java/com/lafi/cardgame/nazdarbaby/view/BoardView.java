@@ -104,7 +104,7 @@ public class BoardView extends ParameterizedView {
 		} else if (currentUser.isLoggedOut()) {
 			navigateToTablesView();
 		} else {
-			navigateToTableName(TableView.ROUTE_LOCATION);
+			navigateToTable(TableView.ROUTE_LOCATION);
 		}
 	}
 

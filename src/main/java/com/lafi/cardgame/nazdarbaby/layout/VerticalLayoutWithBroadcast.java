@@ -34,7 +34,7 @@ public abstract class VerticalLayoutWithBroadcast extends VerticalLayout impleme
 		UiUtil.access(component, command);
 	}
 
-	public void navigateToTableName(String locationPrefix) {
+	public void navigateToTable(String locationPrefix) {
 		navigate(locationPrefix, getTableName());
 	}
 

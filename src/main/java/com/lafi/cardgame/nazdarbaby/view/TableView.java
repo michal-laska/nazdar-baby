@@ -71,7 +71,7 @@ public class TableView extends ParameterizedView {
 			if (currentUser == null || currentUser.isLoggedOut()) {
 				showGameInProgress();
 			} else {
-				navigateToTableName(BoardView.ROUTE_LOCATION);
+				navigateToTable(BoardView.ROUTE_LOCATION);
 			}
 		} else {
 			showUsers();
@@ -368,7 +368,7 @@ public class TableView extends ParameterizedView {
 		spectateHL.setDefaultVerticalComponentAlignment(Alignment.CENTER);
 		add(spectateHL);
 
-		spectateButton.addClickListener(clickEvent -> navigateToTableName(BoardView.ROUTE_LOCATION));
+		spectateButton.addClickListener(clickEvent -> navigateToTable(BoardView.ROUTE_LOCATION));
 	}
 
 	private void addTakeoverUserPossibility() {
@@ -394,7 +394,7 @@ public class TableView extends ParameterizedView {
 		boolean success = userProvider.takeoverUser(takeoverCode);
 
 		if (success) {
-			navigateToTableName(BoardView.ROUTE_LOCATION);
+			navigateToTable(BoardView.ROUTE_LOCATION);
 		} else {
 			UiUtil.invalidateFieldWithFocus(takeoverField, "Wrong code");
 		}
