@@ -122,7 +122,7 @@ public class BoardView extends ParameterizedView {
 			expectedTakesField.addKeyPressListener(Key.ENTER, event -> expectedTakesFieldEnterAction());
 
 			if (game.isActiveUser()) {
-				expectedTakesField.focus();
+				UiUtil.focusForNonMobileDevice(expectedTakesField);
 				addExpectedTakesFieldBlinking();
 			} else {
 				expectedTakesField.addFocusListener(focusEvent -> notYourTurnAction());
@@ -152,7 +152,7 @@ public class BoardView extends ParameterizedView {
 			expectedTakesFieldEnterAction();
 		} else if (game.isActiveUser()) {
 			makeExpectedTakesFieldValid();
-			expectedTakesField.focus();
+			UiUtil.focusForNonMobileDevice(expectedTakesField);
 			addExpectedTakesFieldBlinking();
 		}
 	}
