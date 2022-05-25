@@ -5,7 +5,6 @@ import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.countdown.CountdownService;
 import com.lafi.cardgame.nazdarbaby.countdown.CountdownTask;
 import com.lafi.cardgame.nazdarbaby.points.PointProvider;
-import com.lafi.cardgame.nazdarbaby.session.SessionProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
 import com.lafi.cardgame.nazdarbaby.util.TimeUtil;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
@@ -34,12 +33,12 @@ public class Table {
 	private Instant lastNewGameTime;
 	private int passwordHash;
 
-	Table(String tableName, Broadcaster broadcaster, CountdownService countdownService, SessionProvider sessionProvider, PointProvider pointProvider) {
+	Table(String tableName, Broadcaster broadcaster, CountdownService countdownService, PointProvider pointProvider) {
 		this.tableName = tableName;
 		this.broadcaster = broadcaster;
 		this.countdownService = countdownService;
 
-		userProvider = new UserProvider(sessionProvider);
+		userProvider = new UserProvider();
 		game = new Game(userProvider, pointProvider);
 
 		resetLastNotificationTime();

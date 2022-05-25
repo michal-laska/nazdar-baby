@@ -1,6 +1,5 @@
 package com.lafi.cardgame.nazdarbaby.provider;
 
-import com.lafi.cardgame.nazdarbaby.session.SessionProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
 import com.vaadin.flow.server.VaadinSession;
 
@@ -22,14 +21,11 @@ public class UserProvider {
 	private final Set<VaadinSession> loggedInSessions = new HashSet<>();
 	private final Set<Integer> takeoverCodes = new HashSet<>();
 
-	private final SessionProvider sessionProvider;
-
-	UserProvider(SessionProvider sessionProvider) {
-		this.sessionProvider = sessionProvider;
+	UserProvider() {
 	}
 
 	public void addUser(String userName) {
-		VaadinSession session = sessionProvider.getSession();
+		VaadinSession session = VaadinSession.getCurrent();
 		User user = new User(userName, takeoverCodes);
 
 		sessionToUser.put(session, user);
@@ -58,7 +54,7 @@ public class UserProvider {
 		sessionToUser.remove(oldSession);
 		loggedInSessions.remove(oldSession);
 
-		VaadinSession newSession = sessionProvider.getSession();
+		VaadinSession newSession = VaadinSession.getCurrent();
 		sessionToUser.put(newSession, user);
 		loggedInSessions.add(newSession);
 
@@ -82,17 +78,17 @@ public class UserProvider {
 	}
 
 	public void logInCurrentSession() {
-		VaadinSession session = sessionProvider.getSession();
+		VaadinSession session = VaadinSession.getCurrent();
 		loggedInSessions.add(session);
 	}
 
 	public boolean isCurrentSessionLoggedIn() {
-		VaadinSession session = sessionProvider.getSession();
+		VaadinSession session = VaadinSession.getCurrent();
 		return loggedInSessions.contains(session);
 	}
 
 	public User getCurrentUser() {
-		VaadinSession session = sessionProvider.getSession();
+		VaadinSession session = VaadinSession.getCurrent();
 		return sessionToUser.get(session);
 	}
 

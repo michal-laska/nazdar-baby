@@ -3,7 +3,6 @@ package com.lafi.cardgame.nazdarbaby.provider;
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.countdown.CountdownService;
 import com.lafi.cardgame.nazdarbaby.points.PointProvider;
-import com.lafi.cardgame.nazdarbaby.session.SessionProvider;
 
 import java.util.Map;
 import java.util.Set;
@@ -12,16 +11,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TableProvider {
 
 	private final Map<String, Table> tableNameToTable = new ConcurrentHashMap<>();
-	private final SessionProvider sessionProvider;
 	private final PointProvider pointProvider;
 
-	public TableProvider(SessionProvider sessionProvider, PointProvider pointProvider) {
-		this.sessionProvider = sessionProvider;
+	public TableProvider(PointProvider pointProvider) {
 		this.pointProvider = pointProvider;
 	}
 
 	public Table getOrCreate(String tableName, Broadcaster broadcaster, CountdownService countdownService) {
-		return tableNameToTable.getOrDefault(tableName, new Table(tableName, broadcaster, countdownService, sessionProvider, pointProvider));
+		return tableNameToTable.getOrDefault(tableName, new Table(tableName, broadcaster, countdownService, pointProvider));
 	}
 
 	public void add(Table table) {

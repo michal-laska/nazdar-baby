@@ -10,6 +10,8 @@ import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.server.Command;
+import com.vaadin.flow.server.VaadinSession;
+import com.vaadin.flow.server.WebBrowser;
 
 import java.net.URLEncoder;
 import java.util.Optional;
@@ -60,7 +62,20 @@ public final class UiUtil {
 		return firstPart + LOCATION_SEPARATOR + encodedSecondPart;
 	}
 
+	public static void focusForNonMobileDevice(Focusable<? extends Component> focusable) {
+		if (!isMobileDevice()) {
+			focusable.focus();
+		}
+	}
+
 	private static void makeUIAction(Component component, Consumer<UI> action) {
 		makeUIAction(component.getUI(), action);
+	}
+
+	private static boolean isMobileDevice() {
+		VaadinSession session = VaadinSession.getCurrent();
+		WebBrowser browser = session.getBrowser();
+
+		return browser.isAndroid() || browser.isIPhone() || browser.isWindowsPhone();
 	}
 }
