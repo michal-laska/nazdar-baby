@@ -3,6 +3,7 @@ package com.lafi.cardgame.nazdarbaby.view;
 import com.lafi.cardgame.nazdarbaby.Application;
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.layout.VerticalLayoutWithBroadcast;
+import com.lafi.cardgame.nazdarbaby.provider.Game;
 import com.lafi.cardgame.nazdarbaby.provider.Table;
 import com.lafi.cardgame.nazdarbaby.provider.TableProvider;
 import com.lafi.cardgame.nazdarbaby.provider.UserProvider;
@@ -106,8 +107,12 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 
 		tableButton.addClickListener(clickEvent -> {
 			navigate(TableView.ROUTE_LOCATION, tableName);
-			// following line needs to be here in case of navigation from table to board
-			broadcast(TableView.class, tableName, null);
+
+			Game game = table.getGame();
+			if (game.isGameInProgress()) {
+				// following line needs to be here in case of navigation from table to board
+				broadcast(TableView.class, tableName, null);
+			}
 		});
 
 		String tableInfo = table.getInfo();
