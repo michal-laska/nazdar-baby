@@ -425,11 +425,15 @@ public class BoardView extends ParameterizedView {
 		Checkbox newGameCheckbox = new Checkbox(user.wantNewGame());
 		newGameCheckbox.setIndeterminate(user.isLoggedOut());
 
-		if (isCurrentUser && autoNextMatch) {
-			boolean enabled = currentUser.isReady() || !game.isEndOfMatch();
-			newGameCheckbox.setEnabled(enabled);
+		if (isCurrentUser) {
+			if (autoNextMatch) {
+				boolean enabled = currentUser.isReady() || !game.isEndOfMatch();
+				newGameCheckbox.setEnabled(enabled);
+			} else {
+				newGameCheckbox.setEnabled(true);
+			}
 		} else {
-			newGameCheckbox.setEnabled(!autoNextMatch);
+			newGameCheckbox.setEnabled(false);
 		}
 
 		if (user.isLoggedOut()) {
