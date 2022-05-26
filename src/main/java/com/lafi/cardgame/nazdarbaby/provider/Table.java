@@ -81,7 +81,10 @@ public class Table {
 		lastNewGameTime = null;
 
 		if (game.isGameInProgress()) {
-			game.getMatchUsers().forEach(User::resetAction);
+			game.getMatchUsers().stream()
+					.filter(user -> !user.isReady())
+					.forEach(User::resetAction);
+
 			broadcaster.broadcast(BoardView.class, tableName);
 		}
 	}
