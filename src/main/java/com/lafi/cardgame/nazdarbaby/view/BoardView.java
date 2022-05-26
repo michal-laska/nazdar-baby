@@ -445,8 +445,7 @@ public class BoardView extends ParameterizedView {
 			newGameCheckbox.setLabel(newGameCheckboxLabel);
 		}
 
-		boolean newGameOrLogout = game.getSetUsers().stream().anyMatch(setUser -> setUser.wantNewGame() || setUser.isLoggedOut());
-		if (isCurrentUser && newGameOrLogout) {
+		if (isCurrentUser && anyNewGameOrLogoutRequest()) {
 			table.addCountdownCheckbox(this, newGameCheckbox);
 		}
 
@@ -480,6 +479,11 @@ public class BoardView extends ParameterizedView {
 		});
 
 		return newGameCheckbox;
+	}
+
+	private boolean anyNewGameOrLogoutRequest() {
+		Game game = table.getGame();
+		return game.getSetUsers().stream().anyMatch(user -> user.wantNewGame() || user.isLoggedOut());
 	}
 
 	private HorizontalLayout getAndAddCardPlaceholdersHL() {
@@ -660,6 +664,11 @@ public class BoardView extends ParameterizedView {
 
 			@Override
 			protected void finalRun() {
+			}
+
+			@Override
+			protected boolean isCanceled() {
+				return anyNewGameOrLogoutRequest();
 			}
 		};
 
