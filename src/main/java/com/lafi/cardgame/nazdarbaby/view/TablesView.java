@@ -93,13 +93,12 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 
 	private void showCreatedTables(String tableName) {
 		Table table = tableProvider.get(tableName);
+		UserProvider userProvider = table.getUserProvider();
 
 		Button tableButton = new Button(tableName);
 		tableButton.setEnabled(!table.isFull());
 
 		if (table.isPasswordProtected()) {
-			UserProvider userProvider = table.getUserProvider();
-
 			VaadinIcon icon = userProvider.isCurrentSessionLoggedIn() ? Constant.PASSWORD_OPEN_ICON : Constant.PASSWORD_LOCK_ICON;
 			tableButton.setIcon(icon.create());
 			tableButton.setIconAfterText(true);
@@ -108,10 +107,12 @@ public class TablesView extends VerticalLayoutWithBroadcast {
 		tableButton.addClickListener(clickEvent -> {
 			navigate(TableView.ROUTE_LOCATION, tableName);
 
-			Game game = table.getGame();
-			if (game.isGameInProgress()) {
-				// following line needs to be here in case of navigation from table to board
-				broadcast(TableView.class, tableName, null);
+			if (userProvider.isCurrentSessionLoggedIn()) {
+				Game game = table.getGame();
+				if (game.isGameInProgress()) {
+					// following line needs to be here in case of navigation from table to board
+					broadcast(TableView.class, tableName, null);
+				}
 			}
 		});
 
