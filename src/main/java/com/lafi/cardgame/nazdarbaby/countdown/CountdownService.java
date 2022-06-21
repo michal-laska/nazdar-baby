@@ -16,7 +16,7 @@ public class CountdownService implements Runnable {
 
 	@Override
 	public void run() {
-		for (CountdownTask countdownTask : listenerToTask.values()) {
+		listenerToTask.forEach((listener, countdownTask) -> {
 			if (countdownTask.isCanceled()) {
 				removeCountdownTask(countdownTask);
 			} else {
@@ -29,7 +29,7 @@ public class CountdownService implements Runnable {
 					removeCountdownTask(countdownTask);
 				}
 			}
-		}
+		});
 	}
 
 	public void addCountdownTask(CountdownTask countdownTask) {
