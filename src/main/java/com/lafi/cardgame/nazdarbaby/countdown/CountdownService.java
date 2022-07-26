@@ -12,7 +12,10 @@ public class CountdownService implements Runnable {
 
 	private final Map<BroadcastListener, CountdownTask> listenerToTask = new ConcurrentHashMap<>();
 
-	private ScheduledExecutorService executorService;
+    public CountdownService() {
+        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+        executorService.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
+    }
 
 	@Override
 	public void run() {
@@ -35,10 +38,6 @@ public class CountdownService implements Runnable {
 	public void addCountdownTask(CountdownTask countdownTask) {
 		CountdownTask previousCountdownTask = listenerToTask.put(countdownTask.getListener(), countdownTask);
 		countdownTask.reusePreviousCountdownTime(previousCountdownTask);
-
-		if (executorService == null) {
-			startCountdown();
-		}
 	}
 
 	private void removeCountdownTask(CountdownTask countdownTask) {
@@ -47,16 +46,6 @@ public class CountdownService implements Runnable {
 
 		if (!countdownTask.equals(removedCountdownTask)) {
 			addCountdownTask(removedCountdownTask);
-		} else if (listenerToTask.isEmpty()) {
-			executorService.shutdown();
-			executorService = null;
-		}
-	}
-
-	private synchronized void startCountdown() {
-		if (executorService == null) {
-			executorService = Executors.newSingleThreadScheduledExecutor();
-			executorService.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
 		}
 	}
 }
