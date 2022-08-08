@@ -39,40 +39,40 @@ class CardTest {
 
 	@Test
 	void isHigherThan_lowerVsHigher_returnFalse() {
-		Card card1 = getCard(7, Color.SPADES);
-		Card card2 = getCard(8, Color.SPADES);
+		Card lowerCard = getCard(7, Color.SPADES);
+		Card higherCard = getCard(8, Color.SPADES);
 
-		boolean higherThan = card1.isHigherThan(card2);
+		boolean higherThan = lowerCard.isHigherThan(higherCard);
 
 		assertThat(higherThan).isFalse();
 	}
 
 	@Test
-	void isHigherThan_higherVsLower_returnFalse() {
-		Card card1 = getCard(7, Color.SPADES);
-		Card card2 = getCard(8, Color.SPADES);
+	void isHigherThan_higherVsLower_returnTrue() {
+		Card lowerCard = getCard(7, Color.SPADES);
+		Card higherCard = getCard(8, Color.SPADES);
 
-		boolean higherThan = card2.isHigherThan(card1);
+		boolean higherThan = higherCard.isHigherThan(lowerCard);
 
 		assertThat(higherThan).isTrue();
 	}
 
 	@Test
 	void isHigherThan_spadeVsHeart_returnFalse() {
-		Card card1 = getCard(14, Color.SPADES);
-		Card card2 = getCard(7, Color.HEARTS);
+		Card spade = getCard(14, Color.SPADES);
+		Card heart = getCard(7, Color.HEARTS);
 
-		boolean higherThan = card1.isHigherThan(card2);
+		boolean higherThan = spade.isHigherThan(heart);
 
 		assertThat(higherThan).isFalse();
 	}
 
 	@Test
-	void isHigherThan_heartVsSpade_returnFalse() {
-		Card card1 = getCard(14, Color.SPADES);
-		Card card2 = getCard(7, Color.HEARTS);
+	void isHigherThan_heartVsSpade_returnTrue() {
+		Card spade = getCard(14, Color.SPADES);
+		Card heart = getCard(7, Color.HEARTS);
 
-		boolean higherThan = card2.isHigherThan(card1);
+		boolean higherThan = heart.isHigherThan(spade);
 
 		assertThat(higherThan).isTrue();
 	}
