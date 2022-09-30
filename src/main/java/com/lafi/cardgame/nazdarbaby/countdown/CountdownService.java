@@ -42,10 +42,10 @@ public class CountdownService implements Runnable {
 
 	private void removeCountdownTask(CountdownTask countdownTask) {
 		BroadcastListener broadcastListener = countdownTask.getListener();
-		CountdownTask removedCountdownTask = listenerToTask.remove(broadcastListener);
+		CountdownTask previousCountdownTask = listenerToTask.get(broadcastListener);
 
-		if (!countdownTask.equals(removedCountdownTask)) {
-			addCountdownTask(removedCountdownTask);
+		if (countdownTask.equals(previousCountdownTask)) {
+			listenerToTask.remove(broadcastListener);
 		}
 	}
 }
