@@ -44,6 +44,7 @@ public class BoardView extends ParameterizedView {
 	private static final String ONE_PX_SOLID = "1px solid ";
 	public static final String BLUE_COLOR = "blue";
 	public static final String GREEN_COLOR = "green";
+	public static final String WHITE = "white";
 
 	private static final String NEXT_MATCH_BUTTON_TEXT = "Next match";
 	private static final int AUTO_NEXT_DELAY_IN_SECONDS = 5;
@@ -151,9 +152,14 @@ public class BoardView extends ParameterizedView {
 		} else if (expectedTakesField.getValue() != null) {
 			expectedTakesFieldEnterAction();
 		} else if (game.isActiveUser()) {
-			makeExpectedTakesFieldValid();
-			UiUtil.focusForNonMobileDevice(expectedTakesField);
-			addExpectedTakesFieldBlinking();
+			if (anyNewGameOrLogoutRequest()) {
+				String whiteBorder = ONE_PX_SOLID + WHITE;
+				expectedTakesField.getStyle().set(BORDER_STYLE, whiteBorder);
+			} else {
+				makeExpectedTakesFieldValid();
+				UiUtil.focusForNonMobileDevice(expectedTakesField);
+				addExpectedTakesFieldBlinking();
+			}
 		}
 	}
 
@@ -648,7 +654,7 @@ public class BoardView extends ParameterizedView {
 		}
 
 		Style style = hasStyle.getStyle();
-		String whiteBorder = ONE_PX_SOLID + "white";
+		String whiteBorder = ONE_PX_SOLID + WHITE;
 		style.set(BORDER_STYLE, whiteBorder);
 
 		CountdownTask countdownTask = new CountdownTask(Long.MAX_VALUE, broadcaster, this) {
