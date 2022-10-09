@@ -2,6 +2,7 @@ package com.lafi.cardgame.nazdarbaby.countdown;
 
 import com.lafi.cardgame.nazdarbaby.broadcast.BroadcastListener;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -12,27 +13,30 @@ public class CountdownService implements Runnable {
 
 	private final Map<BroadcastListener, CountdownTask> listenerToTask = new ConcurrentHashMap<>();
 
-    public CountdownService() {
-        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-        executorService.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
-    }
+	public CountdownService() {
+		ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+		executorService.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
+	}
 
 	@Override
 	public void run() {
-		listenerToTask.values().forEach(countdownTask -> {
+		for (Iterator<Map.Entry<BroadcastListener, CountdownTask>> iterator = listenerToTask.entrySet().iterator(); iterator.hasNext(); ) {
+			Map.Entry<BroadcastListener, CountdownTask> entry = iterator.next();
+			CountdownTask countdownTask = entry.getValue();
+
 			if (countdownTask.isCanceled()) {
-				removeCountdownTask(countdownTask);
+				removeCountdownTask(countdownTask, iterator);
 			} else {
 				countdownTask.eachRun();
 
 				if (countdownTask.decreaseAndGet() < 0) {
 					countdownTask.finalRun();
-					removeCountdownTask(countdownTask);
+					removeCountdownTask(countdownTask, iterator);
 				} else if (!countdownTask.isListening()) {
-					removeCountdownTask(countdownTask);
+					removeCountdownTask(countdownTask, iterator);
 				}
 			}
-		});
+		}
 	}
 
 	public void addCountdownTask(CountdownTask countdownTask) {
@@ -40,12 +44,12 @@ public class CountdownService implements Runnable {
 		countdownTask.reusePreviousCountdownTime(previousCountdownTask);
 	}
 
-	private void removeCountdownTask(CountdownTask countdownTask) {
+	private void removeCountdownTask(CountdownTask countdownTask, Iterator<Map.Entry<BroadcastListener, CountdownTask>> iterator) {
 		BroadcastListener broadcastListener = countdownTask.getListener();
 		CountdownTask previousCountdownTask = listenerToTask.get(broadcastListener);
 
 		if (countdownTask.equals(previousCountdownTask)) {
-			listenerToTask.remove(broadcastListener);
+			iterator.remove();
 		}
 	}
 }
