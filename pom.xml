@@ -146,7 +146,7 @@
                 </executions>
                 <configuration>
                     <!-- https://nodejs.org/dist/latest -->
-                    <nodeVersion>v19.0.1</nodeVersion>
+                    <nodeVersion>v19.1.0</nodeVersion>
                 </configuration>
             </plugin>
         </plugins>
