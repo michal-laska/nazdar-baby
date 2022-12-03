@@ -181,7 +181,7 @@
                         <!-- https://mvnrepository.com/artifact/com.heroku.sdk/heroku-maven-plugin -->
                         <groupId>com.heroku.sdk</groupId>
                         <artifactId>heroku-maven-plugin</artifactId>
-                        <version>3.0.5</version>
+                        <version>3.0.6</version>
                         <configuration>
                             <appName>${heroku.appName}</appName>
                             <processTypes>
