@@ -12,7 +12,7 @@
         <!-- change java version also in '.github/workflows/codeql-analysis.yml' and 'system.properties' -->
         <java.version>17</java.version>
         <!-- https://mvnrepository.com/artifact/com.vaadin/vaadin-bom -->
-        <vaadin.version>24.0.0.alpha6</vaadin.version>
+        <vaadin.version>24.0.0.alpha7</vaadin.version>
         <heroku.appName>nazdar-baby</heroku.appName>
     </properties>
 
@@ -20,7 +20,7 @@
         <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-parent -->
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.0.0</version>
+        <version>3.0.1</version>
     </parent>
 
     <repositories>
