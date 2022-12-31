@@ -7,7 +7,8 @@ target
 .npmrc
 .pnpmfile.cjs
 package.json
+pnpm-lock.yaml
 tsconfig.json
 types.d.ts
-vite.config.js
-vite.generated.js
+vite.config.ts
+vite.generated.ts
