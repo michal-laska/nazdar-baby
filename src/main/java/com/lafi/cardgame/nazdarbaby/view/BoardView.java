@@ -649,11 +649,7 @@ public class BoardView extends ParameterizedView {
 	}
 
 	private void addBlinking(Component component) {
-		if (!(component instanceof HasStyle hasStyle)) {
-			return;
-		}
-
-		Style style = hasStyle.getStyle();
+		Style style = component.getStyle();
 		String whiteBorder = ONE_PX_SOLID + WHITE;
 		style.set(BORDER_STYLE, whiteBorder);
 
