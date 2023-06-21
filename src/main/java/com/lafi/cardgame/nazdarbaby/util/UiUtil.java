@@ -6,7 +6,7 @@ import com.vaadin.flow.component.Focusable;
 import com.vaadin.flow.component.HasValidation;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.html.Label;
+import com.vaadin.flow.component.html.NativeLabel;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.server.Command;
@@ -25,7 +25,7 @@ public final class UiUtil {
 	}
 
 	public static void createNavigationToTablesView(VerticalLayoutWithBroadcast verticalLayout) {
-		Label redirectLabel = new Label("Create a new table or join to another one");
+		NativeLabel redirectLabel = new NativeLabel("Create a new table or join to another one");
 		Button redirectButton = new Button(Constant.OK_LABEL);
 		redirectButton.addClickListener(e -> verticalLayout.navigateToTablesView());
 

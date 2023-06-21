@@ -16,7 +16,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.Label;
+import com.vaadin.flow.component.html.NativeLabel;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -161,13 +161,13 @@ public class TableView extends ParameterizedView {
 		}
 
 		for (User user : allUsers) {
-			Label userName = new Label(user.getName());
+			NativeLabel userName = new NativeLabel(user.getName());
 
 			if (user.isLoggedOut()) {
 				userName.getStyle().set("text-decoration", "line-through");
 			}
 
-			Label userPoints = new Label("(" + user.getPoints() + Constant.POINTS_LABEL + ')');
+			NativeLabel userPoints = new NativeLabel("(" + user.getPoints() + Constant.POINTS_LABEL + ')');
 
 			boolean isCurrentUser = user.equals(currentUser);
 
@@ -198,7 +198,7 @@ public class TableView extends ParameterizedView {
 
 				if (isCurrentUser) {
 					String text = "(Takeover code = " + user.getTakeoverCode() + ')';
-					Label takeoverLabel = new Label(text);
+					NativeLabel takeoverLabel = new NativeLabel(text);
 
 					horizontalLayout.add(takeoverLabel);
 				}
@@ -313,7 +313,7 @@ public class TableView extends ParameterizedView {
 	private void showGameInProgress() {
 		removeAll();
 
-		Label gameInProgressLabel = new Label("Game in progress");
+		NativeLabel gameInProgressLabel = new NativeLabel("Game in progress");
 		add(gameInProgressLabel);
 
 		addNotifyPossibility();
@@ -336,7 +336,7 @@ public class TableView extends ParameterizedView {
 	}
 
 	private void addNotifyPossibility() {
-		Label notifyLabel = new Label("Want to join - notify players");
+		NativeLabel notifyLabel = new NativeLabel("Want to join - notify players");
 		Button notifyButton = new Button(NOTIFY_BUTTON_TEXT);
 
 		HorizontalLayout redirectHL = new HorizontalLayout(notifyLabel, notifyButton);
@@ -361,7 +361,7 @@ public class TableView extends ParameterizedView {
 	}
 
 	private void addSpectatePossibility() {
-		Label spectateLabel = new Label("Want to spectate");
+		NativeLabel spectateLabel = new NativeLabel("Want to spectate");
 		Button spectateButton = new Button("Spectate");
 
 		HorizontalLayout spectateHL = new HorizontalLayout(spectateLabel, spectateButton);
@@ -372,7 +372,7 @@ public class TableView extends ParameterizedView {
 	}
 
 	private void addTakeoverUserPossibility() {
-		Label takeoverLabel = new Label("Takeover user");
+		NativeLabel takeoverLabel = new NativeLabel("Takeover user");
 
 		IntegerField takeoverField = new IntegerField();
 		takeoverField.setPlaceholder("Enter code");
