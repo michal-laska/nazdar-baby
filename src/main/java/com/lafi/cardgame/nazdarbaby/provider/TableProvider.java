@@ -3,11 +3,13 @@ package com.lafi.cardgame.nazdarbaby.provider;
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.countdown.CountdownService;
 import com.lafi.cardgame.nazdarbaby.points.PointProvider;
+import org.springframework.stereotype.Component;
 
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Component
 public class TableProvider {
 
 	private final Map<String, Table> tableNameToTable = new ConcurrentHashMap<>();
