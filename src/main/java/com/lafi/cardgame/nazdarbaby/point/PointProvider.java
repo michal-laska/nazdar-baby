@@ -1,4 +1,4 @@
-package com.lafi.cardgame.nazdarbaby.points;
+package com.lafi.cardgame.nazdarbaby.point;
 
 import org.springframework.stereotype.Component;
 

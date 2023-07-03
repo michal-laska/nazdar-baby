@@ -4,7 +4,7 @@ import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.CardProvider;
 import com.lafi.cardgame.nazdarbaby.card.Color;
 import com.lafi.cardgame.nazdarbaby.exception.EndGameException;
-import com.lafi.cardgame.nazdarbaby.points.PointProvider;
+import com.lafi.cardgame.nazdarbaby.point.PointProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
 
 import java.util.ArrayList;

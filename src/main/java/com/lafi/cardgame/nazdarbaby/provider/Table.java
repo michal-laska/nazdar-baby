@@ -4,7 +4,7 @@ import com.lafi.cardgame.nazdarbaby.broadcast.BroadcastListener;
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.countdown.CountdownService;
 import com.lafi.cardgame.nazdarbaby.countdown.CountdownTask;
-import com.lafi.cardgame.nazdarbaby.points.PointProvider;
+import com.lafi.cardgame.nazdarbaby.point.PointProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
 import com.lafi.cardgame.nazdarbaby.util.TimeUtil;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;

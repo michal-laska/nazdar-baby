@@ -2,7 +2,7 @@ package com.lafi.cardgame.nazdarbaby.provider;
 
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.countdown.CountdownService;
-import com.lafi.cardgame.nazdarbaby.points.PointProvider;
+import com.lafi.cardgame.nazdarbaby.point.PointProvider;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
