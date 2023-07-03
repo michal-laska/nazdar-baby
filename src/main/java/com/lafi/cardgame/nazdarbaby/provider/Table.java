@@ -156,8 +156,8 @@ public class Table {
 			@Override
 			protected void eachRun() {
 				String label = countdownCheckbox.getLabel();
-				String[] splittedLabel = label.split(FORMATTED_COUNTDOWN_REGEX_SPLITTER);
-				String originalLabel = splittedLabel[0];
+				String[] splitLabel = label.split(FORMATTED_COUNTDOWN_REGEX_SPLITTER);
+				String originalLabel = splitLabel[0];
 
 				String newLabel = originalLabel + getFormattedCountdown();
 				UiUtil.access(countdownCheckbox, () -> countdownCheckbox.setLabel(newLabel));

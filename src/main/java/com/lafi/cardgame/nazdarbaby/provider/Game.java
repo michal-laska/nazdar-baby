@@ -30,7 +30,7 @@ public class Game {
 	private int matchNumber;
 
 	private User activeUser;
-	private boolean terminatorFlagsReseted;
+	private boolean terminatorFlagsReset;
 	private boolean gameInProgress;
 	private boolean everybodyLost;
 
@@ -49,10 +49,6 @@ public class Game {
 
 	public List<Card> getCardPlaceholders() {
 		return cardPlaceholders;
-	}
-
-	public void setTerminatorFlagsReseted(boolean terminatorFlagsReseted) {
-		this.terminatorFlagsReseted = terminatorFlagsReseted;
 	}
 
 	public boolean isGameInProgress() {
@@ -230,20 +226,20 @@ public class Game {
 			}
 		}
 
-		if (!noCards && terminatorFlagsReseted) {
+		if (!noCards && terminatorFlagsReset) {
 			gameUsers.forEach(user -> user.setTerminator(true));
 			return false;
 		}
 
 		for (User user : gameUsers) {
 			if (Boolean.FALSE.equals(user.wasTerminator())) {
-				setTerminatorFlagsReseted(false);
+				terminatorFlagsReset = false;
 				return false;
 			}
 		}
 
 		gameUsers.forEach(user -> user.setTerminator(false));
-		setTerminatorFlagsReseted(true);
+		terminatorFlagsReset = true;
 
 		return true;
 	}
