@@ -1,12 +1,14 @@
 package com.lafi.cardgame.nazdarbaby.broadcast;
 
 import com.lafi.cardgame.nazdarbaby.view.TableView;
+import org.springframework.stereotype.Component;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+@Component
 public class Broadcaster {
 
 	private final ExecutorService executorService = Executors.newSingleThreadExecutor();

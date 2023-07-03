@@ -1,6 +1,7 @@
 package com.lafi.cardgame.nazdarbaby.countdown;
 
 import com.lafi.cardgame.nazdarbaby.broadcast.BroadcastListener;
+import org.springframework.stereotype.Component;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -9,6 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+@Component
 public class CountdownService implements Runnable {
 
 	private final Map<BroadcastListener, CountdownTask> listenerToTask = new ConcurrentHashMap<>();

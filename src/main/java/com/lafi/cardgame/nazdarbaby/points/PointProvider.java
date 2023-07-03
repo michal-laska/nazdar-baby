@@ -1,9 +1,12 @@
 package com.lafi.cardgame.nazdarbaby.points;
 
+import org.springframework.stereotype.Component;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+@Component
 public class PointProvider {
 
 	public static final Map<Integer, Map<Integer, Float>> NUMBER_OF_USERS_TO_WINNER_MAP;
