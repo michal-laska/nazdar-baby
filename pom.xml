@@ -84,6 +84,12 @@
             <groupId>com.vaadin</groupId>
             <!-- Replace artifactId with 'vaadin' to use all (paid and free) components -->
             <artifactId>vaadin-core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.vaadin</groupId>
