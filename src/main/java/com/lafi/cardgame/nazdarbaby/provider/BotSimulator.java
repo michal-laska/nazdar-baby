@@ -9,6 +9,7 @@ import org.apache.commons.lang3.RandomUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -18,6 +19,9 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.counting;
+import static java.util.stream.Collectors.groupingBy;
 
 class BotSimulator {
 
@@ -257,6 +261,10 @@ class BotSimulator {
 					UserInfo userInfo = otherUsersInfo.get(affectedUser);
 					if (userInfo != null) {
 						userInfo.removeColor(leadingCard.getColor());
+
+						if (userInfo.hasColor(Color.HEARTS) && card.getColor() != Color.HEARTS) {
+							userInfo.removeColor(Color.HEARTS);
+						}
 					}
 				}
 			}
@@ -293,6 +301,85 @@ class BotSimulator {
 		Card winningCard = getWinningCard();
 
 		if (winningCard.isPlaceholder()) {
+            List<Card> cardsWhichShouldBeTakenByHeartsInNextMatch = getCardsWhichShouldBeTakenByHeartsInNextMatch(sortedPlayableCards);
+            if (!cardsWhichShouldBeTakenByHeartsInNextMatch.isEmpty()) {
+                return getHighestCard(cardsWhichShouldBeTakenByHeartsInNextMatch, false);
+            }
+
+            Set<Color> myColors = sortedPlayableCards.stream()
+                    .map(Card::getColor)
+                    .collect(Collectors.toSet());
+			Map<User, UserInfo> otherUsersInfo = botToOtherUsersInfo.get(activeUser);
+
+			Set<Color> goodColors = new HashSet<>();
+			for (Color color : myColors) {
+				boolean allUsersHaveMyColor = otherUsersInfo.values().stream()
+						.allMatch(userInfo -> userInfo.hasColor(color) || userInfo.hasColor(Color.HEARTS));
+				if (allUsersHaveMyColor) {
+					goodColors.add(color);
+				}
+			}
+
+			Set<Color> betterColors = new HashSet<>();
+			for (Color color : goodColors) {
+				boolean someUserHaveHearts = otherUsersInfo.values().stream()
+						.anyMatch(userInfo -> !userInfo.hasColor(color) && userInfo.hasColor(Color.HEARTS));
+				if (someUserHaveHearts) {
+					betterColors.add(color);
+				}
+			}
+
+			if (!betterColors.isEmpty()) {
+				List<Card> betterCards = sortedPlayableCards.stream()
+						.filter(card -> betterColors.contains(card.getColor()))
+						.toList();
+				return getHighestCard(betterCards, false);
+			}
+
+            if (!goodColors.isEmpty()) {
+                CardProvider cardProvider = game.getCardProvider();
+                List<Card> remainingCards = cardProvider.getShuffledDeckOfCards();
+                remainingCards.removeAll(playedOutCards);
+                remainingCards.removeAll(sortedPlayableCards);
+
+                List<Card> goodCards = sortedPlayableCards.stream()
+                        .filter(card -> goodColors.contains(card.getColor()))
+                        .toList();
+
+                Map<Card, Long> cardToLowerCounter = new HashMap<>();
+                for (Card myCard : goodCards) {
+                    long lowerCounter = remainingCards.stream()
+                            .filter(remainingCard -> remainingCard.getColor() == myCard.getColor() && remainingCard.getValue() < myCard.getValue())
+                            .count();
+                    cardToLowerCounter.put(myCard, lowerCounter);
+                }
+
+                Optional<Long> minCounter = cardToLowerCounter.values().stream().min(Comparator.naturalOrder());
+                if (minCounter.isPresent()) {
+                    List<Card> minCards = cardToLowerCounter.entrySet().stream()
+                            .filter(entry -> entry.getValue().equals(minCounter.get()))
+                            .map(Map.Entry::getKey)
+                            .toList();
+
+                    Map<Card, Long> cardToHigherCounter = new HashMap<>();
+                    for (Card myCard : minCards) {
+                        long higherCounter = remainingCards.stream()
+                                .filter(remainingCard -> remainingCard.getColor() == myCard.getColor() && remainingCard.getValue() > myCard.getValue())
+                                .count();
+                        cardToHigherCounter.put(myCard, higherCounter);
+                    }
+
+                    Optional<Long> maxCounter = cardToHigherCounter.values().stream().max(Comparator.naturalOrder());
+                    if (maxCounter.isPresent()) {
+                        List<Card> minMaxCards = cardToHigherCounter.entrySet().stream()
+                                .filter(entry -> entry.getValue().equals(maxCounter.get()))
+                                .map(Map.Entry::getKey)
+                                .toList();
+                        return getHighestCard(minMaxCards, false);
+                    }
+                }
+			}
+
 			return lowestCard;
 		}
 
@@ -312,6 +399,39 @@ class BotSimulator {
 		}
 		return getHighestCard(sortedPlayableCards, false);
 	}
+
+    private List<Card> getCardsWhichShouldBeTakenByHeartsInNextMatch(List<Card> sortedPlayableCards) {
+        CardProvider cardProvider = game.getCardProvider();
+
+        List<Card> remainingCards = cardProvider.getShuffledDeckOfCards();
+        remainingCards.removeAll(playedOutCards);
+        remainingCards.removeAll(sortedPlayableCards);
+
+        Set<Color> myColorsExceptHearts = sortedPlayableCards.stream()
+                .map(Card::getColor)
+                .filter(color -> color != Color.HEARTS)
+                .collect(Collectors.toSet());
+
+        Map<Color, Long> myColorToRemainingCounter = remainingCards.stream()
+                .filter(card -> myColorsExceptHearts.contains(card.getColor()))
+                .collect(groupingBy(Card::getColor, counting()));
+
+        Map<Color, Long> myPlayableColorToRemainingCounter = myColorToRemainingCounter.entrySet().stream()
+                .filter(entry -> users.size() - entry.getValue() > 1)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        //TODO filter otherUsersInfo: color or hearts
+
+        if (myPlayableColorToRemainingCounter.isEmpty()) {
+            return List.of();
+        }
+
+        Set<Color> myPlayableColors = new HashSet<>(myPlayableColorToRemainingCounter.keySet());
+
+        return sortedPlayableCards.stream()
+                .filter(card -> myPlayableColors.contains(card.getColor()))
+                .toList();
+    }
 
 	private Card selectLowCard(List<Card> sortedPlayableCards, Card winningCard) {
 		Card lowerCard = getLowerCard(sortedPlayableCards, winningCard);
