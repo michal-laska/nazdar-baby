@@ -356,13 +356,13 @@ class BotSimulator {
 
                 Optional<Long> minCounter = cardToLowerCounter.values().stream().min(Comparator.naturalOrder());
                 if (minCounter.isPresent()) {
-                    List<Card> minCards = cardToLowerCounter.entrySet().stream()
+                    List<Card> minLowerCards = cardToLowerCounter.entrySet().stream()
                             .filter(entry -> entry.getValue().equals(minCounter.get()))
                             .map(Map.Entry::getKey)
                             .toList();
 
                     Map<Card, Long> cardToHigherCounter = new HashMap<>();
-                    for (Card myCard : minCards) {
+                    for (Card myCard : minLowerCards) {
                         long higherCounter = remainingCards.stream()
                                 .filter(remainingCard -> remainingCard.getColor() == myCard.getColor() && remainingCard.getValue() > myCard.getValue())
                                 .count();
@@ -371,11 +371,11 @@ class BotSimulator {
 
                     Optional<Long> maxCounter = cardToHigherCounter.values().stream().max(Comparator.naturalOrder());
                     if (maxCounter.isPresent()) {
-                        List<Card> minMaxCards = cardToHigherCounter.entrySet().stream()
+                        List<Card> minLowerMaxHigherCards = cardToHigherCounter.entrySet().stream()
                                 .filter(entry -> entry.getValue().equals(maxCounter.get()))
                                 .map(Map.Entry::getKey)
                                 .toList();
-                        return getHighestCard(minMaxCards, false);
+                        return getHighestCard(minLowerMaxHigherCards, false);
                     }
                 }
 			}
