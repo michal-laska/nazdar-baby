@@ -158,7 +158,7 @@
                 </executions>
                 <configuration>
                     <!-- https://nodejs.org/dist/latest -->
-                    <nodeVersion>v20.8.0</nodeVersion>
+                    <nodeVersion>v21.0.0</nodeVersion>
                 </configuration>
             </plugin>
         </plugins>
