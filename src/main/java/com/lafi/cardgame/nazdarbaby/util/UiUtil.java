@@ -53,7 +53,7 @@ public final class UiUtil {
 		makeUIAction(component, ui -> ui.access(command));
 	}
 
-	public static void makeUIAction(Optional<UI> uiOptional, Consumer<UI> action) {
+	public static synchronized void makeUIAction(Optional<UI> uiOptional, Consumer<UI> action) {
 		uiOptional.ifPresent(action);
 	}
 
