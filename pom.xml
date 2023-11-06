@@ -34,20 +34,6 @@
                 <enabled>false</enabled>
             </snapshots>
         </repository>
-        <repository>
-            <id>vaadin-prereleases</id>
-            <url>
-                https://maven.vaadin.com/vaadin-prereleases/
-            </url>
-        </repository>
-        <!-- Repository used by many Vaadin add-ons -->
-        <repository>
-            <id>Vaadin Directory</id>
-            <url>https://maven.vaadin.com/vaadin-addons</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
     </repositories>
 
     <pluginRepositories>
@@ -58,12 +44,6 @@
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-        </pluginRepository>
-        <pluginRepository>
-            <id>vaadin-prereleases</id>
-            <url>
-                https://maven.vaadin.com/vaadin-prereleases/
-            </url>
         </pluginRepository>
     </pluginRepositories>
 
@@ -158,7 +138,7 @@
                 </executions>
                 <configuration>
                     <!-- https://nodejs.org/dist/latest -->
-                    <nodeVersion>v21.0.0</nodeVersion>
+                    <nodeVersion>v21.1.0</nodeVersion>
                 </configuration>
             </plugin>
         </plugins>
