@@ -1,4 +1,4 @@
-FROM amazoncorretto:17.0.8-alpine
+FROM amazoncorretto:21.0.1-alpine
 
 WORKDIR /app
 #RUN file="$(ls -1 /app/repository )" && echo $file
