@@ -11,7 +11,7 @@ import java.util.concurrent.Executors;
 @Component
 public class Broadcaster {
 
-	private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+	private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
 	private final Set<BroadcastListener> listeners = ConcurrentHashMap.newKeySet();
 
 	public void register(BroadcastListener listener) {
