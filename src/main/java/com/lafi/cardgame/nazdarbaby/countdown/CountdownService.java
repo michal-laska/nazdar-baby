@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -16,8 +17,9 @@ public class CountdownService implements Runnable {
 	private final Map<BroadcastListener, CountdownTask> listenerToTask = new ConcurrentHashMap<>();
 
 	public CountdownService() {
-		ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-		executorService.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
+		ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+		ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
+		scheduledExecutorService.scheduleAtFixedRate(() -> executorService.execute(this), 0, 1, TimeUnit.SECONDS);
 	}
 
 	@Override
