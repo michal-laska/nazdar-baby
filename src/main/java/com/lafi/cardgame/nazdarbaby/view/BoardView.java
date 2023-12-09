@@ -239,7 +239,7 @@ public class BoardView extends ParameterizedView {
                 autoNextVL.add(expectedTakesHL);
             }
         }
-        //autoNextVL.add(getAutoNextCheckbox());
+        autoNextVL.add(getAutoNextCheckbox());
 
         if (game.isEndOfMatch()) {
             Button nextMatchButton = handleEndOfMatch(cardPlaceholdersHL);
