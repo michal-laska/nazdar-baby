@@ -248,8 +248,7 @@ public class Game {
 		int rotateDistanceToLastSet = -(getUserCardsCount() - 1);
 		Collections.rotate(gameUsersCopy, rotateDistanceToLastSet);
 
-		int lastUserIndex = gameUsersCopy.size() - 1;
-		User lastUser = gameUsersCopy.get(lastUserIndex);
+		User lastUser = gameUsersCopy.getLast();
 
 		if (Boolean.TRUE.equals(lastUser.wasTerminator())) {
 			Collections.rotate(gameUsers, -1);
