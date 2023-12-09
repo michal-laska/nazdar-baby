@@ -4,7 +4,8 @@ import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.CardProvider;
 import com.lafi.cardgame.nazdarbaby.card.Color;
 import com.lafi.cardgame.nazdarbaby.user.User;
-import org.apache.commons.lang3.RandomUtils;
+import org.apache.commons.rng.UniformRandomProvider;
+import org.apache.commons.rng.simple.RandomSource;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -187,7 +188,8 @@ class BotSimulator {
 		}
 
 		if (noGapsInOneColor(sortedPlayableCards)) {
-			int index = RandomUtils.nextInt(0, sortedPlayableCardsSize);
+			UniformRandomProvider uniformRandomProvider = RandomSource.XO_RO_SHI_RO_128_PP.create();
+			int index = uniformRandomProvider.nextInt(0, sortedPlayableCardsSize);
 			return sortedPlayableCards.get(index);
 		}
 
@@ -638,7 +640,8 @@ class BotSimulator {
 			}
 		}
 
-		int index = RandomUtils.nextInt(0, mostProbableCardsToWin.size());
+		UniformRandomProvider uniformRandomProvider = RandomSource.XO_RO_SHI_RO_128_PP.create();
+		int index = uniformRandomProvider.nextInt(0, mostProbableCardsToWin.size());
 		return mostProbableCardsToWin.get(index);
 	}
 
