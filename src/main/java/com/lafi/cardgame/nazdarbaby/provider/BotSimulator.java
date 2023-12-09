@@ -183,7 +183,7 @@ class BotSimulator {
 		int sortedPlayableCardsSize = sortedPlayableCards.size();
 
 		if (sortedPlayableCardsSize == 1) {
-			return sortedPlayableCards.get(0);
+			return sortedPlayableCards.getFirst();
 		}
 
 		if (noGapsInOneColor(sortedPlayableCards)) {
@@ -243,7 +243,7 @@ class BotSimulator {
 			return;
 		}
 
-		Card leadingCard = cardPlaceholders.get(0);
+		Card leadingCard = cardPlaceholders.getFirst();
 		if (leadingCard.isPlaceholder()) {
 			return;
 		}
@@ -272,8 +272,8 @@ class BotSimulator {
 	}
 
 	private boolean noGapsInOneColor(List<Card> sortedPlayableCards) {
-		Card lowestCard = sortedPlayableCards.get(0);
-		Card highestCard = sortedPlayableCards.get(sortedPlayableCards.size() - 1);
+		Card lowestCard = sortedPlayableCards.getFirst();
+		Card highestCard = sortedPlayableCards.getLast();
 
 		boolean allPlayableCardsInOneColor = sortedPlayableCards.stream().allMatch(card -> card.getColor() == lowestCard.getColor());
 		if (!allPlayableCardsInOneColor) {
@@ -485,7 +485,7 @@ class BotSimulator {
 	}
 
 	private Card getLeadingCard() {
-		return cardPlaceholders.get(0);
+		return cardPlaceholders.getFirst();
 	}
 
 	private Card getLowestCard(List<Card> cards) {
@@ -494,7 +494,7 @@ class BotSimulator {
 				.toList();
 
 		if (lowestRemainingCards.isEmpty()) {
-			Card lowestCardInHand = cards.get(0);
+			Card lowestCardInHand = cards.getFirst();
 			List<Card> lowestCardsInHands = cards.stream()
 					.filter(card -> card.getValue() == lowestCardInHand.getValue())
 					.toList();
@@ -511,7 +511,7 @@ class BotSimulator {
 					.toList();
 
 			if (highestRemainingCards.isEmpty()) {
-				Card highestCardInHand = cards.get(cards.size() - 1);
+				Card highestCardInHand = cards.getLast();
 				List<Card> highestCardsInHands = cards.stream()
 						.filter(card -> card.getValue() == highestCardInHand.getValue())
 						.toList();
@@ -531,14 +531,14 @@ class BotSimulator {
 		if (cardsToGetRidOf.isEmpty()) {
 			Card card = getRidOfColor(cards, cards);
 			if (card == null) {
-				return cards.get(cards.size() - 1);
+				return cards.getLast();
 			}
 			return card;
 		}
 
 		Card card = getRidOfColor(cardsToGetRidOf, cards);
 		if (card == null) {
-			return cards.get(cards.size() - 1);
+			return cards.getLast();
 		}
 		return card;
 	}
@@ -559,7 +559,7 @@ class BotSimulator {
 
 	private Card getHighestCardToWin(List<Card> cards) {
 		if (cards.size() == 1) {
-			return cards.get(0);
+			return cards.getFirst();
 		}
 
 		List<Card> possibleWinnerCards = cards.stream()
@@ -574,7 +574,7 @@ class BotSimulator {
 
 	private Card getLowestCardToLose(List<Card> cards) {
 		if (cards.size() == 1) {
-			return cards.get(0);
+			return cards.getFirst();
 		}
 
 		List<Card> possibleLoserCards = cards.stream()
@@ -619,7 +619,7 @@ class BotSimulator {
 
 	private Card getMostProbableCardToWin(List<Card> cards) {
 		if (cards.size() == 1) {
-			return cards.get(0);
+			return cards.getFirst();
 		}
 
 		long lowestKnownCardsInOneColorSize = getHighestCardValue();
@@ -659,7 +659,7 @@ class BotSimulator {
 		if (lowerCards.isEmpty()) {
 			return null;
 		}
-		return lowerCards.get(lowerCards.size() - 1);
+		return lowerCards.getLast();
 	}
 
 	private Optional<Card> getHigherCard(List<Card> sortedCards, Card theCard) {

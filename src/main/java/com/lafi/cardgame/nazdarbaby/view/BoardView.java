@@ -85,7 +85,7 @@ public class BoardView extends ParameterizedView {
             if (matchUsers.contains(currentUser)) {
                 addUserCardsHL(cardPlaceholdersHL);
             } else {
-                List<Card> cards = matchUsers.get(0).getCards();
+                List<Card> cards = matchUsers.getFirst().getCards();
                 long round = cards.size() - getNumberOfCardsLeft(cards);
 
                 NativeLabel roundLabel = new NativeLabel("Round " + round + "/" + cards.size());
@@ -301,7 +301,7 @@ public class BoardView extends ParameterizedView {
 
             List<Card> cardPlaceholders = game.getCardPlaceholders();
 
-            Card leadingCard = cardPlaceholders.get(0);
+            Card leadingCard = cardPlaceholders.getFirst();
             if (!leadingCard.isPlaceholder()) {
                 boolean userHasLeadingCardColor = currentUser.hasColor(leadingCard.getColor());
                 if (userHasLeadingCardColor) {
@@ -377,7 +377,7 @@ public class BoardView extends ParameterizedView {
         Game game = table.getGame();
 
         int sumOfExpectedTakes = game.getSumOfExpectedTakes();
-        int numberOfCards = game.getMatchUsers().get(0).getCards().size();
+        int numberOfCards = game.getMatchUsers().getFirst().getCards().size();
 
         return new NativeLabel(sumOfExpectedTakes + "/" + numberOfCards);
     }
