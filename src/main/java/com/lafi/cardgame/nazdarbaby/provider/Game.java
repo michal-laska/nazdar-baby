@@ -122,7 +122,7 @@ public class Game {
 	}
 
 	public boolean isEndOfSet() {
-		return isEndOfMatch() && matchNumber == matchUsers.get(0).getCards().size();
+		return isEndOfMatch() && matchNumber == matchUsers.getFirst().getCards().size();
 	}
 
 	public boolean isLastUserWithInvalidExpectedTakes(int expectedTakes) {
@@ -136,12 +136,11 @@ public class Game {
 
 	public int getMatchCharacter() {
 		int sumOfExpectedTakes = getSumOfExpectedTakes();
-		return sumOfExpectedTakes - matchUsers.get(0).getCards().size();
+		return sumOfExpectedTakes - matchUsers.getFirst().getCards().size();
 	}
 
 	public boolean setCanStart() {
-		int lastIndex = matchUsers.size() - 1;
-		return matchUsers.get(lastIndex).getExpectedTakes() != null;
+		return matchUsers.getLast().getExpectedTakes() != null;
 	}
 
 	public int getWinnerIndex() {
@@ -198,7 +197,7 @@ public class Game {
 	}
 
 	private void resetActiveUser() {
-		setActiveUser(matchUsers.get(0));
+		setActiveUser(matchUsers.getFirst());
 	}
 
 	private void resetReadyFlags() {
@@ -293,7 +292,7 @@ public class Game {
 		List<Card> deckOfCards = cardProvider.getShuffledDeckOfCards();
 		for (int i = 0; i < userCardsCount; ++i) {
 			for (User user : setUsers) {
-				Card card = deckOfCards.remove(0);
+				Card card = deckOfCards.removeFirst();
 				user.addCard(card);
 			}
 		}
@@ -326,7 +325,7 @@ public class Game {
 
 		initCardPlaceholders();
 
-		if (everybodyLost || matchNumber++ == matchUsers.get(0).getCards().size()) {
+		if (everybodyLost || matchNumber++ == matchUsers.getFirst().getCards().size()) {
 			everybodyLost = false;
 
 			startNewSet();

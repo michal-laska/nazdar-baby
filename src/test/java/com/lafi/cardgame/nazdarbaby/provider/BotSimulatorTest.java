@@ -158,7 +158,7 @@ class BotSimulatorTest {
 			List<Card> cardPlaceholders = List.of(getHeart(7), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
 			botSimulator.setCardPlaceholders(cardPlaceholders);
 
-			User bot = bots.get(0);
+			User bot = bots.getFirst();
 			bot.addCard(getHeart(8));
 
 			botSimulator.setActiveUser(bot);
@@ -174,7 +174,7 @@ class BotSimulatorTest {
 			List<Card> cardPlaceholders = List.of(getHeart(7), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
 			botSimulator.setCardPlaceholders(cardPlaceholders);
 
-			User bot = bots.get(0);
+			User bot = bots.getFirst();
 			bot.addCard(getHeart(9));
 
 			botSimulator.setActiveUser(bot);
@@ -190,7 +190,7 @@ class BotSimulatorTest {
 			List<Card> cardPlaceholders = List.of(getHeart(8), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
 			botSimulator.setCardPlaceholders(cardPlaceholders);
 
-			User bot = bots.get(0);
+			User bot = bots.getFirst();
 			bot.addCard(getHeart(7));
 
 			botSimulator.setActiveUser(bot);
@@ -210,7 +210,7 @@ class BotSimulatorTest {
 			List<Card> cardPlaceholders = List.of(getHeart(8), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
 			botSimulator.setCardPlaceholders(cardPlaceholders);
 
-			User bot = bots.get(0);
+			User bot = bots.getFirst();
 			Card card = getHeart(7);
 			bot.addCard(card);
 
@@ -227,7 +227,7 @@ class BotSimulatorTest {
 			List<Card> cardPlaceholders = List.of(getSpade(8), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
 			botSimulator.setCardPlaceholders(cardPlaceholders);
 
-			User bot = bots.get(0);
+			User bot = bots.getFirst();
 			Card card = getHeart(7);
 			bot.addCard(card);
 
@@ -244,7 +244,7 @@ class BotSimulatorTest {
 			List<Card> cardPlaceholders = List.of(getHeart(7), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
 			botSimulator.setCardPlaceholders(cardPlaceholders);
 
-			User bot = bots.get(0);
+			User bot = bots.getFirst();
 			Card card = getHeart(8);
 			bot.addCard(card);
 
@@ -263,7 +263,7 @@ class BotSimulatorTest {
 		void expectedTakes_cannotBeNegative() {
 			List<Card> cardPlaceholders = List.of(CARD_PLACEHOLDER, CARD_PLACEHOLDER, CARD_PLACEHOLDER);
 			botSimulator.setCardPlaceholders(cardPlaceholders);
-			User bot = bots.get(0);
+			User bot = bots.getFirst();
 			botSimulator.setActiveUser(bot);
 			doReturn(true).when(game).isLastUserWithInvalidExpectedTakes(0);
 
