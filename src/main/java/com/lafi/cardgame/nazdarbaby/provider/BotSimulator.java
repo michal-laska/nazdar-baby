@@ -105,8 +105,7 @@ class BotSimulator {
 	}
 
 	boolean isHighestRemainingCardInColor(List<Card> cards, Card theCard) {
-		Card winningCard = getWinningCard();
-		if (winningCard.isHigherThan(theCard)) {
+		if (!isWinningCard(theCard)) {
 			return false;
 		}
 
@@ -116,6 +115,11 @@ class BotSimulator {
 		int highestCardValue = getHighestCardValue();
 
 		return higherKnownCardsInOneColorSize == highestCardValue - theCard.getValue();
+	}
+
+	private boolean isWinningCard(Card card) {
+		Card winningCard = getWinningCard();
+		return !winningCard.isHigherThan(card);
 	}
 
 	private boolean isLowestRemainingCardInColor(List<Card> cards, Card theCard) {
@@ -141,6 +145,10 @@ class BotSimulator {
 			int cardValue = card.getValue();
 			double diff = magicNumber - cardValue;
 
+			if (!isWinningCard(card)) {
+				continue;
+			}
+
 			if (cardValue > magicNumber) {
 				++guess;
 			} else if (card.getColor() == Color.HEARTS) {
@@ -163,9 +171,8 @@ class BotSimulator {
 		return deckOfCardsSize / Color.values().length;
 	}
 
-	boolean areOthersWithoutHearts(User user, Card theCard) {
-		Card winningCard = getWinningCard();
-		if (winningCard.isHigherThan(theCard)) {
+	boolean areOthersWithoutHearts(User user, Card card) {
+		if (!isWinningCard(card)) {
 			return false;
 		}
 
