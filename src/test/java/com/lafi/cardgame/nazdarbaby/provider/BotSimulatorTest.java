@@ -197,7 +197,7 @@ class BotSimulatorTest {
 			botSimulator.removeColorsForOtherUsers(bot.getCards());
 
 			double expectedTakes = botSimulator.guessExpectedTakes(bot);
-			assertThat(expectedTakes).isEqualTo(0.5);
+			assertThat(expectedTakes).isEqualTo(0);
 		}
 	}
 

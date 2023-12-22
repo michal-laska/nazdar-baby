@@ -64,6 +64,9 @@ public class Card implements Comparable<Card> {
 		return color == null;
 	}
 
+	/**
+	 * Use following way: cardOnTable.isHigherThan(cardInHand)
+	 */
 	public boolean isHigherThan(Card other) {
 		if (isPlaceholder()) {
 			return false;
