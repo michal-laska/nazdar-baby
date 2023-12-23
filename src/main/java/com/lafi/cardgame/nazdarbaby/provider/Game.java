@@ -87,14 +87,14 @@ public class Game {
 		int activeUserIndex = activeUser == null ? matchUsers.size() : matchUsers.indexOf(activeUser);
 
 		if (activeUserIndex == matchUsers.size()) {
-			int winnerIndex = getWinnerIndex();
+			int winnerIndex = getWinningIndex();
 
 			Collections.rotate(matchUsers, -winnerIndex);
 			resetActiveUser();
 
 			startNewMatch();
 		} else if (++activeUserIndex == matchUsers.size()) {
-			int winnerIndex = getWinnerIndex();
+			int winnerIndex = getWinningIndex();
 			User winUser = matchUsers.get(winnerIndex);
 			winUser.increaseActualTakes();
 
@@ -143,20 +143,25 @@ public class Game {
 		return matchUsers.getLast().getExpectedTakes() != null;
 	}
 
-	public int getWinnerIndex() {
-		Card winnerCard = null;
+	public int getWinningIndex() {
+		Card winnerCard = getWinningCard();
+		return cardPlaceholders.indexOf(winnerCard);
+	}
+
+	private Card getWinningCard() {
+		Card winningCard = null;
 
 		for (Card card : cardPlaceholders) {
-			if (winnerCard == null) {
-				winnerCard = card;
-			} else if (winnerCard.getColor() == card.getColor()) {
-				winnerCard = winnerCard.getValue() < card.getValue() ? card : winnerCard;
+			if (winningCard == null) {
+				winningCard = card;
+			} else if (winningCard.getColor() == card.getColor()) {
+				winningCard = winningCard.getValue() < card.getValue() ? card : winningCard;
 			} else if (card.getColor() == Color.HEARTS) {
-				winnerCard = card;
+				winningCard = card;
 			}
 		}
 
-		return cardPlaceholders.indexOf(winnerCard);
+		return winningCard;
 	}
 
 	public void startNewGame() {

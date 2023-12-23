@@ -76,7 +76,7 @@ class BotSimulator {
 		}
 
 		if (activeUser.getExpectedTakes() == null) {
-			double expectedTakes = guessExpectedTakes(activeUser);
+			double expectedTakes = guessExpectedTakes();
 			int expectedTakesRounded = (int) Math.round(expectedTakes);
 
 			if (game.isLastUserWithInvalidExpectedTakes(expectedTakesRounded)) {
@@ -105,7 +105,7 @@ class BotSimulator {
 	}
 
 	boolean isHighestRemainingCardInColor(List<Card> cards, Card theCard) {
-		if (!isWinningCard(theCard)) {
+		if (isLowerThanWinningCard(theCard)) {
 			return false;
 		}
 
@@ -117,9 +117,9 @@ class BotSimulator {
 		return higherKnownCardsInOneColorSize == highestCardValue - theCard.getValue();
 	}
 
-	private boolean isWinningCard(Card card) {
+	private boolean isLowerThanWinningCard(Card card) {
 		Card winningCard = getWinningCard();
-		return !winningCard.isHigherThan(card);
+		return winningCard.isHigherThan(card);
 	}
 
 	private boolean isLowestRemainingCardInColor(List<Card> cards, Card theCard) {
@@ -133,26 +133,26 @@ class BotSimulator {
 		return lowerKnownCardsInOneColorSize == theCard.getValue() - lowestCardValue;
 	}
 
-	double guessExpectedTakes(User user) {
+	double guessExpectedTakes() {
 		int highestCardValue = getHighestCardValue();
 		int numberOfCardsInOneColor = getNumberOfCardsInOneColor();
 		double magicNumber = highestCardValue - ((double) numberOfCardsInOneColor / users.size()) + 1;
 
-		List<Card> cards = user.getCards();
+		List<Card> cards = activeUser.getCards();
 
 		double guess = 0;
 		for (Card card : cards) {
 			int cardValue = card.getValue();
 			double diff = magicNumber - cardValue;
 
-			if (!isWinningCard(card)) {
+			if (isLowerThanWinningCard(card)) {
 				continue;
 			}
 
-			if (cardValue > magicNumber) {
+			if (cardValue > magicNumber || isPossibleColorToWin(card) && isHighestRemainingCardInColor(cards, card)) {
 				++guess;
 			} else if (card.getColor() == Color.HEARTS) {
-				if (areOthersWithoutHearts(user, card) || isHighestRemainingCardInColor(cards, card)) {
+				if (areFollowersWithoutHearts(card) || isHighestRemainingCardInColor(cards, card)) {
 					++guess;
 				} else if (diff < 1) {
 					guess += Math.max(diff, 0.5);
@@ -171,13 +171,23 @@ class BotSimulator {
 		return deckOfCardsSize / Color.values().length;
 	}
 
-	boolean areOthersWithoutHearts(User user, Card card) {
-		if (!isWinningCard(card)) {
+	boolean areFollowersWithoutHearts(Card card) {
+		if (isLowerThanWinningCard(card)) {
 			return false;
 		}
 
-		Map<User, UserInfo> otherUsersInfo = botToOtherUsersInfo.get(user);
-		return otherUsersInfo.values().stream().noneMatch(userInfo -> userInfo.hasColor(Color.HEARTS));
+		Map<User, UserInfo> followersInfo = getFollowersInfo();
+		return followersInfo.values().stream().noneMatch(userInfo -> userInfo.hasColor(Color.HEARTS));
+	}
+
+	private Map<User, UserInfo> getFollowersInfo() {
+		int activeUserIndex = getActiveUserIndex();
+		List<User> predecessors = users.subList(0, activeUserIndex);
+
+		Map<User, UserInfo> followersInfo = botToOtherUsersInfo.get(activeUser);
+		predecessors.forEach(followersInfo::remove);
+
+		return followersInfo;
 	}
 
 	private Stream<Card> getKnownCardsInOneColorStream(List<Card> cards, Color color) {
@@ -200,7 +210,7 @@ class BotSimulator {
 			return sortedPlayableCards.get(index);
 		}
 
-		double takesGuessed = guessExpectedTakes(activeUser);
+		double takesGuessed = guessExpectedTakes();
 		int takesNeeded = activeUser.getExpectedTakes() - activeUser.getActualTakes();
 
 		if (takesGuessed > takesNeeded) {
@@ -318,11 +328,11 @@ class BotSimulator {
             Set<Color> myColors = sortedPlayableCards.stream()
                     .map(Card::getColor)
                     .collect(Collectors.toSet());
-			Map<User, UserInfo> otherUsersInfo = botToOtherUsersInfo.get(activeUser);
+			Map<User, UserInfo> followersInfo = getFollowersInfo();
 
 			Set<Color> goodColors = new HashSet<>();
 			for (Color color : myColors) {
-				boolean allUsersHaveMyColor = otherUsersInfo.values().stream()
+				boolean allUsersHaveMyColor = followersInfo.values().stream()
 						.allMatch(userInfo -> userInfo.hasColor(color) || userInfo.hasColor(Color.HEARTS));
 				if (allUsersHaveMyColor) {
 					goodColors.add(color);
@@ -331,7 +341,7 @@ class BotSimulator {
 
 			Set<Color> betterColors = new HashSet<>();
 			for (Color color : goodColors) {
-				boolean someUserHaveHearts = otherUsersInfo.values().stream()
+				boolean someUserHaveHearts = followersInfo.values().stream()
 						.anyMatch(userInfo -> !userInfo.hasColor(color) && userInfo.hasColor(Color.HEARTS));
 				if (someUserHaveHearts) {
 					betterColors.add(color);
@@ -489,7 +499,7 @@ class BotSimulator {
 	}
 
 	private Card getWinningCard() {
-		int winningCardIndex = game.getWinnerIndex();
+		int winningCardIndex = game.getWinningIndex();
 		return cardPlaceholders.get(winningCardIndex);
 	}
 
@@ -572,7 +582,7 @@ class BotSimulator {
 		}
 
 		List<Card> possibleWinnerCards = cards.stream()
-				.filter(card -> isPossibleColorToWin(card.getColor()))
+				.filter(this::isPossibleColorToWin)
 				.toList();
 
 		if (possibleWinnerCards.isEmpty()) {
@@ -596,15 +606,11 @@ class BotSimulator {
 		return getMostProbableCardToWin(possibleLoserCards);
 	}
 
-	private boolean isPossibleColorToWin(Color color) {
-		int activeUserIndex = getActiveUserIndex();
-		Map<User, UserInfo> otherUsersInfo = botToOtherUsersInfo.get(activeUser);
+	private boolean isPossibleColorToWin(Card card) {
+		Map<User, UserInfo> followersInfo = getFollowersInfo();
 
-		for (int i = activeUserIndex + 1; i < users.size(); ++i) {
-			User user = users.get(i);
-			UserInfo userInfo = otherUsersInfo.get(user);
-
-			if (!userInfo.hasColor(color) && userInfo.hasColor(Color.HEARTS)) {
+		for (UserInfo userInfo : followersInfo.values()) {
+			if (card.getColor() != Color.HEARTS && !userInfo.hasColor(card.getColor()) && userInfo.hasColor(Color.HEARTS)) {
 				return false;
 			}
 		}
@@ -612,13 +618,9 @@ class BotSimulator {
 	}
 
 	private boolean isPossibleColorToLose(Color color) {
-		int activeUserIndex = getActiveUserIndex();
-		Map<User, UserInfo> otherUsersInfo = botToOtherUsersInfo.get(activeUser);
+		Map<User, UserInfo> followersInfo = getFollowersInfo();
 
-		for (int i = activeUserIndex + 1; i < users.size(); ++i) {
-			User user = users.get(i);
-			UserInfo userInfo = otherUsersInfo.get(user);
-
+		for (UserInfo userInfo : followersInfo.values()) {
 			if (userInfo.hasColor(color) || userInfo.hasColor(Color.HEARTS)) {
 				return true;
 			}

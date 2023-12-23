@@ -563,7 +563,7 @@ public class BoardView extends ParameterizedView {
     private Button handleEndOfMatch(HorizontalLayout cardPlaceholdersHL) {
         Game game = table.getGame();
 
-        int winnerIndex = game.getWinnerIndex();
+        int winnerIndex = game.getWinningIndex();
         VerticalLayout cardPlaceholderVL = (VerticalLayout) cardPlaceholdersHL.getComponentAt(winnerIndex);
         cardPlaceholderVL.getStyle().set(BORDER_STYLE, ONE_PX_SOLID + BLUE_COLOR);
 
