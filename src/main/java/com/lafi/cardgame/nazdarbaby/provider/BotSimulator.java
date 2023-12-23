@@ -109,7 +109,7 @@ class BotSimulator {
 			return false;
 		}
 
-		long higherKnownCardsInOneColorSize = getKnownCardsInOneColorStream(cards, theCard.getColor())
+		long higherKnownCardsInOneColorSize = getKnownCardsInOneColorStream(cards, theCard)
 				.filter(card -> card.getValue() > theCard.getValue())
 				.count();
 		int highestCardValue = getHighestCardValue();
@@ -123,7 +123,7 @@ class BotSimulator {
 	}
 
 	private boolean isLowestRemainingCardInColor(List<Card> cards, Card theCard) {
-		long lowerKnownCardsInOneColorSize = getKnownCardsInOneColorStream(cards, theCard.getColor())
+		long lowerKnownCardsInOneColorSize = getKnownCardsInOneColorStream(cards, theCard)
 				.filter(card -> card.getValue() < theCard.getValue())
 				.count();
 
@@ -177,7 +177,7 @@ class BotSimulator {
 		}
 
 		Map<User, UserInfo> followersInfo = getFollowersInfo();
-		return followersInfo.values().stream().noneMatch(userInfo -> userInfo.hasColor(Color.HEARTS));
+		return followersInfo.values().stream().noneMatch(UserInfo::hasHearts);
 	}
 
 	private Map<User, UserInfo> getFollowersInfo() {
@@ -188,6 +188,10 @@ class BotSimulator {
 		predecessors.forEach(followersInfo::remove);
 
 		return followersInfo;
+	}
+
+	private Stream<Card> getKnownCardsInOneColorStream(List<Card> cards, Card card) {
+		return getKnownCardsInOneColorStream(cards, card.getColor());
 	}
 
 	private Stream<Card> getKnownCardsInOneColorStream(List<Card> cards, Color color) {
@@ -281,7 +285,7 @@ class BotSimulator {
 					if (userInfo != null) {
 						userInfo.removeColor(leadingCard.getColor());
 
-						if (userInfo.hasColor(Color.HEARTS) && card.getColor() != Color.HEARTS) {
+						if (userInfo.hasHearts() && card.getColor() != Color.HEARTS) {
 							userInfo.removeColor(Color.HEARTS);
 						}
 					}
@@ -322,7 +326,7 @@ class BotSimulator {
 		if (winningCard.isPlaceholder()) {
             List<Card> cardsWhichShouldBeTakenByHeartsInNextMatch = getCardsWhichShouldBeTakenByHeartsInNextMatch(sortedPlayableCards);
             if (!cardsWhichShouldBeTakenByHeartsInNextMatch.isEmpty()) {
-                return getHighestCard(cardsWhichShouldBeTakenByHeartsInNextMatch, false);
+                return getRidOfCard(cardsWhichShouldBeTakenByHeartsInNextMatch);
             }
 
             Set<Color> myColors = sortedPlayableCards.stream()
@@ -333,7 +337,7 @@ class BotSimulator {
 			Set<Color> goodColors = new HashSet<>();
 			for (Color color : myColors) {
 				boolean allUsersHaveMyColor = followersInfo.values().stream()
-						.allMatch(userInfo -> userInfo.hasColor(color) || userInfo.hasColor(Color.HEARTS));
+						.allMatch(userInfo -> userInfo.hasColor(color) || userInfo.hasHearts());
 				if (allUsersHaveMyColor) {
 					goodColors.add(color);
 				}
@@ -342,7 +346,7 @@ class BotSimulator {
 			Set<Color> betterColors = new HashSet<>();
 			for (Color color : goodColors) {
 				boolean someUserHaveHearts = followersInfo.values().stream()
-						.anyMatch(userInfo -> !userInfo.hasColor(color) && userInfo.hasColor(Color.HEARTS));
+						.anyMatch(userInfo -> !userInfo.hasColor(color) && userInfo.hasHearts());
 				if (someUserHaveHearts) {
 					betterColors.add(color);
 				}
@@ -352,7 +356,7 @@ class BotSimulator {
 				List<Card> betterCards = sortedPlayableCards.stream()
 						.filter(card -> betterColors.contains(card.getColor()))
 						.toList();
-				return getHighestCard(betterCards, false);
+				return getRidOfCard(betterCards);
 			}
 
             if (!goodColors.isEmpty()) {
@@ -394,7 +398,7 @@ class BotSimulator {
                                 .filter(entry -> entry.getValue().equals(maxCounter.get()))
                                 .map(Map.Entry::getKey)
                                 .toList();
-                        return getHighestCard(minLowerMaxHigherCards, false);
+                        return getRidOfCard(minLowerMaxHigherCards);
                     }
                 }
 			}
@@ -407,16 +411,16 @@ class BotSimulator {
 				return selectLowCard(sortedPlayableCards, winningCard);
 			}
 			if (game.isLastUser()) {
-				return getHighestCard(sortedPlayableCards, false);
+				return getRidOfCard(sortedPlayableCards);
 			}
 			return lowestCard;
 		} else if (lowestCard.getColor() == leadingCard.getColor()) {
 			if (winningCard.getColor() == Color.HEARTS) {
-				return getHighestCard(sortedPlayableCards, false);
+				return getRidOfCard(sortedPlayableCards);
 			}
 			return selectLowCard(sortedPlayableCards, winningCard);
 		}
-		return getHighestCard(sortedPlayableCards, false);
+		return getRidOfCard(sortedPlayableCards);
 	}
 
     private List<Card> getCardsWhichShouldBeTakenByHeartsInNextMatch(List<Card> sortedPlayableCards) {
@@ -458,14 +462,14 @@ class BotSimulator {
 			return lowerCard;
 		}
 		if (game.isLastUser()) {
-			return getHighestCard(sortedPlayableCards, false);
+			return getRidOfCard(sortedPlayableCards);
 		}
 		return getHigherCard(sortedPlayableCards, winningCard).get();
 	}
 
 	private Card selectHighCard(List<Card> sortedPlayableCards) {
 		Card winningCard = getWinningCard();
-		Card highestCard = getHighestCard(sortedPlayableCards, true);
+		Card highestCard = getHighestCard(sortedPlayableCards);
 
 		if (winningCard.isPlaceholder()) {
 			return highestCard;
@@ -523,23 +527,20 @@ class BotSimulator {
 		return getLowestCardToLose(lowestRemainingCards);
 	}
 
-	private Card getHighestCard(List<Card> cards, boolean toWin) {
-		if (toWin) {
-			List<Card> highestRemainingCards = cards.stream()
-					.filter(card -> isHighestRemainingCardInColor(cards, card))
+	private Card getHighestCard(List<Card> cards) {
+		List<Card> highestRemainingCards = cards.stream()
+				.filter(card -> isHighestRemainingCardInColor(cards, card))
+				.toList();
+
+		if (highestRemainingCards.isEmpty()) {
+			Card highestCardInHand = cards.getLast();
+			List<Card> highestCardsInHands = cards.stream()
+					.filter(card -> card.getValue() == highestCardInHand.getValue())
 					.toList();
 
-			if (highestRemainingCards.isEmpty()) {
-				Card highestCardInHand = cards.getLast();
-				List<Card> highestCardsInHands = cards.stream()
-						.filter(card -> card.getValue() == highestCardInHand.getValue())
-						.toList();
-
-				return getHighestCardToWin(highestCardsInHands);
-			}
-			return getHighestCardToWin(highestRemainingCards);
+			return getHighestCardToWin(highestCardsInHands);
 		}
-		return getRidOfCard(cards);
+		return getHighestCardToWin(highestRemainingCards);
 	}
 
 	private Card getRidOfCard(List<Card> cards) {
@@ -597,7 +598,7 @@ class BotSimulator {
 		}
 
 		List<Card> possibleLoserCards = cards.stream()
-				.filter(card -> isPossibleColorToLose(card.getColor()))
+				.filter(this::isPossibleColorToLose)
 				.toList();
 
 		if (possibleLoserCards.isEmpty()) {
@@ -610,18 +611,18 @@ class BotSimulator {
 		Map<User, UserInfo> followersInfo = getFollowersInfo();
 
 		for (UserInfo userInfo : followersInfo.values()) {
-			if (card.getColor() != Color.HEARTS && !userInfo.hasColor(card.getColor()) && userInfo.hasColor(Color.HEARTS)) {
+			if (card.getColor() != Color.HEARTS && !userInfo.hasColor(card.getColor()) && userInfo.hasHearts()) {
 				return false;
 			}
 		}
 		return true;
 	}
 
-	private boolean isPossibleColorToLose(Color color) {
+	private boolean isPossibleColorToLose(Card card) {
 		Map<User, UserInfo> followersInfo = getFollowersInfo();
 
 		for (UserInfo userInfo : followersInfo.values()) {
-			if (userInfo.hasColor(color) || userInfo.hasColor(Color.HEARTS)) {
+			if (userInfo.hasColor(card.getColor()) || userInfo.hasHearts()) {
 				return true;
 			}
 		}
@@ -638,7 +639,7 @@ class BotSimulator {
 
 		List<Card> activeUserCards = activeUser.getCards();
 		for (Card card : cards) {
-			long knownCardsInOneColorSize = getKnownCardsInOneColorStream(activeUserCards, card.getColor()).count();
+			long knownCardsInOneColorSize = getKnownCardsInOneColorStream(activeUserCards, card).count();
 			if (knownCardsInOneColorSize < lowestKnownCardsInOneColorSize) {
 				lowestKnownCardsInOneColorSize = knownCardsInOneColorSize;
 
@@ -683,6 +684,10 @@ class BotSimulator {
 	private static final class UserInfo {
 
 		private final Set<Color> colorsInHand = new HashSet<>(Arrays.asList(Color.values()));
+
+		private boolean hasHearts() {
+			return hasColor(Color.HEARTS);
+		}
 
 		private boolean hasColor(Color color) {
 			return colorsInHand.contains(color);
