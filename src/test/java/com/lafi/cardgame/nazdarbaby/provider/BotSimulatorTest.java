@@ -140,7 +140,7 @@ class BotSimulatorTest {
 			rememberCards(getHearts(13, 14));
 			List<Card> cardPlaceholders = List.of(getSpade(14), getHeart(11), CARD_PLACEHOLDER);
 			botSimulator.setCardPlaceholders(cardPlaceholders);
-			doReturn(1).when(game).getWinnerIndex();
+			doReturn(1).when(game).getWinningIndex();
 
 			Card card = getHeart(12);
 			boolean highestRemainingHeart = isHighestRemainingCardInColor(card);
@@ -164,7 +164,7 @@ class BotSimulatorTest {
 			botSimulator.setActiveUser(bot);
 			botSimulator.removeColorsForOtherUsers(bot.getCards());
 
-			double expectedTakes = botSimulator.guessExpectedTakes(bot);
+			double expectedTakes = botSimulator.guessExpectedTakes();
 			assertThat(expectedTakes).isEqualTo(0.5);
 		}
 
@@ -180,7 +180,7 @@ class BotSimulatorTest {
 			botSimulator.setActiveUser(bot);
 			botSimulator.removeColorsForOtherUsers(bot.getCards());
 
-			double expectedTakes = botSimulator.guessExpectedTakes(bot);
+			double expectedTakes = botSimulator.guessExpectedTakes();
 			assertThat(expectedTakes).isEqualTo(1);
 		}
 
@@ -196,7 +196,7 @@ class BotSimulatorTest {
 			botSimulator.setActiveUser(bot);
 			botSimulator.removeColorsForOtherUsers(bot.getCards());
 
-			double expectedTakes = botSimulator.guessExpectedTakes(bot);
+			double expectedTakes = botSimulator.guessExpectedTakes();
 			assertThat(expectedTakes).isEqualTo(0);
 		}
 	}
@@ -217,7 +217,7 @@ class BotSimulatorTest {
 			botSimulator.setActiveUser(bot);
 			botSimulator.removeColorsForOtherUsers(bot.getCards());
 
-			boolean areOthersWithoutHearts = botSimulator.areOthersWithoutHearts(bot, card);
+			boolean areOthersWithoutHearts = botSimulator.areFollowersWithoutHearts(card);
 			assertThat(areOthersWithoutHearts).isFalse();
 		}
 
@@ -234,7 +234,7 @@ class BotSimulatorTest {
 			botSimulator.setActiveUser(bot);
 			botSimulator.removeColorsForOtherUsers(bot.getCards());
 
-			boolean areOthersWithoutHearts = botSimulator.areOthersWithoutHearts(bot, card);
+			boolean areOthersWithoutHearts = botSimulator.areFollowersWithoutHearts(card);
 			assertThat(areOthersWithoutHearts).isFalse();
 		}
 
@@ -251,7 +251,7 @@ class BotSimulatorTest {
 			botSimulator.setActiveUser(bot);
 			botSimulator.removeColorsForOtherUsers(bot.getCards());
 
-			boolean areOthersWithoutHearts = botSimulator.areOthersWithoutHearts(bot, card);
+			boolean areOthersWithoutHearts = botSimulator.areFollowersWithoutHearts(card);
 			assertThat(areOthersWithoutHearts).isTrue();
 		}
 	}
