@@ -217,6 +217,13 @@ class BotSimulator {
 		double takesGuessed = guessExpectedTakes();
 		int takesNeeded = activeUser.getExpectedTakes() - activeUser.getActualTakes();
 
+		// no way to win
+		if (takesNeeded < 0) {
+			return selectHighCard(sortedPlayableCards);
+		} else if (getNumberOfCardsLeft(cards) < takesNeeded) {
+			return selectLowCard(sortedPlayableCards);
+		}
+
 		if (takesGuessed > takesNeeded) {
 			return selectLowCard(sortedPlayableCards);
 		}
@@ -232,6 +239,12 @@ class BotSimulator {
 				otherUsersInfo.values().forEach(userInfo -> userInfo.removeColor(color));
 			}
 		}
+	}
+
+	private long getNumberOfCardsLeft(List<Card> cards) {
+		return cards.stream()
+				.filter(card -> !card.isPlaceholder())
+				.count();
 	}
 
 	private List<Card> getSortedPlayableCards(List<Card> cards) {
@@ -568,7 +581,9 @@ class BotSimulator {
 		Collections.reverse(revertedCardsToGetRidOf);
 
 		for (Card theCard : revertedCardsToGetRidOf) {
-			long cardsInColorCount = cardsInHand.stream().filter(card -> card.getColor() == theCard.getColor()).count();
+			long cardsInColorCount = cardsInHand.stream()
+                    .filter(card -> card.getColor() == theCard.getColor())
+                    .count();
 
 			if (cardsInColorCount == 1) {
 				return theCard;
