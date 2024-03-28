@@ -12,4 +12,3 @@ It has similar rules like [Wizard](https://en.wikipedia.org/wiki/Wizard_(card_ga
 
 ## Running the application
 - locally: http://localhost:8080
-- remotely: https://nazdar-baby.herokuapp.com
