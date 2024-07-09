@@ -12,7 +12,7 @@
         <!-- change java version also in '.github/workflows/codeql-analysis.yml' and 'system.properties' -->
         <java.version>21</java.version>
         <!-- https://mvnrepository.com/artifact/com.vaadin/vaadin-bom -->
-        <vaadin.version>24.4.5</vaadin.version>
+        <vaadin.version>24.4.6</vaadin.version>
         <heroku.appName>nazdar-baby</heroku.appName>
     </properties>
 
