@@ -131,7 +131,7 @@
                 </executions>
                 <configuration>
                     <!-- https://nodejs.org/dist/latest -->
-                    <nodeVersion>v22.5.0</nodeVersion>
+                    <nodeVersion>v22.5.1</nodeVersion>
                 </configuration>
             </plugin>
         </plugins>
