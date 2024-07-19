@@ -334,11 +334,9 @@ public class Game {
 
 			startNewSet();
 			startNewMatch();
-
-			tryBotMove();
-		} else {
-			tryBotMove();
 		}
+
+		tryBotMove();
 	}
 
 	private void startNewSet() {
