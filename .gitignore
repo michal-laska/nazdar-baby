@@ -1,14 +1,8 @@
+.gradle
 .idea
-frontend
-node
-node_modules
-target
+build
+gradle
+src/main/frontend
 
-.npmrc
-.pnpmfile.cjs
-package.json
-pnpm-lock.yaml
-tsconfig.json
-types.d.ts
-vite.config.ts
-vite.generated.ts
+gradlew
+gradlew.bat
