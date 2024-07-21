@@ -26,8 +26,13 @@ dependencies {
     implementation("org.apache.commons:commons-rng-simple:$commonsRngVersion")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test:$springBootVersion")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 vaadin {
     productionMode = true
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
