@@ -13,6 +13,10 @@ tasks.compileKotlin {
     compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
 }
 
+tasks.wrapper {
+    gradleVersion = "8.9"
+}
+
 repositories {
     mavenCentral()
 }
