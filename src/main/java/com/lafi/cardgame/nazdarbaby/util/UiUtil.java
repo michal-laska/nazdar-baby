@@ -11,7 +11,6 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.server.Command;
 import com.vaadin.flow.server.VaadinSession;
-import com.vaadin.flow.server.WebBrowser;
 
 import java.net.URLEncoder;
 import java.util.Optional;
@@ -68,14 +67,14 @@ public final class UiUtil {
 		}
 	}
 
+    public static boolean isMobileDevice() {
+        var session = VaadinSession.getCurrent();
+        var browser = session.getBrowser();
+
+        return browser.isAndroid() || browser.isIPhone() || browser.isWindowsPhone();
+    }
+
 	private static void makeUIAction(Component component, Consumer<UI> action) {
 		makeUIAction(component.getUI(), action);
-	}
-
-	private static boolean isMobileDevice() {
-		VaadinSession session = VaadinSession.getCurrent();
-		WebBrowser browser = session.getBrowser();
-
-		return browser.isAndroid() || browser.isIPhone() || browser.isWindowsPhone();
 	}
 }

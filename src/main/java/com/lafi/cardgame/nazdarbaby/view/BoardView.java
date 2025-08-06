@@ -259,15 +259,32 @@ public class BoardView extends ParameterizedView {
     }
 
     private void addCurrentUserCardsTo(HorizontalLayout userCardsHL) {
-        UserProvider userProvider = table.getUserProvider();
-        User currentUser = userProvider.getCurrentUser();
-        List<Card> currentUserCards = currentUser.getCards();
+        var mobileVl = new VerticalLayout();
+        var mobileHl = new HorizontalLayout();
+        if (UiUtil.isMobileDevice()) {
+            userCardsHL.add(mobileVl);
+            mobileVl.add(mobileHl);
+        }
 
-        long numberOfCardsLeft = getNumberOfCardsLeft(currentUserCards);
+        var userProvider = table.getUserProvider();
+        var currentUser = userProvider.getCurrentUser();
+        var currentUserCards = currentUser.getCards();
+
+        var numberOfCardsLeft = getNumberOfCardsLeft(currentUserCards);
 
         for (Card card : currentUserCards) {
-            Image image = card.getImage();
-            userCardsHL.add(image);
+            var image = card.getImage();
+
+            if (UiUtil.isMobileDevice()) {
+                mobileHl.add(image);
+
+                if (mobileHl.getComponentCount() == 4) {
+                    mobileHl = new HorizontalLayout();
+                    mobileVl.add(mobileHl);
+                }
+            } else {
+                userCardsHL.add(image);
+            }
 
             if (card.isPlaceholder()) {
                 continue;
