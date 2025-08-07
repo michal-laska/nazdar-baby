@@ -1,6 +1,7 @@
 package com.lafi.cardgame.nazdarbaby.countdown;
 
 import com.lafi.cardgame.nazdarbaby.broadcast.BroadcastListener;
+import com.vaadin.flow.component.UIDetachedException;
 import org.springframework.stereotype.Component;
 
 import java.util.Iterator;
@@ -31,14 +32,19 @@ public class CountdownService implements Runnable {
 			if (countdownTask.isCanceled()) {
 				removeCountdownTask(countdownTask, iterator);
 			} else {
-				countdownTask.eachRun();
+                try {
+                    countdownTask.eachRun();
 
-				if (countdownTask.decreaseAndGet() < 0) {
-					countdownTask.finalRun();
-					removeCountdownTask(countdownTask, iterator);
-				} else if (!countdownTask.isListening()) {
-					removeCountdownTask(countdownTask, iterator);
-				}
+                    if (countdownTask.decreaseAndGet() < 0) {
+                        countdownTask.finalRun();
+                        removeCountdownTask(countdownTask, iterator);
+                    } else if (!countdownTask.isListening()) {
+                        removeCountdownTask(countdownTask, iterator);
+                    }
+                } catch (UIDetachedException e) {
+                    countdownTask.finalRun();
+                    removeCountdownTask(countdownTask, iterator);
+                }
 			}
 		}
 	}
