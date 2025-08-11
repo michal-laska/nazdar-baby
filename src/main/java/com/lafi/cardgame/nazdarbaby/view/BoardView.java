@@ -214,16 +214,21 @@ public class BoardView extends ParameterizedView {
     }
 
     private void addUserCardsHL(HorizontalLayout cardPlaceholdersHL) {
-        HorizontalLayout userCardsHL = new HorizontalLayout();
+        var userCardsHL = new HorizontalLayout();
         userCardsHL.setDefaultVerticalComponentAlignment(Alignment.CENTER);
         add(userCardsHL);
 
-        addCurrentUserCardsTo(userCardsHL);
+        var mobileVl = addCurrentUserCardsTo(userCardsHL);
 
-        VerticalLayout autoNextVL = new VerticalLayout();
-        userCardsHL.add(autoNextVL);
+        var autoNextVL = new VerticalLayout();
 
-        Game game = table.getGame();
+        if (UiUtil.isMobileDevice()) {
+            mobileVl.add(autoNextVL);
+        } else {
+            userCardsHL.add(autoNextVL);
+        }
+
+        var game = table.getGame();
 
         if (game.setCanStart()) {
             autoNextVL.add(getGameTypeLabel());
@@ -232,33 +237,33 @@ public class BoardView extends ParameterizedView {
 
             initExpectedTakesField();
             if (expectedTakesField != null) {
-                Button okButton = new Button(Constant.OK_LABEL);
+                var okButton = new Button(Constant.OK_LABEL);
                 okButton.addClickListener(click -> expectedTakesFieldEnterAction());
 
-                HorizontalLayout expectedTakesHL = new HorizontalLayout(expectedTakesField, okButton);
+                var expectedTakesHL = new HorizontalLayout(expectedTakesField, okButton);
                 autoNextVL.add(expectedTakesHL);
             }
         }
         autoNextVL.add(getAutoNextCheckbox());
 
         if (game.isEndOfMatch()) {
-            Button nextMatchButton = handleEndOfMatch(cardPlaceholdersHL);
+            var nextMatchButton = handleEndOfMatch(cardPlaceholdersHL);
             autoNextVL.add(nextMatchButton);
         } else if (game.isActiveUser() && expectedTakesField == null) {
-            UserProvider userProvider = table.getUserProvider();
-            User currentUser = userProvider.getCurrentUser();
+            var userProvider = table.getUserProvider();
+            var currentUser = userProvider.getCurrentUser();
 
-            List<User> matchUsers = game.getMatchUsers();
-            int currentUserIndex = matchUsers.indexOf(currentUser);
+            var matchUsers = game.getMatchUsers();
+            var currentUserIndex = matchUsers.indexOf(currentUser);
 
-            VerticalLayout cardPlaceholderVL = (VerticalLayout) cardPlaceholdersHL.getComponentAt(currentUserIndex);
-            Image image = (Image) cardPlaceholderVL.getComponentAt(1);
+            var cardPlaceholderVL = (VerticalLayout) cardPlaceholdersHL.getComponentAt(currentUserIndex);
+            var image = (Image) cardPlaceholderVL.getComponentAt(1);
 
             addBlinking(image);
         }
     }
 
-    private void addCurrentUserCardsTo(HorizontalLayout userCardsHL) {
+    private VerticalLayout addCurrentUserCardsTo(HorizontalLayout userCardsHL) {
         var mobileVl = new VerticalLayout();
         var mobileHl = new HorizontalLayout();
         if (UiUtil.isMobileDevice()) {
@@ -300,6 +305,8 @@ public class BoardView extends ParameterizedView {
 
             image.addClickListener(click -> cardImageClickAction(image, card, currentUserCards));
         }
+
+        return mobileVl;
     }
 
     private long getNumberOfCardsLeft(List<Card> cards) {
