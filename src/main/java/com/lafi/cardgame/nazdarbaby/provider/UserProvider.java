@@ -62,7 +62,7 @@ public class UserProvider {
 	}
 
 	public boolean addBot(String botName) {
-		if (botNameToBot.containsKey(botName)) {
+		if (userNameExist(botName)) {
 			return false;
 		}
 

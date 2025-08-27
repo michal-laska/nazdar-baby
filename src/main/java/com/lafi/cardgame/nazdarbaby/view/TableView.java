@@ -25,6 +25,8 @@ import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -231,10 +233,12 @@ public class TableView extends ParameterizedView {
 	}
 
 	private void addBot(UserProvider userProvider) {
+        var botNames = new ArrayList<>(Constant.BOT_NAMES);
+        Collections.shuffle(botNames);
+
 		String botName;
-		int botSuffix = 1;
 		do {
-			botName = "BOT-" + botSuffix++;
+			botName = botNames.removeFirst();
 		} while (!userProvider.addBot(botName));
 	}
 
