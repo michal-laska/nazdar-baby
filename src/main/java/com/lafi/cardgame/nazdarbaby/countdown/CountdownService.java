@@ -42,7 +42,6 @@ public class CountdownService implements Runnable {
                         removeCountdownTask(countdownTask, iterator);
                     }
                 } catch (UIDetachedException e) {
-                    countdownTask.finalRun();
                     removeCountdownTask(countdownTask, iterator);
                 }
 			}
