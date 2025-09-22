@@ -2,7 +2,6 @@ package com.lafi.cardgame.nazdarbaby.user;
 
 import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.Color;
-import org.apache.commons.rng.UniformRandomProvider;
 import org.apache.commons.rng.simple.RandomSource;
 
 import java.util.ArrayList;
@@ -39,11 +38,11 @@ public class User {
 		if (isBot) {
 			takeoverCode = null;
 		} else {
-			UniformRandomProvider uniformRandomProvider = RandomSource.XO_RO_SHI_RO_128_PP.create();
+			var randomNumberGenerator = RandomSource.XO_RO_SHI_RO_128_PP.create();
 
 			int randomInt;
 			do {
-				randomInt = uniformRandomProvider.nextInt(1_000, 10_000);
+				randomInt = randomNumberGenerator.nextInt(10, 100);
 			} while (takeoverCodes.contains(randomInt));
 
 			takeoverCodes.add(randomInt);
@@ -160,7 +159,7 @@ public class User {
 			return false;
 		}
 
-		User user = (User) obj;
+		var user = (User) obj;
 		return Objects.equals(name, user.name);
 	}
 
@@ -171,7 +170,7 @@ public class User {
 
 	@Override
 	public String toString() {
-		String result = name;
+		var result = name;
 
 		if (expectedTakes == null) {
 			return result;
