@@ -70,8 +70,9 @@ public final class UiUtil {
     public static boolean isMobileDevice() {
         var session = VaadinSession.getCurrent();
         var browser = session.getBrowser();
+		var userAgent = browser.getUserAgent();
 
-        return browser.isAndroid() || browser.isIPhone() || browser.isWindowsPhone();
+        return userAgent.contains("android") || browser.isIPhone() || userAgent.contains("windows phone");
     }
 
 	private static void makeUIAction(Component component, Consumer<UI> action) {
