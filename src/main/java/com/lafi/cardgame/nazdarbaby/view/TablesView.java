@@ -49,14 +49,14 @@ public class TablesView extends VerticalLayoutWithBroadcast {
             tableNameField = new TextField();
             tableNameField.setPlaceholder("Table name");
 
-            tableNameField.addInputListener(_ -> UiUtil.makeFieldValid(tableNameField));
-            tableNameField.addBlurListener(_ -> UiUtil.makeFieldValid(tableNameField));
-            tableNameField.addKeyUpListener(Key.ENTER, _ -> addTableAction(tableNameField));
+            tableNameField.addInputListener(inputEvent -> UiUtil.makeFieldValid(tableNameField));
+            tableNameField.addBlurListener(blurEvent -> UiUtil.makeFieldValid(tableNameField));
+            tableNameField.addKeyUpListener(Key.ENTER, keyUpEvent -> addTableAction(tableNameField));
         }
         tableNameField.focus();
 
         var createTableButton = new Button("Create");
-        createTableButton.addClickListener(_ -> addTableAction(tableNameField));
+        createTableButton.addClickListener(clickEvent -> addTableAction(tableNameField));
 
         var createTableHL = new HorizontalLayout(tableNameField, createTableButton);
         add(createTableHL);
@@ -98,7 +98,7 @@ public class TablesView extends VerticalLayoutWithBroadcast {
             tableButton.setIconAfterText(true);
         }
 
-        tableButton.addClickListener(_ -> {
+        tableButton.addClickListener(clickEvent -> {
             navigate(TableView.ROUTE_LOCATION, tableName);
 
             if (userProvider.isCurrentSessionLoggedIn()) {

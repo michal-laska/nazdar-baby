@@ -11,7 +11,7 @@ import org.springframework.boot.web.servlet.support.SpringBootServletInitializer
 @SpringBootApplication
 public class Application extends SpringBootServletInitializer implements AppShellConfigurator {
 
-	static void main(String[] args) {
+	public static void main(String[] args) {
 		SpringApplication.run(Application.class, args);
 	}
 }
