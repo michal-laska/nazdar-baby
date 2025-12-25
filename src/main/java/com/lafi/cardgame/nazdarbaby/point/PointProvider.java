@@ -12,12 +12,9 @@ public class PointProvider {
 	public static final Map<Integer, Map<Integer, Float>> NUMBER_OF_USERS_TO_WINNER_MAP;
 
 	static {
-		Map<Integer, Map<Integer, Float>> numberOfUsersToWinnerMap = new HashMap<>(6);
+		var numberOfUsersToWinnerMap = new HashMap<Integer, Map<Integer, Float>>(6);
 
-		Map<Integer, Float> winnerMap = Map.of(1, 5f);
-		addWinnerMap(winnerMap, numberOfUsersToWinnerMap);
-
-		winnerMap = Map.of(1, 10f, 2, 5f);
+		var winnerMap = Map.of(1, 10f, 2, 5f);
 		addWinnerMap(winnerMap, numberOfUsersToWinnerMap);
 
 		winnerMap = Map.of(1, 12f, 2, 6f, 3, 4f);
@@ -41,12 +38,12 @@ public class PointProvider {
 			return 0;
 		}
 
-		Map<Integer, Float> winMap = NUMBER_OF_USERS_TO_WINNER_MAP.get(numberOfUsers);
+		var winMap = NUMBER_OF_USERS_TO_WINNER_MAP.get(numberOfUsers);
 		if (winMap == null) {
 			throw new IllegalArgumentException("numberOfUsers = " + numberOfUsers);
 		}
 
-		Float winPoints = winMap.get(numberOfWinners);
+		var winPoints = winMap.get(numberOfWinners);
 		if (winPoints == null) {
 			throw new IllegalArgumentException("numberOfWinners = " + numberOfWinners);
 		}

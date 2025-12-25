@@ -18,8 +18,8 @@ public record CardProvider(List<Card> deckOfCards) {
         loadCards();
     }
 
-    public CardProvider(int deckOfCards) {
-        this(deckOfCards > 3 ? new ArrayList<>(BIG_DECK_OF_CARDS) : new ArrayList<>(SMALL_DECK_OF_CARDS));
+    public CardProvider(int playerCount) {
+        this(playerCount > 3 ? new ArrayList<>(BIG_DECK_OF_CARDS) : new ArrayList<>(SMALL_DECK_OF_CARDS));
     }
 
     public List<Card> getShuffledDeckOfCards() {

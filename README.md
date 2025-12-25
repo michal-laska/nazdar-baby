@@ -1,9 +1,9 @@
 # Nazdar baby
-Nazdar baby is a card game for 2 to 7 players.
+Nazdar baby is a card game for 3 to 7 players.
 
 ## Rules
 It has similar rules like [Wizard](https://en.wikipedia.org/wiki/Wizard_(card_game)) but with following exceptions:
-- for 2 to 3 players: regular set of 32 playing cards (no special cards)
+- for 3 players: regular set of 32 playing cards (no special cards)
 - for 4 to 7 players: regular set of 52 playing cards (no special cards)
 - different scoring system: sum of all points (positive and negative) has to be 0
 - different rounding system:
