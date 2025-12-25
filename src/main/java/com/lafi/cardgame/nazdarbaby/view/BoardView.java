@@ -621,12 +621,6 @@ public class BoardView extends ParameterizedView {
         addNextMatchCountdownTask(countdownInSeconds, nextMatchButton);
     }
 
-    private boolean everybodyLost() {
-        return cardPlaceholderLabels.stream()
-                .map(HasStyle::getStyle)
-                .allMatch(style -> Constant.RED_COLOR.equals(style.get(Constant.COLOR_STYLE)));
-    }
-
     private void addNextMatchCountdownTask(long countdownInSeconds, Button nextMatchButton) {
         CountdownTask countdownTask = new CountdownTask(countdownInSeconds, broadcaster, this, true) {
 
