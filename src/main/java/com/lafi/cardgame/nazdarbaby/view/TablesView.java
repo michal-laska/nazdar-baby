@@ -1,19 +1,14 @@
 package com.lafi.cardgame.nazdarbaby.view;
 
-import com.lafi.cardgame.nazdarbaby.Application;
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.layout.VerticalLayoutWithBroadcast;
-import com.lafi.cardgame.nazdarbaby.provider.Game;
-import com.lafi.cardgame.nazdarbaby.provider.Table;
 import com.lafi.cardgame.nazdarbaby.provider.TableProvider;
-import com.lafi.cardgame.nazdarbaby.provider.UserProvider;
 import com.lafi.cardgame.nazdarbaby.util.Constant;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.NativeLabel;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
@@ -44,29 +39,29 @@ public class TablesView extends VerticalLayoutWithBroadcast {
     private void showView() {
         removeAll();
 
-        H1 tablesH1 = new H1(Application.APP_NAME);
+        var tablesH1 = new H1("Nazdar baby");
         add(tablesH1);
 
-        NativeLabel newTableLabel = new NativeLabel("Create table:");
+        var newTableLabel = new NativeLabel("Create table:");
         add(newTableLabel);
 
         if (tableNameField == null) {
             tableNameField = new TextField();
             tableNameField.setPlaceholder("Table name");
 
-            tableNameField.addInputListener(inputEvent -> UiUtil.makeFieldValid(tableNameField));
-            tableNameField.addBlurListener(blurEvent -> UiUtil.makeFieldValid(tableNameField));
-            tableNameField.addKeyUpListener(Key.ENTER, event -> addTableAction(tableNameField));
+            tableNameField.addInputListener(_ -> UiUtil.makeFieldValid(tableNameField));
+            tableNameField.addBlurListener(_ -> UiUtil.makeFieldValid(tableNameField));
+            tableNameField.addKeyUpListener(Key.ENTER, _ -> addTableAction(tableNameField));
         }
         tableNameField.focus();
 
-        Button createTableButton = new Button("Create");
-        createTableButton.addClickListener(clickEvent -> addTableAction(tableNameField));
+        var createTableButton = new Button("Create");
+        createTableButton.addClickListener(_ -> addTableAction(tableNameField));
 
-        HorizontalLayout createTableHL = new HorizontalLayout(tableNameField, createTableButton);
+        var createTableHL = new HorizontalLayout(tableNameField, createTableButton);
         add(createTableHL);
 
-        NativeLabel joinTableLabel = new NativeLabel("Join table:");
+        var joinTableLabel = new NativeLabel("Join table:");
         add(joinTableLabel);
 
         tableProvider.getTableNames().stream()
@@ -91,23 +86,23 @@ public class TablesView extends VerticalLayoutWithBroadcast {
     }
 
     private void showCreatedTables(String tableName) {
-        Table table = tableProvider.get(tableName);
-        UserProvider userProvider = table.getUserProvider();
+        var table = tableProvider.get(tableName);
+        var userProvider = table.getUserProvider();
 
-        Button tableButton = new Button(tableName);
+        var tableButton = new Button(tableName);
         tableButton.setEnabled(!table.isFull());
 
         if (table.isPasswordProtected()) {
-            VaadinIcon icon = userProvider.isCurrentSessionLoggedIn() ? Constant.PASSWORD_OPEN_ICON : Constant.PASSWORD_LOCK_ICON;
+            var icon = userProvider.isCurrentSessionLoggedIn() ? Constant.PASSWORD_OPEN_ICON : Constant.PASSWORD_LOCK_ICON;
             tableButton.setIcon(icon.create());
             tableButton.setIconAfterText(true);
         }
 
-        tableButton.addClickListener(clickEvent -> {
+        tableButton.addClickListener(_ -> {
             navigate(TableView.ROUTE_LOCATION, tableName);
 
             if (userProvider.isCurrentSessionLoggedIn()) {
-                Game game = table.getGame();
+                var game = table.getGame();
                 if (game.isGameInProgress()) {
                     // following line needs to be here in case of navigation from table to board
                     broadcast(TableView.class, tableName, null);
@@ -115,10 +110,10 @@ public class TablesView extends VerticalLayoutWithBroadcast {
             }
         });
 
-        String tableInfo = table.getInfo();
-        NativeLabel tableInfoLabel = new NativeLabel(tableInfo);
+        var tableInfo = table.getInfo();
+        var tableInfoLabel = new NativeLabel(tableInfo);
 
-        HorizontalLayout tableHL = new HorizontalLayout(tableButton, tableInfoLabel);
+        var tableHL = new HorizontalLayout(tableButton, tableInfoLabel);
         tableHL.setDefaultVerticalComponentAlignment(Alignment.CENTER);
         add(tableHL);
     }

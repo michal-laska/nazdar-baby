@@ -10,7 +10,7 @@ group = "com.lafi.cardgame.nazdarbaby"
 version = "2.0-SNAPSHOT"
 
 tasks.compileKotlin {
-    compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
+    compilerOptions.jvmTarget.set(JvmTarget.JVM_25)
 }
 
 repositories {
