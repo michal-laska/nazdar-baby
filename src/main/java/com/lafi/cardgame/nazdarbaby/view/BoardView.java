@@ -578,29 +578,19 @@ public class BoardView extends ParameterizedView {
                 }
             }
         }
-
-        if (everybodyLost()) {
-            game.setEverybodyLost(true);
-        }
     }
 
     private Button handleEndOfMatch(HorizontalLayout cardPlaceholdersHL) {
-        Game game = table.getGame();
+        var game = table.getGame();
 
-        int winnerIndex = game.getWinningIndex();
-        VerticalLayout cardPlaceholderVL = (VerticalLayout) cardPlaceholdersHL.getComponentAt(winnerIndex);
+        var winnerIndex = game.getWinningIndex();
+        var cardPlaceholderVL = (VerticalLayout) cardPlaceholdersHL.getComponentAt(winnerIndex);
         cardPlaceholderVL.getStyle().set(BORDER_STYLE, ONE_PX_SOLID + BLUE_COLOR);
 
-        Button nextMatchButton = new Button();
+        var nextMatchButton = new Button(NEXT_MATCH_BUTTON_TEXT);
 
-        if (everybodyLost() && !game.isEndOfSet()) {
-            nextMatchButton.setText("Next set - everybody lost");
-        } else {
-            nextMatchButton.setText(NEXT_MATCH_BUTTON_TEXT);
-        }
-
-        UserProvider userProvider = table.getUserProvider();
-        User currentUser = userProvider.getCurrentUser();
+        var userProvider = table.getUserProvider();
+        var currentUser = userProvider.getCurrentUser();
 
         if (currentUser.isReady()) {
             disableNextMatchButton(nextMatchButton);
@@ -610,11 +600,11 @@ public class BoardView extends ParameterizedView {
             addBlinking(nextMatchButton);
         }
 
-        List<User> matchUsers = game.getMatchUsers();
-        for (int i = 0; i < matchUsers.size(); ++i) {
-            User matchUser = matchUsers.get(i);
+        var matchUsers = game.getMatchUsers();
+        for (var i = 0; i < matchUsers.size(); ++i) {
+            var matchUser = matchUsers.get(i);
             if (!matchUser.isReady()) {
-                NativeLabel cardPlaceholderLabel = cardPlaceholderLabels.get(i);
+                var cardPlaceholderLabel = cardPlaceholderLabels.get(i);
                 cardPlaceholderLabel.getStyle().set(FONT_WEIGHT_STYLE, BOLD);
             }
         }

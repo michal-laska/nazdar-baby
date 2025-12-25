@@ -32,7 +32,6 @@ public class Game {
 	private User activeUser;
 	private boolean terminatorFlagsReset;
 	private boolean gameInProgress;
-	private boolean everybodyLost;
 
 	Game(UserProvider userProvider, PointProvider pointProvider) {
 		this.userProvider = userProvider;
@@ -53,10 +52,6 @@ public class Game {
 
 	public boolean isGameInProgress() {
 		return gameInProgress;
-	}
-
-	public void setEverybodyLost(boolean everybodyLost) {
-		this.everybodyLost = everybodyLost;
 	}
 
 	public void setGameInProgress(boolean gameInProgress) {
@@ -329,9 +324,7 @@ public class Game {
 
 		initCardPlaceholders();
 
-		if (everybodyLost || matchNumber++ == matchUsers.getFirst().getCards().size()) {
-			everybodyLost = false;
-
+		if (matchNumber++ == matchUsers.getFirst().getCards().size()) {
 			startNewSet();
 			startNewMatch();
 		}

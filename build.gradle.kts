@@ -23,6 +23,7 @@ dependencies {
     val springBootVersion: String by project
     val vaadinVersion: String by project
 
+    implementation("com.vaadin:vaadin-dev:$vaadinVersion")
     implementation("com.vaadin:vaadin-spring-boot-starter:$vaadinVersion")
     implementation("org.apache.commons:commons-lang3:$commonsLang3Version")
     implementation("org.apache.commons:commons-rng-simple:$commonsRngVersion")
