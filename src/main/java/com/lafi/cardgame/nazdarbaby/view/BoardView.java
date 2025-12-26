@@ -109,17 +109,20 @@ public class BoardView extends ParameterizedView {
     }
 
     private void initExpectedTakesField() {
-        UserProvider userProvider = table.getUserProvider();
-        User currentUser = userProvider.getCurrentUser();
+        var userProvider = table.getUserProvider();
+        var currentUser = userProvider.getCurrentUser();
         if (currentUser.getExpectedTakes() != null) {
             return;
         }
 
-        Game game = table.getGame();
+        var game = table.getGame();
         if (expectedTakesField == null) {
+            var botSimulator = game.getBotSimulator();
+            var guess = botSimulator.guessExpectedTakes();
+
             expectedTakesField = new IntegerField();
-            expectedTakesField.setPlaceholder("Your guess");
-            expectedTakesField.addKeyPressListener(Key.ENTER, event -> expectedTakesFieldEnterAction());
+            expectedTakesField.setPlaceholder(String.format("Your guess (%.2f)", guess));
+            expectedTakesField.addKeyPressListener(Key.ENTER, keyPressEvent -> expectedTakesFieldEnterAction());
 
             if (game.isActiveUser()) {
                 UiUtil.focusForNonMobileDevice(expectedTakesField);
@@ -152,7 +155,7 @@ public class BoardView extends ParameterizedView {
             expectedTakesFieldEnterAction();
         } else if (game.isActiveUser()) {
             if (anyNewGameOrLogoutRequest()) {
-                String whiteBorder = ONE_PX_SOLID + WHITE;
+                var whiteBorder = ONE_PX_SOLID + WHITE;
                 expectedTakesField.getStyle().set(BORDER_STYLE, whiteBorder);
             } else {
                 makeExpectedTakesFieldValid();

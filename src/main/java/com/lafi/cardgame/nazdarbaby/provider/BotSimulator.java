@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
 
-class BotSimulator {
+public class BotSimulator {
 
 	private final Set<Card> playedOutCards = new HashSet<>();
 	private final Map<User, Map<User, UserInfo>> botToOtherUsersInfo = new HashMap<>();
@@ -76,8 +76,8 @@ class BotSimulator {
 		}
 
 		if (activeUser.getExpectedTakes() == null) {
-			double expectedTakes = guessExpectedTakes();
-			int expectedTakesRounded = (int) Math.round(expectedTakes);
+			var expectedTakes = guessExpectedTakes();
+			var expectedTakesRounded = (int) Math.floor(expectedTakes);
 
 			if (game.isLastUserWithInvalidExpectedTakes(expectedTakesRounded)) {
 				if (expectedTakes > expectedTakesRounded || expectedTakesRounded == 0) {
@@ -91,13 +91,13 @@ class BotSimulator {
 
 			game.afterActiveUserSetExpectedTakes();
 		} else {
-			List<Card> activeUserCards = activeUser.getCards();
+			var activeUserCards = activeUser.getCards();
 
-			int activeUserIndex = getActiveUserIndex();
-			Card selectedCard = selectCard(activeUserCards);
+			var activeUserIndex = getActiveUserIndex();
+			var selectedCard = selectCard(activeUserCards);
 			cardPlaceholders.set(activeUserIndex, selectedCard);
 
-			int cardIndex = activeUserCards.indexOf(selectedCard);
+			var cardIndex = activeUserCards.indexOf(selectedCard);
 			activeUserCards.set(cardIndex, CardProvider.CARD_PLACEHOLDER);
 
 			game.changeActiveUser();
@@ -133,21 +133,21 @@ class BotSimulator {
 		return lowerKnownCardsInOneColorSize == theCard.getValue() - lowestCardValue;
 	}
 
-	double guessExpectedTakes() {
-		int highestCardValue = getHighestCardValue();
-		int numberOfCardsInOneColor = getNumberOfCardsInOneColor();
-		double magicNumber = highestCardValue - ((double) numberOfCardsInOneColor / users.size()) + 1;
+	public double guessExpectedTakes() {
+		var highestCardValue = getHighestCardValue();
+		var numberOfCardsInOneColor = getNumberOfCardsInOneColor();
+		var magicNumber = highestCardValue - ((double) numberOfCardsInOneColor / users.size()) + 1;
 
-		List<Card> cards = activeUser.getCards();
+		var cards = activeUser.getCards();
 
-		double guess = 0;
-		for (Card card : cards) {
-			int cardValue = card.getValue();
-			double diff = magicNumber - cardValue;
-
+		var guess = 0.0;
+		for (var card : cards) {
 			if (isLowerThanWinningCard(card)) {
 				continue;
 			}
+
+			var cardValue = card.getValue();
+			var diff = magicNumber - cardValue;
 
 			if (cardValue > magicNumber || isPossibleColorToWin(card) && isHighestRemainingCardInColor(cards, card)) {
 				++guess;
@@ -181,10 +181,10 @@ class BotSimulator {
 	}
 
 	private Map<User, UserInfo> getFollowersInfo() {
-		int activeUserIndex = getActiveUserIndex();
-		List<User> predecessors = users.subList(0, activeUserIndex);
+		var activeUserIndex = getActiveUserIndex();
+		var predecessors = users.subList(0, activeUserIndex);
 
-		Map<User, UserInfo> followersInfo = botToOtherUsersInfo.get(activeUser);
+		var followersInfo = botToOtherUsersInfo.getOrDefault(activeUser, HashMap.newHashMap(0));
 		predecessors.forEach(followersInfo::remove);
 
 		return followersInfo;

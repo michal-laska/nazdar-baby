@@ -54,6 +54,10 @@ public class Game {
 		return gameInProgress;
 	}
 
+	public BotSimulator getBotSimulator() {
+		return botSimulator;
+	}
+
 	public void setGameInProgress(boolean gameInProgress) {
 		this.gameInProgress = gameInProgress;
 
