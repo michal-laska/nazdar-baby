@@ -138,7 +138,15 @@ public class BotSimulator {
 		var numberOfCardsInOneColor = getNumberOfCardsInOneColor();
 		var magicNumber = highestCardValue - ((double) numberOfCardsInOneColor / users.size()) + 1;
 
-		var cards = activeUser.getCards();
+		List<Card> cards;
+		if (activeUser.isBot()) {
+			cards = activeUser.getCards();
+		} else {
+			var userProvider = game.getUserProvider();
+			var currentUser = userProvider.getCurrentUser();
+
+			cards = currentUser.getCards();
+		}
 
 		var guess = 0.0;
 		for (var card : cards) {
