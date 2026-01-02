@@ -27,7 +27,8 @@ public final class Constant {
             "Svatava", "Pankrác", "Servác", "Viola", "Zbyšek", "Valdemar", "Jarmil", "Norbert", "Medard", "Dobroslav",
             "Gita", "Vlkoslav", "Čeněk", "Bořivoj", "Ignác", "Gustav", "Vavřinec", "Bartoloměj", "Augustýn", "Evelína",
             "Vladěna", "Bronislav", "Regina", "Irma", "Jeroným", "Hanuš", "Vendelín", "Jonáš", "Liběna", "Saskie",
-            "Bohdan", "Benedikt", "Otmar", "Mahulena", "Cecílie", "Klement", "Xenie", "Ambrož", "Božidara"
+            "Bohdan", "Benedikt", "Otmar", "Mahulena", "Cecílie", "Klement", "Xenie", "Ambrož", "Božidara", "Mečislav",
+			"Mečislava"
     );
 
 	private Constant() {
