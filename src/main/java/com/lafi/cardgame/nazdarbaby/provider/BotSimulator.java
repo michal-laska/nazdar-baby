@@ -157,7 +157,7 @@ public class BotSimulator {
 			var cardValue = card.getValue();
 			var diff = magicNumber - cardValue;
 
-			if (cardValue > magicNumber || isPossibleColorToWin(card) && isHighestRemainingCardInColor(cards, card)) {
+			if (cardValue == highestCardValue || isPossibleColorToWin(card) && isHighestRemainingCardInColor(cards, card)) {
 				++guess;
 			} else if (card.getColor() == Color.HEARTS) {
 				if (areFollowersWithoutHearts(card) || isHighestRemainingCardInColor(cards, card)) {
