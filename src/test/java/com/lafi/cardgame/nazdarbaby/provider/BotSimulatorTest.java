@@ -213,11 +213,12 @@ class BotSimulatorTest {
 			User bot = bots.getFirst();
 			Card card = getHeart(7);
 			bot.addCard(card);
+			bot.setExpectedTakes(1); // number doesn't matter
 
 			botSimulator.setActiveUser(bot);
 			botSimulator.removeColorsForOtherUsers(bot.getCards());
 
-			boolean areOthersWithoutHearts = botSimulator.areFollowersWithoutHearts(card);
+			boolean areOthersWithoutHearts = botSimulator.areFollowersWithoutHearts(bot.getCards(), card);
 			assertThat(areOthersWithoutHearts).isFalse();
 		}
 
@@ -230,11 +231,12 @@ class BotSimulatorTest {
 			User bot = bots.getFirst();
 			Card card = getHeart(7);
 			bot.addCard(card);
+			bot.setExpectedTakes(1); // number doesn't matter
 
 			botSimulator.setActiveUser(bot);
 			botSimulator.removeColorsForOtherUsers(bot.getCards());
 
-			boolean areOthersWithoutHearts = botSimulator.areFollowersWithoutHearts(card);
+			boolean areOthersWithoutHearts = botSimulator.areFollowersWithoutHearts(bot.getCards(), card);
 			assertThat(areOthersWithoutHearts).isFalse();
 		}
 
@@ -247,12 +249,50 @@ class BotSimulatorTest {
 			User bot = bots.getFirst();
 			Card card = getHeart(8);
 			bot.addCard(card);
+			bot.setExpectedTakes(1); // number doesn't matter
 
 			botSimulator.setActiveUser(bot);
 			botSimulator.removeColorsForOtherUsers(bot.getCards());
 
-			boolean areOthersWithoutHearts = botSimulator.areFollowersWithoutHearts(card);
+			boolean areOthersWithoutHearts = botSimulator.areFollowersWithoutHearts(bot.getCards(), card);
 			assertThat(areOthersWithoutHearts).isTrue();
+		}
+
+		@Test
+		void othersWithoutHearts_butExpectedTakesNotSet_returnFalse() {
+			rememberCards(getHearts(9, 10, 11, 12, 13, 14));
+			List<Card> cardPlaceholders = List.of(getHeart(7), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
+
+			User bot = bots.getFirst();
+			Card card = getHeart(8);
+			bot.addCard(card);
+
+			botSimulator.setActiveUser(bot);
+			botSimulator.removeColorsForOtherUsers(bot.getCards());
+
+			boolean areOthersWithoutHearts = botSimulator.areFollowersWithoutHearts(bot.getCards(), card);
+			assertThat(areOthersWithoutHearts).isFalse();
+		}
+
+		@Test
+		void othersWithoutHearts_butCannotPlayHearts_returnFalse() {
+			rememberCards(getHearts(8, 9, 10, 11, 12, 13, 14));
+			List<Card> cardPlaceholders = List.of(getSpade(8), CARD_PLACEHOLDER, CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
+
+			User bot = bots.getFirst();
+			Card card = getHeart(7);
+			Card card2 = getSpade(9);
+			bot.addCard(card);
+			bot.addCard(card2);
+			bot.setExpectedTakes(1); // number doesn't matter
+
+			botSimulator.setActiveUser(bot);
+			botSimulator.removeColorsForOtherUsers(bot.getCards());
+
+			boolean areOthersWithoutHearts = botSimulator.areFollowersWithoutHearts(bot.getCards(), card);
+			assertThat(areOthersWithoutHearts).isFalse();
 		}
 	}
 

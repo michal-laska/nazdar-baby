@@ -77,7 +77,7 @@ public class BotSimulator {
 
 		if (activeUser.getExpectedTakes() == null) {
 			var expectedTakes = guessExpectedTakes();
-			var expectedTakesRounded = (int) Math.floor(expectedTakes);
+			var expectedTakesRounded = (int) Math.round(expectedTakes);
 
 			if (game.isLastUserWithInvalidExpectedTakes(expectedTakesRounded)) {
 				if (expectedTakes > expectedTakesRounded || expectedTakesRounded == 0) {
@@ -134,10 +134,6 @@ public class BotSimulator {
 	}
 
 	public double guessExpectedTakes() {
-		var highestCardValue = getHighestCardValue();
-		var numberOfCardsInOneColor = getNumberOfCardsInOneColor();
-		var magicNumber = highestCardValue - ((double) numberOfCardsInOneColor / users.size()) + 1;
-
 		List<Card> cards;
 		if (activeUser.isBot()) {
 			cards = activeUser.getCards();
@@ -148,6 +144,8 @@ public class BotSimulator {
 			cards = currentUser.getCards();
 		}
 
+		var highestCardValue = getHighestCardValue();
+
 		var guess = 0.0;
 		for (var card : cards) {
 			if (isLowerThanWinningCard(card)) {
@@ -155,20 +153,17 @@ public class BotSimulator {
 			}
 
 			var cardValue = card.getValue();
-			var diff = magicNumber - cardValue;
 
 			if (cardValue == highestCardValue || isPossibleColorToWin(card) && isHighestRemainingCardInColor(cards, card)) {
 				++guess;
 			} else if (card.getColor() == Color.HEARTS) {
-				if (areFollowersWithoutHearts(card) || isHighestRemainingCardInColor(cards, card)) {
+				if (areFollowersWithoutHearts(cards, card) || isHighestRemainingCardInColor(cards, card)) {
 					++guess;
-				} else if (diff < 1) {
-					guess += Math.max(diff, 0.5);
 				} else {
 					guess += 0.5;
 				}
-			} else if (diff < 1) {
-				guess += diff;
+			} else if (cardValue == highestCardValue - 1) {
+				guess += 0.5;
 			}
 		}
 
@@ -179,12 +174,25 @@ public class BotSimulator {
 		return deckOfCardsSize / Color.values().length;
 	}
 
-	boolean areFollowersWithoutHearts(Card card) {
+	boolean areFollowersWithoutHearts(List<Card> cards, Card card) {
+		var winningCardColor = getWinningCard().getColor();
+
+		if (activeUser.getExpectedTakes() == null) {
+			return false;
+		}
+
 		if (isLowerThanWinningCard(card)) {
 			return false;
 		}
 
-		Map<User, UserInfo> followersInfo = getFollowersInfo();
+		if (winningCardColor != Color.HEARTS) {
+			var colors = cards.stream().map(Card::getColor).collect(Collectors.toSet());
+			if (colors.contains(winningCardColor)) {
+				return false;
+			}
+		}
+
+		var followersInfo = getFollowersInfo();
 		return followersInfo.values().stream().noneMatch(UserInfo::hasHearts);
 	}
 
