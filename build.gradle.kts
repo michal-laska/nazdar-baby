@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     id("com.vaadin")
     id("org.springframework.boot")
@@ -9,8 +7,9 @@ plugins {
 group = "com.lafi.cardgame.nazdarbaby"
 version = "2.0-SNAPSHOT"
 
-tasks.compileKotlin {
-    compilerOptions.jvmTarget.set(JvmTarget.JVM_25)
+kotlin {
+    val jdkVersion = JavaVersion.VERSION_25
+    jvmToolchain(jdkVersion.majorVersion.toInt())
 }
 
 repositories {
