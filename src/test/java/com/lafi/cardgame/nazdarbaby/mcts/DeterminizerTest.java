@@ -68,6 +68,40 @@ class DeterminizerTest {
 	}
 
 	@Test
+	void unknownPrediction_doesNotFilterStrongHands() {
+		// Build a pool of only strong cards (aces and kings)
+		List<Card> strongCards = deckOfCards.stream()
+				.filter(card -> card.getValue() >= 13)
+				.toList();
+
+		// Need at least 4 cards for 2 opponents with 2 each
+		assertThat(strongCards).hasSizeGreaterThanOrEqualTo(4);
+		List<Card> unknownCards = strongCards.subList(0, 4);
+
+		int[] opponentSlots = {0, 2, 2}; // bot=0, opponent1=2, opponent2=2
+
+		// prediction=-1 means unknown: plausibility check should be skipped entirely
+		int[] predictions = {-1, -1, -1};
+
+		// Run many times to ensure strong hands are never rejected
+		for (int i = 0; i < 50; i++) {
+			List<List<Card>> hands = Determinizer.sampleOpponentHands(
+					unknownCards, opponentSlots, Map.of(), 0, predictions);
+
+			assertThat(hands.get(0)).isEmpty();
+			assertThat(hands.get(1)).hasSize(2);
+			assertThat(hands.get(2)).hasSize(2);
+
+			// All dealt cards should be from our strong pool
+			for (int p = 1; p <= 2; p++) {
+				for (Card card : hands.get(p)) {
+					assertThat(card.getValue()).isGreaterThanOrEqualTo(13);
+				}
+			}
+		}
+	}
+
+	@Test
 	void noCardDealtTwice() {
 		List<Card> unknownCards = deckOfCards.subList(0, 16);
 		int[] opponentSlots = {0, 8, 8};

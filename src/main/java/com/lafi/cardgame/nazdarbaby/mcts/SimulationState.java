@@ -190,6 +190,10 @@ public final class SimulationState {
 		return expectedTakes[playerIndex];
 	}
 
+	boolean isKnownPrediction(int playerIndex) {
+		return knownPrediction[playerIndex];
+	}
+
 	int getActualTakes(int playerIndex) {
 		return actualTakes[playerIndex];
 	}

@@ -144,5 +144,15 @@ class RolloutPolicyTest {
 			);
 			assertThat(RolloutPolicy.estimateTakes(hand, 3)).isZero();
 		}
+
+		@Test
+		void mixedHand_withKingAndLowCards_estimatesOne() {
+			List<Card> hand = List.of(
+					getCard(7, Color.CLUBS),
+					getCard(13, Color.SPADES),
+					getCard(9, Color.HEARTS)
+			);
+			assertThat(RolloutPolicy.estimateTakes(hand, 3)).isEqualTo(1);
+		}
 	}
 }

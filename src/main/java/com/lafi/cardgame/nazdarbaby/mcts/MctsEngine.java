@@ -95,9 +95,13 @@ public final class MctsEngine {
 		int botIndex = state.getBotPlayerIndex();
 
 		// Build opponent predictions array for prediction-aware determinization
+		// Use -1 for bot and opponents whose predictions aren't known yet,
+		// so Determinizer skips plausibility checks and avoids hand-strength bias.
 		int[] opponentPredictions = new int[state.getTotalPlayers()];
 		for (int i = 0; i < state.getTotalPlayers(); i++) {
 			if (i == botIndex) {
+				opponentPredictions[i] = -1;
+			} else if (!state.isKnownPrediction(i)) {
 				opponentPredictions[i] = -1;
 			} else {
 				opponentPredictions[i] = state.getExpectedTakes(i);
