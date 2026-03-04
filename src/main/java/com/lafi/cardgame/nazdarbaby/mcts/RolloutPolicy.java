@@ -162,7 +162,7 @@ final class RolloutPolicy {
 			}
 			// Lead with a strong non-heart card if possible (save hearts for trumping later)
 			MctsAction bestNonHeart = selectHighestInCategory(actions, false);
-			if (bestNonHeart != null) {
+			if (bestNonHeart instanceof MctsAction.PlayCard play && play.card().getValue() >= KING_VALUE) {
 				return bestNonHeart;
 			}
 			return selectHighest(actions);
