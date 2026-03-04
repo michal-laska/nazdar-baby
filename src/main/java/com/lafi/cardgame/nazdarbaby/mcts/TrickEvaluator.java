@@ -4,7 +4,6 @@ import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.Color;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 public final class TrickEvaluator {
 
@@ -56,14 +55,14 @@ public final class TrickEvaluator {
 		if (hasLeadingColor) {
 			return hand.stream()
 					.filter(card -> card.getColor() == leadingColor)
-					.collect(Collectors.toList());
+					.toList();
 		}
 
 		boolean hasHearts = hand.stream().anyMatch(card -> card.getColor() == Color.HEARTS);
 		if (hasHearts) {
 			return hand.stream()
 					.filter(card -> card.getColor() == Color.HEARTS)
-					.collect(Collectors.toList());
+					.toList();
 		}
 
 		return hand;

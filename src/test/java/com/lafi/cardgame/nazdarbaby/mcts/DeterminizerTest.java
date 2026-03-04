@@ -53,7 +53,7 @@ class DeterminizerTest {
 	}
 
 	@Test
-	void allDealtCardsComeFfromUnknownCards() {
+	void allDealtCardsComeFromUnknownCards() {
 		List<Card> unknownCards = deckOfCards.subList(0, 16);
 		int[] opponentSlots = {0, 8, 8};
 
