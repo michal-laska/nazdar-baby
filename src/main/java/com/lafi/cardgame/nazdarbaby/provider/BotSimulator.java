@@ -53,7 +53,7 @@ public class BotSimulator {
 			if (theUser.isBot()) {
 				Map<User, UserInfo> otherUsersInfo = users.stream()
 						.filter(user -> !user.equals(theUser))
-						.collect(Collectors.toMap(Function.identity(), user -> new UserInfo()));
+						.collect(Collectors.toMap(Function.identity(), _ -> new UserInfo()));
 				botToOtherUsersInfo.put(theUser, otherUsersInfo);
 			}
 		}
@@ -233,22 +233,7 @@ public class BotSimulator {
 
 	private SimulationState buildPredictionState(List<Card> botCards) {
 		int activeUserIndex = getActiveUserIndex();
-
-		List<List<Card>> hands = new ArrayList<>();
-		int[] expectedTakesArr = new int[users.size()];
-		int[] actualTakesArr = new int[users.size()];
-
-		for (int i = 0; i < users.size(); i++) {
-			if (i == activeUserIndex) {
-				hands.add(new ArrayList<>(botCards));
-			} else {
-				// Opponent hand size (same as bot — at prediction start all have same count)
-				hands.add(new ArrayList<>());
-			}
-			User user = users.get(i);
-			expectedTakesArr[i] = user.getExpectedTakes() != null ? user.getExpectedTakes() : 0;
-			actualTakesArr[i] = user.getActualTakes();
-		}
+		var base = buildBaseState(botCards, activeUserIndex);
 
 		// Count how many predictions are already done
 		int predictionsDone = 0;
@@ -259,7 +244,7 @@ public class BotSimulator {
 		}
 
 		SimulationState state = new SimulationState(
-				hands, expectedTakesArr, actualTakesArr,
+				base.hands, base.expectedTakes, base.actualTakes,
 				new ArrayList<>(),
 				SimulationState.Phase.PREDICTING,
 				0, // leadPlayerIndex — first player in match
@@ -282,21 +267,7 @@ public class BotSimulator {
 
 	private SimulationState buildPlayingState(List<Card> botCards) {
 		int activeUserIndex = getActiveUserIndex();
-
-		List<List<Card>> hands = new ArrayList<>();
-		int[] expectedTakesArr = new int[users.size()];
-		int[] actualTakesArr = new int[users.size()];
-
-		for (int i = 0; i < users.size(); i++) {
-			if (i == activeUserIndex) {
-				hands.add(new ArrayList<>(botCards));
-			} else {
-				hands.add(new ArrayList<>());
-			}
-			User user = users.get(i);
-			expectedTakesArr[i] = user.getExpectedTakes() != null ? user.getExpectedTakes() : 0;
-			actualTakesArr[i] = user.getActualTakes();
-		}
+		var base = buildBaseState(botCards, activeUserIndex);
 
 		// Current trick: cards already on table (non-placeholder)
 		List<Card> currentTrick = new ArrayList<>();
@@ -308,31 +279,43 @@ public class BotSimulator {
 			}
 		}
 
-		// Lead player is the first player in this trick (index 0 after rotation)
-		int leadPlayerIndex = 0;
-
-		// Total completed tricks = sum of all players' actual takes / 1 (each trick has exactly one winner)
-		// Simplest: sum all actualTakes — each completed trick increments exactly one player
 		int tricksPlayed = 0;
 		for (User user : users) {
 			tricksPlayed += user.getActualTakes();
 		}
 
-		// Total tricks in the set = cards in hand + completed tricks + in-progress trick
 		boolean trickInProgress = !cardPlaceholders.getFirst().isPlaceholder();
 		int totalTricks = botCards.size() + tricksPlayed + (trickInProgress ? 1 : 0);
 
 		return new SimulationState(
-				hands, expectedTakesArr, actualTakesArr,
+				base.hands, base.expectedTakes, base.actualTakes,
 				currentTrick,
 				SimulationState.Phase.PLAYING,
-				leadPlayerIndex,
+				0, // leadPlayerIndex
 				activeUserIndex,
 				tricksPlayed,
 				totalTricks,
 				activeUserIndex,
 				users.size() // all predictions done
 		);
+	}
+
+	private BaseState buildBaseState(List<Card> botCards, int activeUserIndex) {
+		List<List<Card>> hands = new ArrayList<>();
+		int[] expectedTakes = new int[users.size()];
+		int[] actualTakes = new int[users.size()];
+
+		for (int i = 0; i < users.size(); i++) {
+			hands.add(i == activeUserIndex ? new ArrayList<>(botCards) : new ArrayList<>());
+			User user = users.get(i);
+			expectedTakes[i] = user.getExpectedTakes() != null ? user.getExpectedTakes() : 0;
+			actualTakes[i] = user.getActualTakes();
+		}
+
+		return new BaseState(hands, expectedTakes, actualTakes);
+	}
+
+	private record BaseState(List<List<Card>> hands, int[] expectedTakes, int[] actualTakes) {
 	}
 
 	private List<Card> computeUnknownCards(List<Card> botCards) {
