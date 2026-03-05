@@ -67,6 +67,16 @@ public final class SimulationState {
 	}
 
 	/**
+	 * Set a player's prediction and mark it as known.
+	 * Used to fix opponent predictions from heuristics before tree search,
+	 * avoiding cooperative bias from UCB1 optimizing opponent choices.
+	 */
+	void setFixedPrediction(int playerIndex, int takes) {
+		expectedTakes[playerIndex] = takes;
+		knownPrediction[playerIndex] = true;
+	}
+
+	/**
 	 * Enable prediction mode: reward is pure binary (did bot match its prediction?)
 	 * without opponent-aware scaling. Prevents bias toward extreme predictions.
 	 */

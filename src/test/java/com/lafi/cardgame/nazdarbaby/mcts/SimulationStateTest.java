@@ -174,6 +174,55 @@ class SimulationStateTest {
 	}
 
 	@Nested
+	class FixedPredictionTest {
+
+		@Test
+		void setFixedPrediction_setsExpectedTakesAndMarksKnown() {
+			SimulationState state = createPredictionState(3);
+
+			state.setFixedPrediction(1, 2);
+
+			assertThat(state.getExpectedTakes(1)).isEqualTo(2);
+			assertThat(state.isKnownPrediction(1)).isTrue();
+		}
+
+		@Test
+		void fixedOpponentPredictions_autoAdvanceToPlayingPhase() {
+			SimulationState state = createPredictionState(2);
+			state.setFixedPrediction(1, 1);
+			state.setFixedPrediction(2, 0);
+
+			// Bot (player 0) predicts — should auto-advance through known opponents
+			state.applyAction(new MctsAction.PredictTakes(1));
+
+			assertThat(state.getPhase()).isEqualTo(SimulationState.Phase.PLAYING);
+		}
+
+		@Test
+		void fixedOpponentPredictions_preservedAfterAutoAdvance() {
+			SimulationState state = createPredictionState(2);
+			state.setFixedPrediction(1, 1);
+			state.setFixedPrediction(2, 0);
+
+			state.applyAction(new MctsAction.PredictTakes(1));
+
+			assertThat(state.getExpectedTakes(1)).isEqualTo(1);
+			assertThat(state.getExpectedTakes(2)).isZero();
+		}
+
+		@Test
+		void fixedPrediction_returnsOnlyOneAction() {
+			SimulationState state = createPredictionState(3);
+			state.setFixedPrediction(0, 2);
+
+			List<MctsAction> actions = state.getLegalActions();
+
+			assertThat(actions).hasSize(1);
+			assertThat(((MctsAction.PredictTakes) actions.getFirst()).takes()).isEqualTo(2);
+		}
+	}
+
+	@Nested
 	class DeepCopyTest {
 
 		@Test

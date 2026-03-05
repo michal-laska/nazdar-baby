@@ -73,6 +73,7 @@ public final class MctsEngine {
 		int opponents = baseState.getTotalPlayers() - 1;
 		int iterations = computeIterations(handSize, opponents);
 		int determinizations = computeDeterminizations(handSize, opponents);
+
 		Map<Integer, double[]> takesStats = new HashMap<>();
 		int iterationsPerWorld = iterations / determinizations;
 
@@ -120,6 +121,18 @@ public final class MctsEngine {
 				List<Card> hand = state.getHand(i);
 				hand.clear();
 				hand.addAll(sampledHands.get(i));
+			}
+		}
+
+		// Fix unknown opponent predictions based on their dealt hands.
+		// Avoids searching opponent predictions in the tree — UCB1 would
+		// select predictions that help the bot, creating cooperative bias.
+		if (state.getPhase() == SimulationState.Phase.PREDICTING) {
+			for (int i = 0; i < state.getTotalPlayers(); i++) {
+				if (i != botIndex && !state.isKnownPrediction(i)) {
+					int estimate = RolloutPolicy.estimateTakes(state.getHand(i), state.getTotalPlayers());
+					state.setFixedPrediction(i, estimate);
+				}
 			}
 		}
 
