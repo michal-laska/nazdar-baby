@@ -132,10 +132,16 @@ final class RolloutPolicy {
 		int expected = state.getExpectedTakes(playerIndex);
 		int actual = state.getActualTakes(playerIndex);
 		int needed = expected - actual;
+		int remaining = state.getTotalTricks() - state.getTricksPlayed();
 
 		List<Card> currentTrick = state.getCurrentTrick();
 		boolean isLeading = currentTrick.isEmpty();
 		boolean isLast = currentTrick.size() == state.getTotalPlayers() - 1;
+
+		// Can't possibly match prediction — play to disrupt others
+		if (needed < 0 || needed > remaining) {
+			return selectToDisrupt(state, actions, currentTrick, isLast);
+		}
 
 		if (isLeading) {
 			return selectLeadCard(state, actions, needed);
@@ -171,6 +177,60 @@ final class RolloutPolicy {
 		// Don't need more tricks — lead low to avoid winning
 		// Prefer leading from a suit with fewest cards (work toward creating a void)
 		return selectLowestFromShortestSuit(state, actions);
+	}
+
+	/**
+	 * Can't match prediction — play to disrupt other players' predictions.
+	 * More losers = less penalty for each loser.
+	 */
+	private static MctsAction selectToDisrupt(SimulationState state, List<MctsAction> actions,
+											  List<Card> currentTrick, boolean isLast) {
+		if (currentTrick.isEmpty()) {
+			return selectDisruptiveLead(state, actions);
+		}
+
+		// Find who's currently winning the trick
+		int winnerOffset = TrickEvaluator.getWinningIndex(currentTrick);
+		int winnerIndex = (state.getLeadPlayerIndex() + winnerOffset) % state.getTotalPlayers();
+		int winnerNeeded = state.getExpectedTakes(winnerIndex) - state.getActualTakes(winnerIndex);
+
+		if (winnerNeeded <= 0) {
+			// Current winner doesn't want this trick — play low to force an unwanted take
+			return selectLowest(actions);
+		}
+
+		// Current winner needs this trick — try to steal it
+		return selectToWin(actions, currentTrick, isLast);
+	}
+
+	/**
+	 * Leading when disrupting: choose based on what opponents need.
+	 * If most opponents need to avoid tricks — lead low to force an unwanted take.
+	 * If most opponents still need tricks — lead high to steal from them.
+	 */
+	private static MctsAction selectDisruptiveLead(SimulationState state, List<MctsAction> actions) {
+		int currentPlayer = state.getCurrentPlayerIndex();
+		int needingTricks = 0;
+		int avoidingTricks = 0;
+
+		for (int i = 0; i < state.getTotalPlayers(); i++) {
+			if (i == currentPlayer) {
+				continue;
+			}
+			int oppNeeded = state.getExpectedTakes(i) - state.getActualTakes(i);
+			if (oppNeeded > 0) {
+				needingTricks++;
+			} else if (oppNeeded == 0) {
+				avoidingTricks++;
+			}
+		}
+
+		if (needingTricks > avoidingTricks) {
+			// Most opponents need tricks — lead high to steal
+			return selectHighest(actions);
+		}
+		// Most opponents are on target or exceeded — lead low to force unwanted takes
+		return selectLowest(actions);
 	}
 
 	/**
@@ -395,10 +455,11 @@ final class RolloutPolicy {
 		if (action instanceof MctsAction.PlayCard) {
 			int playerIndex = state.getCurrentPlayerIndex();
 			int needed = state.getExpectedTakes(playerIndex) - state.getActualTakes(playerIndex);
+			int remaining = state.getTotalTricks() - state.getTricksPlayed();
 			List<Card> currentTrick = state.getCurrentTrick();
 			boolean isLast = currentTrick.size() == state.getTotalPlayers() - 1;
 
-			int score = scorePlayAction(action, needed, currentTrick, isLast);
+			int score = scorePlayAction(action, needed, remaining, currentTrick, isLast);
 			// Sigmoid normalization: maps any score to (0, 1)
 			return 1.0 / (1.0 + Math.exp(-score / 200.0));
 		}
@@ -442,16 +503,18 @@ final class RolloutPolicy {
 	private static List<MctsAction> prioritizePlays(SimulationState state, List<MctsAction> actions) {
 		int playerIndex = state.getCurrentPlayerIndex();
 		int needed = state.getExpectedTakes(playerIndex) - state.getActualTakes(playerIndex);
+		int remaining = state.getTotalTricks() - state.getTricksPlayed();
 		List<Card> currentTrick = state.getCurrentTrick();
 		boolean isLast = currentTrick.size() == state.getTotalPlayers() - 1;
 
 		// Score each action — higher score = better = placed last (tried first)
 		List<MctsAction> sorted = new ArrayList<>(actions);
-		sorted.sort(Comparator.comparingInt(a -> scorePlayAction(a, needed, currentTrick, isLast)));
+		sorted.sort(Comparator.comparingInt(a -> scorePlayAction(a, needed, remaining, currentTrick, isLast)));
 		return sorted;
 	}
 
-	private static int scorePlayAction(MctsAction action, int needed, List<Card> currentTrick, boolean isLast) {
+	private static int scorePlayAction(MctsAction action, int needed, int remaining,
+									List<Card> currentTrick, boolean isLast) {
 		if (!(action instanceof MctsAction.PlayCard play)) {
 			return 0;
 		}
@@ -459,6 +522,18 @@ final class RolloutPolicy {
 		Card card = play.card();
 		int strength = cardStrength(card);
 		boolean leading = currentTrick.isEmpty();
+
+		// Can't match prediction — disrupt others
+		if (needed < 0 || needed > remaining) {
+			if (leading) {
+				// Direction determined by opponent state (high to steal, low to force)
+				// Default to low (force unwanted takes) — context-aware lead is in rollout
+				return -strength;
+			}
+			boolean wins = wouldWinTrick(card, currentTrick);
+			// Favor stealing from opponents who need the trick
+			return wins ? 1000 + strength : -strength;
+		}
 
 		if (leading) {
 			// Leading: need tricks → prefer high; don't need → prefer low
