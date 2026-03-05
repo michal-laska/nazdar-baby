@@ -118,8 +118,9 @@ public class BotSimulator {
 		List<Card> unknownCards = computeUnknownCards(nonPlaceholderCards);
 		int[] opponentSlots = computeOpponentSlots(nonPlaceholderCards.size());
 		Map<Integer, Set<Color>> colorVoids = computeColorVoids();
+		Map<Integer, Set<Card>> excludedCards = computeExcludedCards(unknownCards);
 
-		return mctsEngine.predictTakes(state, unknownCards, opponentSlots, colorVoids);
+		return mctsEngine.predictTakes(state, unknownCards, opponentSlots, colorVoids, excludedCards);
 	}
 
 	void removeColorsForOtherUsers(List<Card> cards) {
@@ -153,8 +154,9 @@ public class BotSimulator {
 		List<Card> unknownCards = computeUnknownCards(nonPlaceholderCards);
 		int[] opponentSlots = computeOpponentSlots(nonPlaceholderCards.size());
 		Map<Integer, Set<Color>> colorVoids = computeColorVoids();
+		Map<Integer, Set<Card>> excludedCards = computeExcludedCards(unknownCards);
 
-		Card mctsCard = mctsEngine.selectCard(state, unknownCards, opponentSlots, colorVoids);
+		Card mctsCard = mctsEngine.selectCard(state, unknownCards, opponentSlots, colorVoids, excludedCards);
 
 		// Fallback if MCTS returns null or an illegal card
 		if (mctsCard == null || !sortedPlayableCards.contains(mctsCard)) {
@@ -223,6 +225,74 @@ public class BotSimulator {
 						}
 					}
 				}
+			}
+		}
+
+		// Infer card value caps from completed tricks not yet processed
+		boolean trickComplete = cardPlaceholders.stream().noneMatch(Card::isPlaceholder);
+		if (trickComplete && !playedOutCards.contains(leadingCard)) {
+			inferCardValueCaps();
+		}
+	}
+
+	/**
+	 * When the last player in a trick follows the winning card's suit but plays
+	 * a lower value while needing tricks, they almost certainly don't have higher
+	 * cards of that suit — being last, there's no strategic reason to hold back.
+	 */
+	private void inferCardValueCaps() {
+		// Find the winning card and its position (same logic as TrickEvaluator)
+		Card winningCard = cardPlaceholders.getFirst();
+		int winnerIndex = 0;
+		for (int i = 1; i < cardPlaceholders.size(); i++) {
+			Card card = cardPlaceholders.get(i);
+			if (winningCard.getColor() == card.getColor()) {
+				if (card.getValue() > winningCard.getValue()) {
+					winningCard = card;
+					winnerIndex = i;
+				}
+			} else if (card.getColor() == Color.HEARTS) {
+				winningCard = card;
+				winnerIndex = i;
+			}
+		}
+
+		int lastIndex = cardPlaceholders.size() - 1;
+		if (lastIndex == winnerIndex) {
+			return; // Last player won — no inference
+		}
+
+		Card lastCard = cardPlaceholders.get(lastIndex);
+		if (lastCard.getColor() != winningCard.getColor()) {
+			return; // Different suits — can't infer value bounds
+		}
+
+		User lastUser = users.get(lastIndex);
+		Integer expectedTakes = lastUser.getExpectedTakes();
+		if (expectedTakes == null) {
+			return;
+		}
+		int needed = expectedTakes - lastUser.getActualTakes();
+		if (needed <= 0) {
+			return; // Doesn't need more tricks — may have played low deliberately
+		}
+
+		long remainingTricks = lastUser.getCards().stream()
+				.filter(card -> !card.isPlaceholder())
+				.count();
+		if (needed != remainingTricks) {
+			return; // Can afford to skip (needed < remaining) or already lost (needed > remaining)
+		}
+
+		// Last player needed tricks, played same suit as winner but lower value
+		// → they don't have cards of that suit above the winning card's value
+		Color capColor = winningCard.getColor();
+		int capValue = winningCard.getValue();
+
+		for (Map<User, UserInfo> otherUsersInfo : botToOtherUsersInfo.values()) {
+			UserInfo userInfo = otherUsersInfo.get(lastUser);
+			if (userInfo != null) {
+				userInfo.capCardValue(capColor, capValue);
 			}
 		}
 	}
@@ -354,6 +424,43 @@ public class BotSimulator {
 		return slots;
 	}
 
+	private Map<Integer, Set<Card>> computeExcludedCards(List<Card> unknownCards) {
+		Map<Integer, Set<Card>> excluded = new HashMap<>();
+		int activeUserIndex = getActiveUserIndex();
+
+		Map<User, UserInfo> otherUsersInfo = botToOtherUsersInfo.getOrDefault(activeUser, Map.of());
+
+		for (int i = 0; i < users.size(); i++) {
+			if (i == activeUserIndex) {
+				continue;
+			}
+			User user = users.get(i);
+			UserInfo info = otherUsersInfo.get(user);
+			if (info == null) {
+				continue;
+			}
+
+			Map<Color, Integer> caps = info.getCardValueCaps();
+			if (caps.isEmpty()) {
+				continue;
+			}
+
+			Set<Card> playerExcluded = new HashSet<>();
+			for (Card card : unknownCards) {
+				Integer cap = caps.get(card.getColor());
+				if (cap != null && card.getValue() > cap) {
+					playerExcluded.add(card);
+				}
+			}
+
+			if (!playerExcluded.isEmpty()) {
+				excluded.put(i, playerExcluded);
+			}
+		}
+
+		return excluded;
+	}
+
 	private Map<Integer, Set<Color>> computeColorVoids() {
 		Map<Integer, Set<Color>> voids = new HashMap<>();
 		int activeUserIndex = getActiveUserIndex();
@@ -385,6 +492,8 @@ public class BotSimulator {
 	private static final class UserInfo {
 
 		private final Set<Color> colorsInHand = new HashSet<>(Arrays.asList(Color.values()));
+		// Upper bound on card value per color: player has no cards of this color with value > bound
+		private final Map<Color, Integer> cardValueCaps = new HashMap<>();
 
 		private boolean hasHearts() {
 			return hasColor(Color.HEARTS);
@@ -396,6 +505,14 @@ public class BotSimulator {
 
 		private void removeColor(Color color) {
 			colorsInHand.remove(color);
+		}
+
+		private void capCardValue(Color color, int maxValue) {
+			cardValueCaps.merge(color, maxValue, Math::min);
+		}
+
+		private Map<Color, Integer> getCardValueCaps() {
+			return cardValueCaps;
 		}
 	}
 }

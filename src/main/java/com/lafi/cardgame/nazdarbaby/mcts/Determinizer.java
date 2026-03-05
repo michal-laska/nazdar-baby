@@ -35,10 +35,11 @@ final class Determinizer {
 	 */
 	static List<List<Card>> sampleOpponentHands(List<Card> unknownCards, int[] opponentSlots,
 												Map<Integer, Set<Color>> colorVoids, int botPlayerIndex,
-												int[] opponentPredictions) {
+												int[] opponentPredictions,
+												Map<Integer, Set<Card>> excludedCards) {
 		int totalPlayers = opponentSlots.length;
 
-		// Sort opponents by most-constrained-first (most color voids)
+		// Sort opponents by most-constrained-first (color voids + card exclusions)
 		List<Integer> dealOrder = new ArrayList<>();
 		for (int i = 0; i < totalPlayers; i++) {
 			if (i != botPlayerIndex) {
@@ -46,7 +47,8 @@ final class Determinizer {
 			}
 		}
 		dealOrder.sort(Comparator.comparingInt(
-				(Integer idx) -> colorVoids.getOrDefault(idx, Set.of()).size()).reversed());
+				(Integer idx) -> colorVoids.getOrDefault(idx, Set.of()).size()
+						+ excludedCards.getOrDefault(idx, Set.of()).size()).reversed());
 
 		for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
 			List<Card> shuffled = new ArrayList<>(unknownCards);
@@ -57,7 +59,7 @@ final class Determinizer {
 				hands.add(new ArrayList<>());
 			}
 
-			boolean valid = tryDeal(shuffled, hands, opponentSlots, colorVoids, dealOrder);
+			boolean valid = tryDeal(shuffled, hands, opponentSlots, colorVoids, excludedCards, dealOrder);
 			if (valid && isPredictionPlausible(hands, opponentPredictions, botPlayerIndex)) {
 				return hands;
 			}
@@ -85,29 +87,40 @@ final class Determinizer {
 	}
 
 	/**
-	 * Overload without predictions for backward compatibility (tests).
+	 * Overload without exclusions for backward compatibility (tests).
+	 */
+	static List<List<Card>> sampleOpponentHands(List<Card> unknownCards, int[] opponentSlots,
+												Map<Integer, Set<Color>> colorVoids, int botPlayerIndex,
+												int[] opponentPredictions) {
+		return sampleOpponentHands(unknownCards, opponentSlots, colorVoids, botPlayerIndex, opponentPredictions, Map.of());
+	}
+
+	/**
+	 * Overload without predictions and exclusions for backward compatibility (tests).
 	 */
 	static List<List<Card>> sampleOpponentHands(List<Card> unknownCards, int[] opponentSlots,
 												Map<Integer, Set<Color>> colorVoids, int botPlayerIndex) {
 		int[] noPredictions = new int[opponentSlots.length];
 		java.util.Arrays.fill(noPredictions, -1);
-		return sampleOpponentHands(unknownCards, opponentSlots, colorVoids, botPlayerIndex, noPredictions);
+		return sampleOpponentHands(unknownCards, opponentSlots, colorVoids, botPlayerIndex, noPredictions, Map.of());
 	}
 
 	private static boolean tryDeal(List<Card> shuffled, List<List<Card>> hands,
 									int[] opponentSlots, Map<Integer, Set<Color>> colorVoids,
+									Map<Integer, Set<Card>> excludedCards,
 									List<Integer> dealOrder) {
 		int cardIndex = 0;
 
 		for (int playerIndex : dealOrder) {
 			Set<Color> voids = colorVoids.getOrDefault(playerIndex, Set.of());
+			Set<Card> excluded = excludedCards.getOrDefault(playerIndex, Set.of());
 			int needed = opponentSlots[playerIndex];
 
 			for (int j = 0; j < needed; j++) {
 				boolean placed = false;
 				for (int k = cardIndex; k < shuffled.size(); k++) {
 					Card card = shuffled.get(k);
-					if (!voids.contains(card.getColor())) {
+					if (!voids.contains(card.getColor()) && !excluded.contains(card)) {
 						hands.get(playerIndex).add(card);
 						// Swap used card to cardIndex position
 						shuffled.set(k, shuffled.get(cardIndex));

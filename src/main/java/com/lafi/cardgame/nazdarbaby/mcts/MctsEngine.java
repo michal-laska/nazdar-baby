@@ -36,7 +36,8 @@ public final class MctsEngine {
 	 * Select the best card to play using MCTS with determinization.
 	 */
 	public Card selectCard(SimulationState baseState, List<Card> unknownCards,
-						   int[] opponentSlots, Map<Integer, Set<Color>> colorVoids) {
+						   int[] opponentSlots, Map<Integer, Set<Color>> colorVoids,
+						   Map<Integer, Set<Card>> excludedCards) {
 		int handSize = baseState.getHand(baseState.getBotPlayerIndex()).size();
 		int opponents = baseState.getTotalPlayers() - 1;
 		int iterations = computeIterations(handSize, opponents);
@@ -45,7 +46,7 @@ public final class MctsEngine {
 		int iterationsPerWorld = iterations / determinizations;
 
 		for (int d = 0; d < determinizations; d++) {
-			SimulationState state = createDeterminizedState(baseState, unknownCards, opponentSlots, colorVoids);
+			SimulationState state = createDeterminizedState(baseState, unknownCards, opponentSlots, colorVoids, excludedCards);
 
 			MctsNode root = new MctsNode(null, null, RolloutPolicy.prioritizeActions(state, state.getLegalActions()));
 
@@ -64,7 +65,8 @@ public final class MctsEngine {
 	 * Uses pure binary reward (no sole-winner bias) to find the most likely outcome.
 	 */
 	public double predictTakes(SimulationState baseState, List<Card> unknownCards,
-							   int[] opponentSlots, Map<Integer, Set<Color>> colorVoids) {
+							   int[] opponentSlots, Map<Integer, Set<Color>> colorVoids,
+							   Map<Integer, Set<Card>> excludedCards) {
 		baseState.setPredictionMode(true);
 
 		int handSize = baseState.getHand(baseState.getBotPlayerIndex()).size();
@@ -75,7 +77,7 @@ public final class MctsEngine {
 		int iterationsPerWorld = iterations / determinizations;
 
 		for (int d = 0; d < determinizations; d++) {
-			SimulationState state = createDeterminizedState(baseState, unknownCards, opponentSlots, colorVoids);
+			SimulationState state = createDeterminizedState(baseState, unknownCards, opponentSlots, colorVoids, excludedCards);
 
 			MctsNode root = new MctsNode(null, null, RolloutPolicy.prioritizeActions(state, state.getLegalActions()));
 
@@ -90,7 +92,8 @@ public final class MctsEngine {
 	}
 
 	private SimulationState createDeterminizedState(SimulationState baseState, List<Card> unknownCards,
-													int[] opponentSlots, Map<Integer, Set<Color>> colorVoids) {
+													int[] opponentSlots, Map<Integer, Set<Color>> colorVoids,
+													Map<Integer, Set<Card>> excludedCards) {
 		SimulationState state = baseState.deepCopy();
 		int botIndex = state.getBotPlayerIndex();
 
@@ -109,7 +112,7 @@ public final class MctsEngine {
 		}
 
 		List<List<Card>> sampledHands = Determinizer.sampleOpponentHands(
-				unknownCards, opponentSlots, colorVoids, botIndex, opponentPredictions);
+				unknownCards, opponentSlots, colorVoids, botIndex, opponentPredictions, excludedCards);
 
 		// Replace opponent hands in the state copy
 		for (int i = 0; i < state.getTotalPlayers(); i++) {
