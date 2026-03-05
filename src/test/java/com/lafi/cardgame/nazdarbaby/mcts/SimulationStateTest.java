@@ -142,6 +142,35 @@ class SimulationStateTest {
 			SimulationState state = createTerminalState(1, 0);
 			assertThat(state.getRewardForBot()).isEqualTo(0.0);
 		}
+
+		@Test
+		void multipleLoserConsolation_returnsSmallReward() {
+			// Bot predicted 1, took 0 → loss. Opponents predicted 1, took 0 → also lose.
+			// Multiple losers → consolation reward 0.1
+			SimulationState state = createTerminalStateWithOpponents(1, 0, 1, 0);
+			assertThat(state.getRewardForBot()).isEqualTo(0.1);
+		}
+
+		@Test
+		void predictionMode_returnsOnlyBinaryReward() {
+			// Sole winner normally gets 1.0, shared win gets 1.0/winCount.
+			// In prediction mode, both should return 1.0 (pure binary).
+			SimulationState sharedWin = createTerminalState(0, 0); // all 3 win
+			sharedWin.setPredictionMode(true);
+			assertThat(sharedWin.getRewardForBot()).isEqualTo(1.0);
+
+			SimulationState loss = createTerminalState(1, 0);
+			loss.setPredictionMode(true);
+			assertThat(loss.getRewardForBot()).isEqualTo(0.0);
+		}
+
+		@Test
+		void predictionMode_noConsolation() {
+			// In prediction mode, multiple losers should NOT get 0.1 consolation
+			SimulationState state = createTerminalStateWithOpponents(1, 0, 1, 0);
+			state.setPredictionMode(true);
+			assertThat(state.getRewardForBot()).isEqualTo(0.0);
+		}
 	}
 
 	@Nested

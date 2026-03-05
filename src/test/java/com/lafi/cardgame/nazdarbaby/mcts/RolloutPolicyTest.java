@@ -127,6 +127,120 @@ class RolloutPolicyTest {
 	}
 
 	@Nested
+	class DisruptionTest {
+
+		@Test
+		void leadLow_whenMostOpponentsOnTarget() {
+			Card aceSpades = getCard(14, Color.SPADES);
+			Card sevenClubs = getCard(7, Color.CLUBS);
+
+			// Bot predicted 2, has 0, only 1 trick remaining → needed(2) > remaining(1) → disrupt
+			// Opponents: predicted 0, actual 0 → on target (avoiding tricks)
+			SimulationState state = createDisruptionLeadState(
+					List.of(aceSpades, sevenClubs),
+					new int[]{2, 0, 0}, // expected
+					new int[]{0, 0, 0}, // actual
+					1 // tricksPlayed (1 remaining out of 2 total)
+			);
+
+			RolloutPolicy.rollout(state);
+
+			// Should lead low (7♣) to force unwanted take on opponents who are on target
+			assertThat(state.getHand(0)).doesNotContain(sevenClubs);
+		}
+
+		@Test
+		void leadHigh_whenMostOpponentsNeedTricks() {
+			Card aceSpades = getCard(14, Color.SPADES);
+			Card sevenClubs = getCard(7, Color.CLUBS);
+
+			// Bot predicted 2, has 0, only 1 trick remaining → disrupt
+			// Opponents: predicted 1, actual 0 → need tricks
+			SimulationState state = createDisruptionLeadState(
+					List.of(aceSpades, sevenClubs),
+					new int[]{2, 1, 1}, // expected
+					new int[]{0, 0, 0}, // actual
+					1 // tricksPlayed
+			);
+
+			RolloutPolicy.rollout(state);
+
+			// Should lead high (A♠) to steal from opponents who need tricks
+			assertThat(state.getHand(0)).doesNotContain(aceSpades);
+		}
+
+		@Test
+		void followLow_whenWinnerDoesNotNeedTrick() {
+			Card aceSpades = getCard(14, Color.SPADES);
+			Card sevenSpades = getCard(7, Color.SPADES);
+			Card tenSpades = getCard(10, Color.SPADES);
+
+			// Bot is player 2 (last), predicted 0, actual 1 → needed < 0 → disrupt
+			// Player 0 led 10♠, player 1 hasn't played yet — simplified:
+			// Bot has spades, trick has 10♠, winner (player 0) predicted 0, actual 0 → doesn't need more
+			SimulationState state = createDisruptionFollowState(
+					List.of(aceSpades, sevenSpades),
+					List.of(tenSpades), // current trick
+					new int[]{0, 0, 0}, // expected: winner (player 0) doesn't need tricks
+					new int[]{0, 0, 1}, // actual: bot exceeded prediction
+					0 // lead player index
+			);
+
+			List<MctsAction> actions = state.getLegalActions();
+			// Bot must follow spades. Both A♠ and 7♠ are legal.
+			assertThat(actions).hasSize(2);
+
+			RolloutPolicy.rollout(state);
+
+			// Winner doesn't need trick → play low to force unwanted take
+			assertThat(state.getHand(2)).doesNotContain(sevenSpades);
+		}
+
+		/**
+		 * Create a state where player 0 (bot) leads and is in disruption mode.
+		 */
+		private SimulationState createDisruptionLeadState(List<Card> botHand,
+														  int[] expected, int[] actual,
+														  int tricksPlayed) {
+			List<List<Card>> hands = new ArrayList<>();
+			hands.add(new ArrayList<>(botHand));
+			hands.add(new ArrayList<>(List.of(getCard(8, Color.SPADES), getCard(9, Color.DIAMONDS))));
+			hands.add(new ArrayList<>(List.of(getCard(8, Color.DIAMONDS), getCard(9, Color.SPADES))));
+
+			return new SimulationState(
+					hands, expected, actual,
+					new ArrayList<>(),
+					SimulationState.Phase.PLAYING,
+					0, 0, tricksPlayed,
+					tricksPlayed + botHand.size(), // total tricks
+					0, 3
+			);
+		}
+
+		/**
+		 * Create a state where player 2 (bot) follows and is in disruption mode.
+		 */
+		private SimulationState createDisruptionFollowState(List<Card> botHand,
+															List<Card> currentTrick,
+															int[] expected, int[] actual,
+															int leadPlayerIndex) {
+			List<List<Card>> hands = new ArrayList<>();
+			hands.add(new ArrayList<>(List.of(getCard(9, Color.DIAMONDS))));
+			hands.add(new ArrayList<>(List.of(getCard(8, Color.DIAMONDS))));
+			hands.add(new ArrayList<>(botHand));
+
+			return new SimulationState(
+					hands, expected, actual,
+					new ArrayList<>(currentTrick),
+					SimulationState.Phase.PLAYING,
+					leadPlayerIndex, 2, 0,
+					1, // 1 total trick
+					2, 3 // bot=player 2
+			);
+		}
+	}
+
+	@Nested
 	class EstimateTakesTest {
 
 		@Test

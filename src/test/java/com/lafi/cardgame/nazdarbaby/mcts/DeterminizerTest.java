@@ -102,6 +102,47 @@ class DeterminizerTest {
 	}
 
 	@Test
+	void respectsExcludedCards() {
+		List<Card> unknownCards = deckOfCards.subList(0, 16);
+		int[] opponentSlots = {0, 8, 8};
+
+		// Find a specific card to exclude for player 1
+		Card excludedCard = unknownCards.getFirst();
+		Map<Integer, Set<Card>> excludedCards = Map.of(1, Set.of(excludedCard));
+
+		for (int i = 0; i < 50; i++) {
+			List<List<Card>> hands = Determinizer.sampleOpponentHands(
+					unknownCards, opponentSlots, Map.of(), 0,
+					new int[]{-1, -1, -1}, excludedCards);
+
+			assertThat(hands.get(1)).doesNotContain(excludedCard);
+		}
+	}
+
+	@Test
+	void excludedCardCanGoToOtherPlayer() {
+		List<Card> unknownCards = deckOfCards.subList(0, 16);
+		int[] opponentSlots = {0, 8, 8};
+
+		Card excludedCard = unknownCards.getFirst();
+		Map<Integer, Set<Card>> excludedCards = Map.of(1, Set.of(excludedCard));
+
+		boolean player2GotExcludedCard = false;
+		for (int i = 0; i < 50; i++) {
+			List<List<Card>> hands = Determinizer.sampleOpponentHands(
+					unknownCards, opponentSlots, Map.of(), 0,
+					new int[]{-1, -1, -1}, excludedCards);
+
+			if (hands.get(2).contains(excludedCard)) {
+				player2GotExcludedCard = true;
+				break;
+			}
+		}
+
+		assertThat(player2GotExcludedCard).isTrue();
+	}
+
+	@Test
 	void noCardDealtTwice() {
 		List<Card> unknownCards = deckOfCards.subList(0, 16);
 		int[] opponentSlots = {0, 8, 8};
