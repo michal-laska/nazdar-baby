@@ -92,6 +92,31 @@ class MctsEngineTest {
 		}
 
 		@Test
+		void lastPredictor_usesRemainingTricksContext() {
+			// Opponents predicted 0 each (sum=0), 3 tricks total, remaining=3
+			// Bot has 3 aces — hand estimate ≈ 3, remaining = 3
+			// With context blending, should still predict at least 2
+			Card aceHearts = getCard(14, Color.HEARTS);
+			Card aceClubs = getCard(14, Color.CLUBS);
+			Card aceSpades = getCard(14, Color.SPADES);
+			List<Card> botHand = List.of(aceHearts, aceClubs, aceSpades);
+
+			SimulationState state = createPredictionState(botHand, 2, 2);
+			state.setFixedPrediction(0, 0);
+			state.setFixedPrediction(1, 0);
+
+			List<Card> unknownCards = new ArrayList<>(deckOfCards);
+			unknownCards.removeAll(botHand);
+			int[] opponentSlots = {3, 3, 0};
+
+			double prediction = engine.predictTakes(state, unknownCards, opponentSlots,
+					Map.of(), Map.of());
+
+			// Opponents claimed 0 tricks → 3 remaining for bot, hand is very strong
+			assertThat(prediction).isGreaterThanOrEqualTo(2.0);
+		}
+
+		@Test
 		void firstPredictor_opponentPredictionsFixed() {
 			// Even as first predictor (no known predictions), should work —
 			// opponent predictions are fixed during determinization

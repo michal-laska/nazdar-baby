@@ -224,6 +224,10 @@ public final class SimulationState {
 		return totalPlayers;
 	}
 
+	int getPredictionsDone() {
+		return predictionsDone;
+	}
+
 	int getLeadPlayerIndex() {
 		return leadPlayerIndex;
 	}

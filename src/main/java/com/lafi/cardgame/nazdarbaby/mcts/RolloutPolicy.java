@@ -459,8 +459,7 @@ final class RolloutPolicy {
 	static double heuristicValue(SimulationState state, MctsAction action) {
 		if (action instanceof MctsAction.PredictTakes predict) {
 			int playerIndex = state.getCurrentPlayerIndex();
-			List<Card> hand = state.getHand(playerIndex);
-			int estimate = estimateTakes(hand, state.getTotalPlayers());
+			int estimate = estimateInContext(state, playerIndex);
 			int distance = Math.abs(predict.takes() - estimate);
 			// 1.0 for exact match, 0.5 for off-by-1, 0.33 for off-by-2, etc.
 			return 1.0 / (1.0 + distance);
@@ -499,9 +498,7 @@ final class RolloutPolicy {
 
 	private static List<MctsAction> prioritizePredictions(SimulationState state, List<MctsAction> actions) {
 		int playerIndex = state.getCurrentPlayerIndex();
-		List<Card> hand = state.getHand(playerIndex);
-		int totalPlayers = state.getTotalPlayers();
-		int estimate = estimateTakes(hand, totalPlayers);
+		int estimate = estimateInContext(state, playerIndex);
 
 		// Sort by distance from heuristic estimate — closest last (tried first)
 		List<MctsAction> sorted = new ArrayList<>(actions);
@@ -571,6 +568,35 @@ final class RolloutPolicy {
 			// Forced to win — dump highest to shed dangerous cards
 			return -1000 + strength;
 		}
+	}
+
+	/**
+	 * Context-aware estimate: blends hand strength with remaining tricks
+	 * when all other players have actually committed their predictions
+	 * (last predictor advantage). Falls back to pure hand strength otherwise.
+	 */
+	private static int estimateInContext(SimulationState state, int playerIndex) {
+		List<Card> hand = state.getHand(playerIndex);
+		int handEstimate = estimateTakes(hand, state.getTotalPlayers());
+
+		// Only blend when all other players have actually predicted (not just
+		// fixed by determinizer). predictionsDone tracks real predictions only.
+		if (state.getPredictionsDone() < state.getTotalPlayers() - 1) {
+			return handEstimate;
+		}
+
+		int knownSum = 0;
+		for (int i = 0; i < state.getTotalPlayers(); i++) {
+			if (i != playerIndex) {
+				knownSum += state.getExpectedTakes(i);
+			}
+		}
+
+		int remaining = Math.max(0, state.getTotalTricks() - knownSum);
+		remaining = Math.min(remaining, hand.size());
+
+		int blended = (int) Math.round(0.5 * remaining + 0.5 * handEstimate);
+		return Math.max(0, Math.min(blended, hand.size()));
 	}
 
 	private static int cardStrength(Card card) {
