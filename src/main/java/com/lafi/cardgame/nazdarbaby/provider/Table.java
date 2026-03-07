@@ -81,7 +81,7 @@ public class Table {
 		lastNewGameTime = null;
 
 		if (game.isGameInProgress()) {
-			game.getMatchUsers().stream()
+			game.getTrickUsers().stream()
 					.filter(user -> !user.isReady())
 					.forEach(User::resetAction);
 
@@ -89,8 +89,8 @@ public class Table {
 		}
 	}
 
-	public boolean allUsersClickedNextMatchButton() {
-		return game.getMatchUsers().stream()
+	public boolean allUsersClickedNextTrickButton() {
+		return game.getTrickUsers().stream()
 				.filter(user -> !user.isBot())
 				.allMatch(User::isReady);
 	}
@@ -116,7 +116,7 @@ public class Table {
 	}
 
 	public boolean isFull() {
-		return game.isGameInProgress() && game.getMatchUsers().size() == MAXIMUM_USERS;
+		return game.isGameInProgress() && game.getTrickUsers().size() == MAXIMUM_USERS;
 	}
 
 	public void tryStartNewGame() {
@@ -182,7 +182,7 @@ public class Table {
 			}
 
 			private void stopCurrentGame() {
-				game.getMatchUsers().stream()
+				game.getTrickUsers().stream()
 						.filter(user -> !user.isLoggedOut())
 						.forEach(user -> user.setNewGame(true));
 				game.setGameInProgress(false);

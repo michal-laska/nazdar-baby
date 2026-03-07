@@ -317,7 +317,7 @@ public class BotSimulator {
 				base.hands, base.expectedTakes, base.actualTakes,
 				new ArrayList<>(),
 				SimulationState.Phase.PREDICTING,
-				0, // leadPlayerIndex — first player in match
+				0, // leadPlayerIndex — first player in trick
 				activeUserIndex,
 				0, // tricksPlayed
 				botCards.size(), // totalTricks

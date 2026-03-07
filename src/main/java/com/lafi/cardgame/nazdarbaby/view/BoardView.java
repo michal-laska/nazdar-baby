@@ -45,13 +45,13 @@ public class BoardView extends ParameterizedView {
     public static final String GREEN_COLOR = "green";
     public static final String WHITE = "white";
 
-    private static final String NEXT_MATCH_BUTTON_TEXT = "Next match";
+    private static final String NEXT_TRICK_BUTTON_TEXT = "Next trick";
     private static final int AUTO_NEXT_DELAY_IN_SECONDS = 5;
 
     private final List<NativeLabel> cardPlaceholderLabels = new ArrayList<>();
 
     private IntegerField expectedTakesField;
-    private boolean autoNextMatch = true;
+    private boolean autoNextTrick = true;
     private Image preselectedCardImage;
 
     public BoardView(Broadcaster broadcaster, TableProvider tableProvider, CountdownService countdownService) {
@@ -79,12 +79,12 @@ public class BoardView extends ParameterizedView {
             addPointsHL();
             HorizontalLayout cardPlaceholdersHL = getAndAddCardPlaceholdersHL();
 
-            List<User> matchUsers = game.getMatchUsers();
+            List<User> trickUsers = game.getTrickUsers();
 
-            if (matchUsers.contains(currentUser)) {
+            if (trickUsers.contains(currentUser)) {
                 addUserCardsHL(cardPlaceholdersHL);
             } else {
-                List<Card> cards = matchUsers.getFirst().getCards();
+                List<Card> cards = trickUsers.getFirst().getCards();
                 long round = cards.size() - getNumberOfCardsLeft(cards);
 
                 NativeLabel roundLabel = new NativeLabel("Round " + round + "/" + cards.size());
@@ -248,15 +248,15 @@ public class BoardView extends ParameterizedView {
         }
         autoNextVL.add(getAutoNextCheckbox());
 
-        if (game.isEndOfMatch()) {
-            var nextMatchButton = handleEndOfMatch(cardPlaceholdersHL);
-            autoNextVL.add(nextMatchButton);
+        if (game.isEndOfTrick()) {
+            var nextTrickButton = handleEndOfTrick(cardPlaceholdersHL);
+            autoNextVL.add(nextTrickButton);
         } else if (game.isActiveUser() && expectedTakesField == null) {
             var userProvider = table.getUserProvider();
             var currentUser = userProvider.getCurrentUser();
 
-            var matchUsers = game.getMatchUsers();
-            var currentUserIndex = matchUsers.indexOf(currentUser);
+            var trickUsers = game.getTrickUsers();
+            var currentUserIndex = trickUsers.indexOf(currentUser);
 
             var cardPlaceholderVL = (VerticalLayout) cardPlaceholdersHL.getComponentAt(currentUserIndex);
             var image = (Image) cardPlaceholderVL.getComponentAt(1);
@@ -344,8 +344,8 @@ public class BoardView extends ParameterizedView {
                 }
             }
 
-            List<User> matchUsers = game.getMatchUsers();
-            int currentUserIndex = matchUsers.indexOf(currentUser);
+            List<User> trickUsers = game.getTrickUsers();
+            int currentUserIndex = trickUsers.indexOf(currentUser);
             cardPlaceholders.set(currentUserIndex, card);
 
             int cardIndex = cards.indexOf(card);
@@ -375,19 +375,19 @@ public class BoardView extends ParameterizedView {
 
     private NativeLabel getGameTypeLabel() {
         Game game = table.getGame();
-        int matchCharacter = game.getMatchCharacter();
+        int trickCharacter = game.getTrickCharacter();
 
-        String typeOfGameText = matchCharacter < 0 ? "SMALL GAME (" : "BIG GAME (+";
-        typeOfGameText += matchCharacter + ")";
+        String typeOfGameText = trickCharacter < 0 ? "SMALL GAME (" : "BIG GAME (+";
+        typeOfGameText += trickCharacter + ")";
 
         return new NativeLabel(typeOfGameText);
     }
 
     private Checkbox getAutoNextCheckbox() {
-        Checkbox autoNextMatchCheckbox = new Checkbox("Auto " + NEXT_MATCH_BUTTON_TEXT.toLowerCase(), autoNextMatch);
+        Checkbox autoNextTrickCheckbox = new Checkbox("Auto " + NEXT_TRICK_BUTTON_TEXT.toLowerCase(), autoNextTrick);
 
-        autoNextMatchCheckbox.addClickListener(click -> {
-            autoNextMatch = autoNextMatchCheckbox.getValue();
+        autoNextTrickCheckbox.addClickListener(click -> {
+            autoNextTrick = autoNextTrickCheckbox.getValue();
 
             UserProvider userProvider = table.getUserProvider();
             User currentUser = userProvider.getCurrentUser();
@@ -396,14 +396,14 @@ public class BoardView extends ParameterizedView {
             broadcast();
         });
 
-        return autoNextMatchCheckbox;
+        return autoNextTrickCheckbox;
     }
 
     private NativeLabel getInProgressGameTypeLabel() {
         Game game = table.getGame();
 
         int sumOfExpectedTakes = game.getSumOfExpectedTakes();
-        int numberOfCards = game.getMatchUsers().getFirst().getCards().size();
+        int numberOfCards = game.getTrickUsers().getFirst().getCards().size();
 
         return new NativeLabel(sumOfExpectedTakes + "/" + numberOfCards);
     }
@@ -458,8 +458,8 @@ public class BoardView extends ParameterizedView {
         newGameCheckbox.setIndeterminate(user.isLoggedOut());
 
         if (isCurrentUser) {
-            if (autoNextMatch) {
-                boolean enabled = currentUser.isReady() || !game.isEndOfMatch();
+            if (autoNextTrick) {
+                boolean enabled = currentUser.isReady() || !game.isEndOfTrick();
                 newGameCheckbox.setEnabled(enabled);
             } else {
                 newGameCheckbox.setEnabled(true);
@@ -527,9 +527,9 @@ public class BoardView extends ParameterizedView {
 
         Game game = table.getGame();
         List<Card> cardPlaceholders = game.getCardPlaceholders();
-        List<User> matchUsers = game.getMatchUsers();
+        List<User> trickUsers = game.getTrickUsers();
         for (int i = 0; i < cardPlaceholders.size(); ++i) {
-            User user = matchUsers.get(i);
+            User user = trickUsers.get(i);
             NativeLabel cardPlaceholderLabel = new NativeLabel(user.toString());
             Card cardPlaceholder = cardPlaceholders.get(i);
 
@@ -547,16 +547,16 @@ public class BoardView extends ParameterizedView {
 
     private void colorCardPlaceholderLabels() {
         Game game = table.getGame();
-        List<User> matchUsers = game.getMatchUsers();
+        List<User> trickUsers = game.getTrickUsers();
 
         List<Card> cardPlaceholders = game.getCardPlaceholders();
-        boolean isEndOfMatch = game.isEndOfMatch();
+        boolean isEndOfTrick = game.isEndOfTrick();
 
-        for (int i = 0; i < matchUsers.size(); ++i) {
-            User matchUser = matchUsers.get(i);
+        for (int i = 0; i < trickUsers.size(); ++i) {
+            User trickUser = trickUsers.get(i);
 
-            Integer expectedTakes = matchUser.getExpectedTakes();
-            int actualTakes = matchUser.getActualTakes();
+            Integer expectedTakes = trickUser.getExpectedTakes();
+            int actualTakes = trickUser.getActualTakes();
 
             if (expectedTakes == null) {
                 return;
@@ -568,10 +568,10 @@ public class BoardView extends ParameterizedView {
             if (actualTakes == expectedTakes) {
                 style.set(Constant.COLOR_STYLE, GREEN_COLOR);
             } else {
-                List<Card> matchUserCards = matchUser.getCards();
-                long numberOfCardsLeft = getNumberOfCardsLeft(matchUserCards);
+                List<Card> trickUserCards = trickUser.getCards();
+                long numberOfCardsLeft = getNumberOfCardsLeft(trickUserCards);
 
-                if (!isEndOfMatch && cardPlaceholders.get(i) != CardProvider.CARD_PLACEHOLDER) {
+                if (!isEndOfTrick && cardPlaceholders.get(i) != CardProvider.CARD_PLACEHOLDER) {
                     ++numberOfCardsLeft;
                 }
 
@@ -582,72 +582,72 @@ public class BoardView extends ParameterizedView {
         }
     }
 
-    private Button handleEndOfMatch(HorizontalLayout cardPlaceholdersHL) {
+    private Button handleEndOfTrick(HorizontalLayout cardPlaceholdersHL) {
         var game = table.getGame();
 
         var winnerIndex = game.getWinningIndex();
         var cardPlaceholderVL = (VerticalLayout) cardPlaceholdersHL.getComponentAt(winnerIndex);
         cardPlaceholderVL.getStyle().set(BORDER_STYLE, ONE_PX_SOLID + BLUE_COLOR);
 
-        var nextMatchButton = new Button(NEXT_MATCH_BUTTON_TEXT);
+        var nextTrickButton = new Button(NEXT_TRICK_BUTTON_TEXT);
 
         var userProvider = table.getUserProvider();
         var currentUser = userProvider.getCurrentUser();
 
         if (currentUser.isReady()) {
-            disableNextMatchButton(nextMatchButton);
-        } else if (autoNextMatch && NEXT_MATCH_BUTTON_TEXT.equals(nextMatchButton.getText())) {
-            runAutoNextTimer(nextMatchButton);
+            disableNextTrickButton(nextTrickButton);
+        } else if (autoNextTrick && NEXT_TRICK_BUTTON_TEXT.equals(nextTrickButton.getText())) {
+            runAutoNextTimer(nextTrickButton);
         } else {
-            addBlinking(nextMatchButton);
+            addBlinking(nextTrickButton);
         }
 
-        var matchUsers = game.getMatchUsers();
-        for (var i = 0; i < matchUsers.size(); ++i) {
-            var matchUser = matchUsers.get(i);
-            if (!matchUser.isReady()) {
+        var trickUsers = game.getTrickUsers();
+        for (var i = 0; i < trickUsers.size(); ++i) {
+            var trickUser = trickUsers.get(i);
+            if (!trickUser.isReady()) {
                 var cardPlaceholderLabel = cardPlaceholderLabels.get(i);
                 cardPlaceholderLabel.getStyle().set(FONT_WEIGHT_STYLE, BOLD);
             }
         }
 
-        nextMatchButton.addClickListener(click -> nextMatchButtonClickAction(nextMatchButton));
+        nextTrickButton.addClickListener(click -> nextTrickButtonClickAction(nextTrickButton));
 
-        return nextMatchButton;
+        return nextTrickButton;
     }
 
-    private void runAutoNextTimer(Button nextMatchButton) {
+    private void runAutoNextTimer(Button nextTrickButton) {
         Game game = table.getGame();
         long countdownInSeconds = game.isEndOfSet() ? 2 * AUTO_NEXT_DELAY_IN_SECONDS : AUTO_NEXT_DELAY_IN_SECONDS;
 
-        addNextMatchCountdownTask(countdownInSeconds, nextMatchButton);
+        addNextTrickCountdownTask(countdownInSeconds, nextTrickButton);
     }
 
-    private void addNextMatchCountdownTask(long countdownInSeconds, Button nextMatchButton) {
+    private void addNextTrickCountdownTask(long countdownInSeconds, Button nextTrickButton) {
         CountdownTask countdownTask = new CountdownTask(countdownInSeconds, broadcaster, this, true) {
 
             @Override
             protected void eachRun() {
-                String nextMatchButtonText = NEXT_MATCH_BUTTON_TEXT + getFormattedCountdown();
-                setNextMatchButtonText(nextMatchButtonText);
+                String nextTrickButtonText = NEXT_TRICK_BUTTON_TEXT + getFormattedCountdown();
+                setNextTrickButtonText(nextTrickButtonText);
             }
 
             @Override
             protected void finalRun() {
-                if (autoNextMatch) {
-                    access(nextMatchButton, nextMatchButton::click);
+                if (autoNextTrick) {
+                    access(nextTrickButton, nextTrickButton::click);
                 } else {
-                    setNextMatchButtonText(NEXT_MATCH_BUTTON_TEXT);
+                    setNextTrickButtonText(NEXT_TRICK_BUTTON_TEXT);
                 }
             }
 
             @Override
             protected boolean isCanceled() {
-                return nextMatchButton.isDisableOnClick();
+                return nextTrickButton.isDisableOnClick();
             }
 
-            private void setNextMatchButtonText(String text) {
-                access(nextMatchButton, () -> nextMatchButton.setText(text));
+            private void setNextTrickButtonText(String text) {
+                access(nextTrickButton, () -> nextTrickButton.setText(text));
             }
         };
 
@@ -687,19 +687,19 @@ public class BoardView extends ParameterizedView {
         countdownService.addCountdownTask(countdownTask);
     }
 
-    private void nextMatchButtonClickAction(Button nextMatchButton) {
+    private void nextTrickButtonClickAction(Button nextTrickButton) {
         //noinspection SynchronizeOnNonFinalField
         synchronized (table) {
-            if (nextMatchButton.isDisableOnClick()) {
+            if (nextTrickButton.isDisableOnClick()) {
                 return;
             }
-            disableNextMatchButton(nextMatchButton);
+            disableNextTrickButton(nextTrickButton);
 
             UserProvider userProvider = table.getUserProvider();
             User currentUser = userProvider.getCurrentUser();
             currentUser.setReady(true);
 
-            if (table.allUsersClickedNextMatchButton()) {
+            if (table.allUsersClickedNextTrickButton()) {
                 Game game = table.getGame();
                 try {
                     game.changeActiveUser();
@@ -712,8 +712,8 @@ public class BoardView extends ParameterizedView {
         }
     }
 
-    private void disableNextMatchButton(Button nextMatchButton) {
-        nextMatchButton.setDisableOnClick(true);
-        nextMatchButton.click();
+    private void disableNextTrickButton(Button nextTrickButton) {
+        nextTrickButton.setDisableOnClick(true);
+        nextTrickButton.click();
     }
 }

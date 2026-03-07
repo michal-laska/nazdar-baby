@@ -21,13 +21,13 @@ public class Game {
 
 	private List<User> gameUsers;
 	private List<User> setUsers;
-	private List<User> matchUsers;
+	private List<User> trickUsers;
 
 	private CardProvider cardProvider;
 	private List<Card> cardPlaceholders;
 
 	private int setNumber;
-	private int matchNumber;
+	private int trickNumber;
 
 	private User activeUser;
 	private boolean terminatorFlagsReset;
@@ -42,8 +42,8 @@ public class Game {
 		return setUsers;
 	}
 
-	public List<User> getMatchUsers() {
-		return matchUsers;
+	public List<User> getTrickUsers() {
+		return trickUsers;
 	}
 
 	public List<Card> getCardPlaceholders() {
@@ -87,25 +87,25 @@ public class Game {
 	}
 
 	public void changeActiveUser() {
-		int activeUserIndex = activeUser == null ? matchUsers.size() : matchUsers.indexOf(activeUser);
+		int activeUserIndex = activeUser == null ? trickUsers.size() : trickUsers.indexOf(activeUser);
 
-		if (activeUserIndex == matchUsers.size()) {
+		if (activeUserIndex == trickUsers.size()) {
 			int winnerIndex = getWinningIndex();
 
-			Collections.rotate(matchUsers, -winnerIndex);
+			Collections.rotate(trickUsers, -winnerIndex);
 			resetActiveUser();
 
-			startNewMatch();
-		} else if (++activeUserIndex == matchUsers.size()) {
+			startNewTrick();
+		} else if (++activeUserIndex == trickUsers.size()) {
 			int winnerIndex = getWinningIndex();
-			User winUser = matchUsers.get(winnerIndex);
+			User winUser = trickUsers.get(winnerIndex);
 			winUser.increaseActualTakes();
 
 			setActiveUser(null);
 
 			calculatePoints();
 		} else {
-			setActiveUser(matchUsers.get(activeUserIndex));
+			setActiveUser(trickUsers.get(activeUserIndex));
 		}
 
 		tryBotMove();
@@ -120,12 +120,12 @@ public class Game {
 		}
 	}
 
-	public boolean isEndOfMatch() {
+	public boolean isEndOfTrick() {
 		return activeUser == null;
 	}
 
 	public boolean isEndOfSet() {
-		return isEndOfMatch() && matchNumber == matchUsers.getFirst().getCards().size();
+		return isEndOfTrick() && trickNumber == trickUsers.getFirst().getCards().size();
 	}
 
 	public boolean isLastUserWithInvalidExpectedTakes(int expectedTakes) {
@@ -133,17 +133,17 @@ public class Game {
 			return false;
 		}
 
-		int invalidExpectedTakes = -getMatchCharacter();
+		int invalidExpectedTakes = -getTrickCharacter();
 		return expectedTakes == invalidExpectedTakes;
 	}
 
-	public int getMatchCharacter() {
+	public int getTrickCharacter() {
 		int sumOfExpectedTakes = getSumOfExpectedTakes();
-		return sumOfExpectedTakes - matchUsers.getFirst().getCards().size();
+		return sumOfExpectedTakes - trickUsers.getFirst().getCards().size();
 	}
 
 	public boolean setCanStart() {
-		return matchUsers.getLast().getExpectedTakes() != null;
+		return trickUsers.getLast().getExpectedTakes() != null;
 	}
 
 	public int getWinningIndex() {
@@ -179,11 +179,11 @@ public class Game {
 		setUsers = new ArrayList<>(gameUsers);
 
 		startNewSet();
-		startNewMatch();
+		startNewTrick();
 	}
 
 	public int getSumOfExpectedTakes() {
-		return matchUsers.stream()
+		return trickUsers.stream()
 				.map(User::getExpectedTakes)
 				.filter(Objects::nonNull)
 				.mapToInt(expectedTakes -> expectedTakes)
@@ -197,7 +197,7 @@ public class Game {
 	}
 
 	boolean isLastUser() {
-		return matchUsers.indexOf(activeUser) + 1 == matchUsers.size();
+		return trickUsers.indexOf(activeUser) + 1 == trickUsers.size();
 	}
 
 	CardProvider getCardProvider() {
@@ -205,7 +205,7 @@ public class Game {
 	}
 
 	private void resetActiveUser() {
-		setActiveUser(matchUsers.getFirst());
+		setActiveUser(trickUsers.getFirst());
 	}
 
 	private void resetReadyFlags() {
@@ -267,7 +267,7 @@ public class Game {
 	}
 
 	private void initCardPlaceholders() {
-		cardPlaceholders = matchUsers.stream()
+		cardPlaceholders = trickUsers.stream()
 				.map(user -> CardProvider.CARD_PLACEHOLDER)
 				.collect(Collectors.toList());
 		botSimulator.setCardPlaceholders(cardPlaceholders);
@@ -278,9 +278,9 @@ public class Game {
 		botSimulator.setActiveUser(activeUser);
 	}
 
-	private void setMatchUsers(List<User> matchUsers) {
-		this.matchUsers = matchUsers;
-		botSimulator.setUsers(matchUsers);
+	private void setTrickUsers(List<User> trickUsers) {
+		this.trickUsers = trickUsers;
+		botSimulator.setUsers(trickUsers);
 	}
 
 	private void tryBotMove() {
@@ -325,16 +325,16 @@ public class Game {
 		return userCardsCount;
 	}
 
-	private void startNewMatch() {
-		matchUsers.stream()
+	private void startNewTrick() {
+		trickUsers.stream()
 				.filter(user -> !user.isBot())
 				.forEach(User::resetAction);
 
 		initCardPlaceholders();
 
-		if (matchNumber++ == matchUsers.getFirst().getCards().size()) {
+		if (trickNumber++ == trickUsers.getFirst().getCards().size()) {
 			startNewSet();
-			startNewMatch();
+			startNewTrick();
 		}
 
 		tryBotMove();
@@ -344,9 +344,9 @@ public class Game {
 		if (setNumber > 0) {
 			Collections.rotate(setUsers, -1);
 		}
-		setMatchUsers(new ArrayList<>(setUsers));
+		setTrickUsers(new ArrayList<>(setUsers));
 
-		matchNumber = 0;
+		trickNumber = 0;
 		resetActiveUser();
 
 		initUserCards();
