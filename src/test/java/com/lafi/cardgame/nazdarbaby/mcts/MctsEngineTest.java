@@ -114,6 +114,79 @@ class MctsEngineTest {
 		}
 	}
 
+	@Nested
+	class SelectCardTest {
+
+		@Test
+		void predictionMet_prefersLowCardWhenLeading() {
+			// Bot predicted 0, has 0 — should lead with weakest card to avoid winning
+			Card aceHearts = getCard(14, Color.HEARTS);
+			Card sevenDiamonds = getCard(7, Color.DIAMONDS);
+			List<Card> botHand = List.of(aceHearts, sevenDiamonds);
+
+			SimulationState state = createPlayingState(botHand, 0,
+					new int[]{0, 0, 0}, new int[]{0, 0, 0});
+			state.setKnownPrediction(0);
+			state.setKnownPrediction(1);
+			state.setKnownPrediction(2);
+
+			List<Card> unknownCards = new ArrayList<>(deckOfCards);
+			unknownCards.removeAll(botHand);
+			int[] opponentSlots = {0, 2, 2};
+
+			Card selected = engine.selectCard(state, unknownCards, opponentSlots,
+					Map.of(), Map.of());
+
+			// A♥ guarantees a win — bot should prefer 7♦ to avoid winning
+			assertThat(selected).isEqualTo(sevenDiamonds);
+		}
+
+		@Test
+		void knownPredictions_usedByDeterminizer() {
+			// Bot predicted 1, already won 1 — must avoid winning more
+			// Opponents predicted 0 — with knownPrediction set, determinizer
+			// should deal them weaker hands, improving simulation quality
+			Card aceHearts = getCard(14, Color.HEARTS);
+			Card sevenDiamonds = getCard(7, Color.DIAMONDS);
+			List<Card> botHand = List.of(aceHearts, sevenDiamonds);
+
+			SimulationState state = createPlayingState(botHand, 0,
+					new int[]{1, 0, 0}, new int[]{1, 0, 0});
+			state.setKnownPrediction(0);
+			state.setKnownPrediction(1);
+			state.setKnownPrediction(2);
+
+			List<Card> unknownCards = new ArrayList<>(deckOfCards);
+			unknownCards.removeAll(botHand);
+			int[] opponentSlots = {0, 2, 2};
+
+			Card selected = engine.selectCard(state, unknownCards, opponentSlots,
+					Map.of(), Map.of());
+
+			// Bot already met prediction — should lead low to avoid winning
+			assertThat(selected).isEqualTo(sevenDiamonds);
+		}
+	}
+
+	private SimulationState createPlayingState(List<Card> botHand, int botIndex,
+											   int[] expectedTakes, int[] actualTakes) {
+		List<List<Card>> hands = new ArrayList<>();
+		for (int i = 0; i < 3; i++) {
+			hands.add(i == botIndex ? new ArrayList<>(botHand) : new ArrayList<>());
+		}
+
+		return new SimulationState(
+				hands,
+				expectedTakes,
+				actualTakes,
+				new ArrayList<>(),
+				SimulationState.Phase.PLAYING,
+				botIndex, botIndex, 0,
+				botHand.size(),
+				botIndex, 3
+		);
+	}
+
 	private SimulationState createPredictionState(List<Card> botHand, int botIndex,
 												  int predictionsDone) {
 		List<List<Card>> hands = new ArrayList<>();

@@ -354,10 +354,9 @@ public class BotSimulator {
 			tricksPlayed += user.getActualTakes();
 		}
 
-		boolean trickInProgress = !cardPlaceholders.getFirst().isPlaceholder();
-		int totalTricks = botCards.size() + tricksPlayed + (trickInProgress ? 1 : 0);
+		int totalTricks = botCards.size() + tricksPlayed;
 
-		return new SimulationState(
+		SimulationState state = new SimulationState(
 				base.hands, base.expectedTakes, base.actualTakes,
 				currentTrick,
 				SimulationState.Phase.PLAYING,
@@ -368,6 +367,14 @@ public class BotSimulator {
 				activeUserIndex,
 				users.size() // all predictions done
 		);
+
+		// All predictions are known during play — mark them so the determinizer
+		// uses prediction plausibility filtering when sampling opponent hands
+		for (int i = 0; i < users.size(); i++) {
+			state.setKnownPrediction(i);
+		}
+
+		return state;
 	}
 
 	private BaseState buildBaseState(List<Card> botCards, int activeUserIndex) {

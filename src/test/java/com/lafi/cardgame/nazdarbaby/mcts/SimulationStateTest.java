@@ -223,6 +223,74 @@ class SimulationStateTest {
 	}
 
 	@Nested
+	class TotalTricksTest {
+
+		@Test
+		void trickInProgress_reachesTerminal_withCorrectTotalTricks() {
+			// Regression: buildPlayingState used to add +1 for trickInProgress,
+			// double-counting the current trick (bot's hand already includes it).
+			// With correct totalTricks = botCards + tricksPlayed, game terminates.
+			List<List<Card>> hands = new ArrayList<>();
+			hands.add(new ArrayList<>(List.of(deckOfCards.get(0))));     // player 0: 1 card (played 1 in trick)
+			hands.add(new ArrayList<>(List.of(deckOfCards.get(1), deckOfCards.get(2))));  // player 1 (bot): 2 cards
+			hands.add(new ArrayList<>(List.of(deckOfCards.get(3), deckOfCards.get(4))));  // player 2: 2 cards
+
+			List<Card> currentTrick = new ArrayList<>(List.of(deckOfCards.get(5))); // player 0 led
+
+			SimulationState state = new SimulationState(
+					hands, new int[]{0, 0, 0}, new int[]{0, 0, 0},
+					currentTrick,
+					SimulationState.Phase.PLAYING,
+					0, 1, 0,
+					2, // totalTricks = 2 (bot has 2 cards + 0 tricksPlayed) — correct
+					1, 3
+			);
+
+			while (!state.isTerminal()) {
+				List<MctsAction> actions = state.getLegalActions();
+				if (actions.isEmpty()) {
+					break;
+				}
+				state.applyAction(actions.getFirst());
+			}
+
+			assertThat(state.isTerminal()).isTrue();
+			assertThat(state.getTricksPlayed()).isEqualTo(2);
+		}
+
+		@Test
+		void trickInProgress_offByOne_doesNotReachTerminal() {
+			// Demonstrates the old bug: totalTricks = botCards + tricksPlayed + 1
+			List<List<Card>> hands = new ArrayList<>();
+			hands.add(new ArrayList<>(List.of(deckOfCards.get(0))));
+			hands.add(new ArrayList<>(List.of(deckOfCards.get(1), deckOfCards.get(2))));
+			hands.add(new ArrayList<>(List.of(deckOfCards.get(3), deckOfCards.get(4))));
+
+			List<Card> currentTrick = new ArrayList<>(List.of(deckOfCards.get(5)));
+
+			SimulationState state = new SimulationState(
+					hands, new int[]{0, 0, 0}, new int[]{0, 0, 0},
+					currentTrick,
+					SimulationState.Phase.PLAYING,
+					0, 1, 0,
+					3, // totalTricks = 3 (old bug: botCards + tricksPlayed + 1)
+					1, 3
+			);
+
+			while (!state.isTerminal()) {
+				List<MctsAction> actions = state.getLegalActions();
+				if (actions.isEmpty()) {
+					break;
+				}
+				state.applyAction(actions.getFirst());
+			}
+
+			// All cards played but isTerminal() is false because tricksPlayed(2) < totalTricks(3)
+			assertThat(state.isTerminal()).isFalse();
+		}
+	}
+
+	@Nested
 	class DeepCopyTest {
 
 		@Test
