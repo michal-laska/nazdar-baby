@@ -308,6 +308,83 @@ class RolloutPolicyTest {
 	}
 
 	@Nested
+	class EstimateInContextTest {
+
+		@Test
+		void lastPredictor_handStrengthDominatesOverRemaining() {
+			// Hand estimate = 5 (strong hand), opponents claimed all 6 tricks → remaining = 0
+			// 70/30 blend: 0.7*5 + 0.3*0 = 3.5 → 4
+			// 50/50 would give: 0.5*5 + 0.5*0 = 2.5 → 3
+			// So predict=4 should score higher than predict=3, proving hand dominates
+			Card aceHearts = getCard(14, Color.HEARTS);
+			Card aceSpades = getCard(14, Color.SPADES);
+			Card aceDiamonds = getCard(14, Color.DIAMONDS);
+			Card kingHearts = getCard(13, Color.HEARTS);
+			Card kingSpades = getCard(13, Color.SPADES);
+			Card queenHearts = getCard(12, Color.HEARTS);
+
+			List<List<Card>> hands = new ArrayList<>();
+			hands.add(new ArrayList<>());
+			hands.add(new ArrayList<>());
+			hands.add(new ArrayList<>(List.of(aceHearts, aceSpades, aceDiamonds,
+					kingHearts, kingSpades, queenHearts)));
+
+			SimulationState state = new SimulationState(
+					hands,
+					new int[]{3, 3, 0}, // opponents claimed all 6 tricks
+					new int[]{0, 0, 0},
+					new ArrayList<>(),
+					SimulationState.Phase.PREDICTING,
+					0, 2, 0,
+					6, // totalTricks
+					2, // botPlayerIndex
+					2  // predictionsDone (both opponents predicted)
+			);
+			state.setKnownPrediction(0);
+			state.setKnownPrediction(1);
+
+			double heuristic4 = RolloutPolicy.heuristicValue(state, new MctsAction.PredictTakes(4));
+			double heuristic3 = RolloutPolicy.heuristicValue(state, new MctsAction.PredictTakes(3));
+
+			// With 70/30 (hand-favoring), estimate=4, so predict=4 scores higher
+			// With 50/50, estimate would be 3, and this assertion would fail
+			assertThat(heuristic4).isGreaterThan(heuristic3);
+		}
+
+		@Test
+		void firstPredictor_usesOnlyHandStrength() {
+			// When not the last predictor, context blending should NOT activate
+			Card aceHearts = getCard(14, Color.HEARTS);
+			Card sevenDiamonds = getCard(7, Color.DIAMONDS);
+
+			List<List<Card>> hands = new ArrayList<>();
+			hands.add(new ArrayList<>(List.of(aceHearts, sevenDiamonds)));
+			hands.add(new ArrayList<>());
+			hands.add(new ArrayList<>());
+
+			SimulationState state = new SimulationState(
+					hands,
+					new int[]{0, 0, 0},
+					new int[]{0, 0, 0},
+					new ArrayList<>(),
+					SimulationState.Phase.PREDICTING,
+					0, 0, 0,
+					2,
+					0, // botPlayerIndex
+					0  // predictionsDone = 0 (first predictor)
+			);
+
+			// Hand estimate = 1 (ace of hearts). predict=1 should score highest.
+			double heuristic1 = RolloutPolicy.heuristicValue(state, new MctsAction.PredictTakes(1));
+			double heuristic0 = RolloutPolicy.heuristicValue(state, new MctsAction.PredictTakes(0));
+			double heuristic2 = RolloutPolicy.heuristicValue(state, new MctsAction.PredictTakes(2));
+
+			assertThat(heuristic1).isGreaterThan(heuristic0);
+			assertThat(heuristic1).isGreaterThan(heuristic2);
+		}
+	}
+
+	@Nested
 	class EstimateTakesTest {
 
 		@Test
