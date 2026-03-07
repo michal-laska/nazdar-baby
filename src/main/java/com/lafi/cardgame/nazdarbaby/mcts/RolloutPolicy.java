@@ -595,7 +595,7 @@ final class RolloutPolicy {
 		int remaining = Math.max(0, state.getTotalTricks() - knownSum);
 		remaining = Math.min(remaining, hand.size());
 
-		int blended = (int) Math.round(0.5 * remaining + 0.5 * handEstimate);
+		int blended = (int) Math.round(0.7 * handEstimate + 0.3 * remaining);
 		return Math.max(0, Math.min(blended, hand.size()));
 	}
 
