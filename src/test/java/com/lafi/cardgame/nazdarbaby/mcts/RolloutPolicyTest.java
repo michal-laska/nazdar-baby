@@ -192,8 +192,75 @@ class RolloutPolicyTest {
 
 			RolloutPolicy.rollout(state);
 
-			// Winner doesn't need trick → play low to force unwanted take
+			// Winner doesn't need trick → shed safely (lowest loser when not last)
 			assertThat(state.getHand(2)).doesNotContain(sevenSpades);
+		}
+
+		@Test
+		void shedHighLoser_whenWinnerDoesNotNeedTrick_andLast() {
+			Card queenSpades = getCard(12, Color.SPADES);
+			Card nineSpades = getCard(9, Color.SPADES);
+			Card kingSpades = getCard(13, Color.SPADES);
+			Card eightSpades = getCard(8, Color.SPADES);
+
+			// Bot is player 2 (last), predicted 0, actual 1 → needed < 0 → disrupt
+			// Current trick: K♠, 8♠ → winner is player 0 (K♠), predicted 0 → doesn't need trick
+			// totalOpponentsNeeded = 0 < remaining → winner-based fallback
+			// Bot has Q♠, 9♠ — both lose to K♠. Being last → shed highest loser (Q♠)
+			List<List<Card>> hands = new ArrayList<>();
+			hands.add(new ArrayList<>(List.of(getCard(9, Color.DIAMONDS))));
+			hands.add(new ArrayList<>(List.of(getCard(8, Color.DIAMONDS))));
+			hands.add(new ArrayList<>(List.of(queenSpades, nineSpades)));
+
+			SimulationState state = new SimulationState(
+					hands,
+					new int[]{0, 0, 0},
+					new int[]{0, 0, 1},
+					new ArrayList<>(List.of(kingSpades, eightSpades)),
+					SimulationState.Phase.PLAYING,
+					0, 2, 0,
+					1,
+					2, 3
+			);
+
+			RolloutPolicy.rollout(state);
+
+			// Last to play, winner doesn't need trick → shed highest loser (Q♠)
+			assertThat(state.getHand(2)).doesNotContain(queenSpades);
+		}
+
+		@Test
+		void stealTrick_whenOpponentsNeedAllRemainingTricks() {
+			Card aceSpades = getCard(14, Color.SPADES);
+			Card sevenSpades = getCard(7, Color.SPADES);
+			Card tenSpades = getCard(10, Color.SPADES);
+			Card kingSpades = getCard(13, Color.SPADES);
+
+			// Bot is player 2 (last), predicted 0, actual 1 → needed < 0 → disrupt
+			// Player 0 predicted 2, actual 0 → needs 2; Player 1 predicted 0, actual 0 → needs 0
+			// totalOpponentsNeeded = 2 = remaining(2) → steal to guarantee someone fails
+			// Current trick: 10♠, K♠ → winner is player 1 (K♠) who doesn't need tricks
+			// Without global check: would play to lose. With check: plays to win (A♠)
+			List<List<Card>> hands = new ArrayList<>();
+			hands.add(new ArrayList<>(List.of(getCard(9, Color.DIAMONDS), getCard(8, Color.CLUBS))));
+			hands.add(new ArrayList<>(List.of(getCard(8, Color.DIAMONDS), getCard(9, Color.CLUBS))));
+			hands.add(new ArrayList<>(List.of(aceSpades, sevenSpades)));
+
+			SimulationState state = new SimulationState(
+					hands,
+					new int[]{2, 0, 0},
+					new int[]{0, 0, 1},
+					new ArrayList<>(List.of(tenSpades, kingSpades)),
+					SimulationState.Phase.PLAYING,
+					0, 2, 1,
+					3,
+					2, 3
+			);
+
+			RolloutPolicy.rollout(state);
+
+			// Should steal with A♠ — opponents collectively need all remaining tricks
+			assertThat(state.getHand(2)).doesNotContain(aceSpades);
 		}
 
 		/**

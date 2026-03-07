@@ -189,14 +189,28 @@ final class RolloutPolicy {
 			return selectDisruptiveLead(state, actions);
 		}
 
-		// Find who's currently winning the trick
+		// If opponents collectively need all remaining tricks, stealing any trick
+		// guarantees at least one opponent fails — always try to win
+		int remaining = state.getTotalTricks() - state.getTricksPlayed();
+		int currentPlayer = state.getCurrentPlayerIndex();
+		int totalOpponentsNeeded = 0;
+		for (int i = 0; i < state.getTotalPlayers(); i++) {
+			if (i != currentPlayer) {
+				totalOpponentsNeeded += Math.max(0, state.getExpectedTakes(i) - state.getActualTakes(i));
+			}
+		}
+		if (totalOpponentsNeeded == remaining) {
+			return selectToWin(actions, currentTrick, isLast);
+		}
+
+		// Opponents have slack — fall back to winner-based disruption
 		int winnerOffset = TrickEvaluator.getWinningIndex(currentTrick);
 		int winnerIndex = (state.getLeadPlayerIndex() + winnerOffset) % state.getTotalPlayers();
 		int winnerNeeded = state.getExpectedTakes(winnerIndex) - state.getActualTakes(winnerIndex);
 
 		if (winnerNeeded <= 0) {
-			// Current winner doesn't want this trick — play low to force an unwanted take
-			return selectLowest(actions);
+			// Current winner doesn't want this trick — shed high cards while letting them win
+			return selectToLose(actions, currentTrick, isLast);
 		}
 
 		// Current winner needs this trick — try to steal it
