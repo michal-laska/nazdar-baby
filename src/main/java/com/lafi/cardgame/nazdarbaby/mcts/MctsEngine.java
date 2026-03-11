@@ -38,6 +38,16 @@ public final class MctsEngine {
 	public Card selectCard(SimulationState baseState, List<Card> unknownCards,
 						   int[] opponentSlots, Map<Integer, Set<Color>> colorVoids,
 						   Map<Integer, Set<Card>> excludedCards) {
+		// Skip simulations when all legal cards are equivalent
+		List<Card> legalCards = baseState.getLegalActions().stream()
+				.filter(MctsAction.PlayCard.class::isInstance)
+				.map(a -> ((MctsAction.PlayCard) a).card())
+				.sorted()
+				.toList();
+		if (allEquivalent(legalCards, unknownCards)) {
+			return legalCards.getFirst();
+		}
+
 		int handSize = baseState.getHand(baseState.getBotPlayerIndex()).size();
 		int opponents = baseState.getTotalPlayers() - 1;
 		int iterations = computeIterations(handSize, opponents);
@@ -219,5 +229,32 @@ public final class MctsEngine {
 		}
 
 		return bestTakes;
+	}
+
+	/**
+	 * Cards are equivalent when they are all the same color and no opponent
+	 * can hold a card between the lowest and highest — so the choice among
+	 * them can never affect the outcome. A gap is allowed if the missing
+	 * card is not in unknownCards (i.e. it was already played or is on the table).
+	 */
+	private boolean allEquivalent(List<Card> sortedCards, List<Card> unknownCards) {
+		if (sortedCards.size() <= 1) {
+			return true;
+		}
+		Color color = sortedCards.getFirst().getColor();
+		int min = sortedCards.getFirst().getValue();
+		int max = sortedCards.getLast().getValue();
+		for (Card card : sortedCards) {
+			if (card.getColor() != color) {
+				return false;
+			}
+		}
+		// Check that no opponent can hold a card in the gap
+		for (Card card : unknownCards) {
+			if (card.getColor() == color && card.getValue() > min && card.getValue() < max) {
+				return false;
+			}
+		}
+		return true;
 	}
 }

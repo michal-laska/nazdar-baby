@@ -140,6 +140,138 @@ class MctsEngineTest {
 	}
 
 	@Nested
+	class SelectCardEarlyReturnTest {
+
+		@Test
+		void singleLegalCard_returnsImmediately() {
+			// Bot must follow clubs but only has one club
+			Card sevenClubs = getCard(7, Color.CLUBS);
+			Card aceHearts = getCard(14, Color.HEARTS);
+			List<Card> botHand = List.of(sevenClubs, aceHearts);
+
+			// Someone led with a club — bot must follow suit
+			Card eightClubs = getCard(8, Color.CLUBS);
+			SimulationState state = createPlayingStateWithTrick(botHand, 1,
+					new int[]{0, 0, 0}, new int[]{0, 0, 0}, List.of(eightClubs), 0);
+			state.setKnownPrediction(0);
+			state.setKnownPrediction(1);
+			state.setKnownPrediction(2);
+
+			List<Card> unknownCards = new ArrayList<>(deckOfCards);
+			unknownCards.removeAll(botHand);
+			unknownCards.remove(eightClubs);
+
+			Card selected = engine.selectCard(state, unknownCards, new int[]{2, 0, 2},
+					Map.of(), Map.of());
+
+			assertThat(selected).isEqualTo(sevenClubs);
+		}
+
+		@Test
+		void sequentialSameColor_returnsAny() {
+			// Bot has 8♣ and 9♣, must follow clubs — sequential, so equivalent
+			Card eightClubs = getCard(8, Color.CLUBS);
+			Card nineClubs = getCard(9, Color.CLUBS);
+			Card aceHearts = getCard(14, Color.HEARTS);
+			List<Card> botHand = List.of(eightClubs, nineClubs, aceHearts);
+
+			Card sevenClubs = getCard(7, Color.CLUBS);
+			SimulationState state = createPlayingStateWithTrick(botHand, 1,
+					new int[]{0, 0, 0}, new int[]{0, 0, 0}, List.of(sevenClubs), 0);
+			state.setKnownPrediction(0);
+			state.setKnownPrediction(1);
+			state.setKnownPrediction(2);
+
+			List<Card> unknownCards = new ArrayList<>(deckOfCards);
+			unknownCards.removeAll(botHand);
+			unknownCards.remove(sevenClubs);
+
+			Card selected = engine.selectCard(state, unknownCards, new int[]{2, 0, 2},
+					Map.of(), Map.of());
+
+			assertThat(selected).isIn(eightClubs, nineClubs);
+		}
+
+		@Test
+		void gapWithPlayedCard_equivalent() {
+			// Bot has 8♣ and 10♣, must follow clubs. 9♣ already played → equivalent
+			Card eightClubs = getCard(8, Color.CLUBS);
+			Card tenClubs = getCard(10, Color.CLUBS);
+			Card aceHearts = getCard(14, Color.HEARTS);
+			List<Card> botHand = List.of(eightClubs, tenClubs, aceHearts);
+
+			Card sevenClubs = getCard(7, Color.CLUBS);
+			Card nineClubs = getCard(9, Color.CLUBS);
+			SimulationState state = createPlayingStateWithTrick(botHand, 1,
+					new int[]{0, 0, 0}, new int[]{0, 0, 0}, List.of(sevenClubs), 0);
+			state.setKnownPrediction(0);
+			state.setKnownPrediction(1);
+			state.setKnownPrediction(2);
+
+			// 9♣ already played — not in unknownCards
+			List<Card> unknownCards = new ArrayList<>(deckOfCards);
+			unknownCards.removeAll(botHand);
+			unknownCards.remove(sevenClubs);
+			unknownCards.remove(nineClubs);
+
+			Card selected = engine.selectCard(state, unknownCards, new int[]{2, 0, 2},
+					Map.of(), Map.of());
+
+			assertThat(selected).isIn(eightClubs, tenClubs);
+		}
+
+		@Test
+		void gapWithUnknownCard_notEquivalent() {
+			// Bot has 8♣ and 10♣, must follow clubs. 9♣ still in opponent hands → not equivalent
+			Card eightClubs = getCard(8, Color.CLUBS);
+			Card tenClubs = getCard(10, Color.CLUBS);
+			Card aceHearts = getCard(14, Color.HEARTS);
+			List<Card> botHand = List.of(eightClubs, tenClubs, aceHearts);
+
+			Card sevenClubs = getCard(7, Color.CLUBS);
+			SimulationState state = createPlayingStateWithTrick(botHand, 1,
+					new int[]{0, 0, 0}, new int[]{0, 0, 0}, List.of(sevenClubs), 0);
+			state.setKnownPrediction(0);
+			state.setKnownPrediction(1);
+			state.setKnownPrediction(2);
+
+			// 9♣ still unknown — opponents could hold it
+			List<Card> unknownCards = new ArrayList<>(deckOfCards);
+			unknownCards.removeAll(botHand);
+			unknownCards.remove(sevenClubs);
+
+			Card selected = engine.selectCard(state, unknownCards, new int[]{2, 0, 2},
+					Map.of(), Map.of());
+
+			// MCTS runs full simulations, result is valid either way
+			assertThat(selected).isIn(eightClubs, tenClubs);
+		}
+
+		@Test
+		void differentColors_notEquivalent() {
+			// Bot leads with 8♣ and 8♦ — different colors, not equivalent
+			Card eightClubs = getCard(8, Color.CLUBS);
+			Card eightDiamonds = getCard(8, Color.DIAMONDS);
+			List<Card> botHand = List.of(eightClubs, eightDiamonds);
+
+			SimulationState state = createPlayingState(botHand, 0,
+					new int[]{0, 0, 0}, new int[]{0, 0, 0});
+			state.setKnownPrediction(0);
+			state.setKnownPrediction(1);
+			state.setKnownPrediction(2);
+
+			List<Card> unknownCards = new ArrayList<>(deckOfCards);
+			unknownCards.removeAll(botHand);
+
+			Card selected = engine.selectCard(state, unknownCards, new int[]{0, 2, 2},
+					Map.of(), Map.of());
+
+			// Full MCTS runs — both are valid
+			assertThat(selected).isIn(eightClubs, eightDiamonds);
+		}
+	}
+
+	@Nested
 	class SelectCardTest {
 
 		@Test
@@ -191,6 +323,26 @@ class MctsEngineTest {
 			// Bot already met prediction — should lead low to avoid winning
 			assertThat(selected).isEqualTo(sevenDiamonds);
 		}
+	}
+
+	private SimulationState createPlayingStateWithTrick(List<Card> botHand, int botIndex,
+													 int[] expectedTakes, int[] actualTakes,
+													 List<Card> currentTrick, int leadPlayerIndex) {
+		List<List<Card>> hands = new ArrayList<>();
+		for (int i = 0; i < 3; i++) {
+			hands.add(i == botIndex ? new ArrayList<>(botHand) : new ArrayList<>());
+		}
+
+		return new SimulationState(
+				hands,
+				expectedTakes,
+				actualTakes,
+				new ArrayList<>(currentTrick),
+				SimulationState.Phase.PLAYING,
+				leadPlayerIndex, botIndex, 0,
+				botHand.size(),
+				botIndex, 3
+		);
 	}
 
 	private SimulationState createPlayingState(List<Card> botHand, int botIndex,
