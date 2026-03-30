@@ -2,6 +2,7 @@ package com.lafi.cardgame.nazdarbaby.countdown;
 
 import com.lafi.cardgame.nazdarbaby.broadcast.BroadcastListener;
 import com.vaadin.flow.component.UIDetachedException;
+import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Component;
 
 import java.util.Iterator;
@@ -16,11 +17,19 @@ import java.util.concurrent.TimeUnit;
 public class CountdownService implements Runnable {
 
 	private final Map<BroadcastListener, CountdownTask> listenerToTask = new ConcurrentHashMap<>();
+	private final ScheduledExecutorService scheduledExecutorService;
+	private final ExecutorService executorService;
 
 	public CountdownService() {
-		ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-		ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
+		scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+		executorService = Executors.newVirtualThreadPerTaskExecutor();
 		scheduledExecutorService.scheduleAtFixedRate(() -> executorService.execute(this), 0, 1, TimeUnit.SECONDS);
+	}
+
+	@PreDestroy
+	void shutdown() {
+		scheduledExecutorService.close();
+		executorService.close();
 	}
 
 	@Override

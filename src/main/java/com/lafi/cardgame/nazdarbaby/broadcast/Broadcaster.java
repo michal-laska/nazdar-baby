@@ -1,6 +1,7 @@
 package com.lafi.cardgame.nazdarbaby.broadcast;
 
 import com.lafi.cardgame.nazdarbaby.view.TableView;
+import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
@@ -12,6 +13,11 @@ import java.util.concurrent.Executors;
 public class Broadcaster {
 
 	private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
+
+	@PreDestroy
+	void shutdown() {
+		executorService.close();
+	}
 	private final Set<BroadcastListener> listeners = ConcurrentHashMap.newKeySet();
 
 	public void register(BroadcastListener listener) {

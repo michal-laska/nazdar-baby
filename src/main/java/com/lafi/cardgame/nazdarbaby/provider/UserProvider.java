@@ -7,7 +7,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -35,7 +34,7 @@ public class UserProvider {
 			return false;
 		}
 
-		Optional<User> userOptional = getPlayingUsers().stream()
+		var userOptional = getPlayingUsers().stream()
 				.filter(user -> Objects.equals(user.getTakeoverCode(), takeoverCode))
 				.findFirst();
 
@@ -43,17 +42,21 @@ public class UserProvider {
 			return false;
 		}
 
-		User user = userOptional.get();
+		var user = userOptional.get();
 
-		VaadinSession oldSession = sessionToUser.entrySet().stream()
+		var oldSessionOptional = sessionToUser.entrySet().stream()
 				.filter(entry -> entry.getValue().equals(user))
-				.findFirst()
-				.get()
-				.getKey();
+				.findFirst();
+
+		if (oldSessionOptional.isEmpty()) {
+			return false;
+		}
+
+		var oldSession = oldSessionOptional.get().getKey();
 		sessionToUser.remove(oldSession);
 		loggedInSessions.remove(oldSession);
 
-		VaadinSession newSession = VaadinSession.getCurrent();
+		var newSession = VaadinSession.getCurrent();
 		sessionToUser.put(newSession, user);
 		loggedInSessions.add(newSession);
 
