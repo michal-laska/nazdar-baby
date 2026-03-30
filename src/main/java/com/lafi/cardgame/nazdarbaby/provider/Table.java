@@ -23,15 +23,16 @@ public class Table {
 	public static final int MAXIMUM_USERS = Collections.max(PointProvider.NUMBER_OF_USERS_TO_WINNER_MAP.keySet());
 	public static final int NOTIFICATION_DELAY_IN_MINUTES = 5;
 
+	private final Object lock = new Object();
 	private final String tableName;
 	private final Broadcaster broadcaster;
 	private final CountdownService countdownService;
 	private final UserProvider userProvider;
 	private final Game game;
 
-	private Instant lastNotificationTime;
-	private Instant lastNewGameTime;
-	private int passwordHash;
+	private volatile Instant lastNotificationTime;
+	private volatile Instant lastNewGameTime;
+	private volatile int passwordHash;
 
 	Table(String tableName, Broadcaster broadcaster, CountdownService countdownService, PointProvider pointProvider) {
 		this.tableName = tableName;
@@ -42,6 +43,10 @@ public class Table {
 		game = new Game(userProvider, pointProvider);
 
 		resetLastNotificationTime();
+	}
+
+	public Object getLock() {
+		return lock;
 	}
 
 	public String getTableName() {

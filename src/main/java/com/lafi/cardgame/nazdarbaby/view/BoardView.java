@@ -688,8 +688,7 @@ public class BoardView extends ParameterizedView {
     }
 
     private void nextTrickButtonClickAction(Button nextTrickButton) {
-        //noinspection SynchronizeOnNonFinalField
-        synchronized (table) {
+        synchronized (table.getLock()) {
             if (nextTrickButton.isDisableOnClick()) {
                 return;
             }

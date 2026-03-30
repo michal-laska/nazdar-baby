@@ -20,7 +20,8 @@ public class TableProvider {
 	}
 
 	public Table getOrCreate(String tableName, Broadcaster broadcaster, CountdownService countdownService) {
-		return tableNameToTable.getOrDefault(tableName, new Table(tableName, broadcaster, countdownService, pointProvider));
+		var table = tableNameToTable.get(tableName);
+		return table != null ? table : new Table(tableName, broadcaster, countdownService, pointProvider);
 	}
 
 	public void add(Table table) {
