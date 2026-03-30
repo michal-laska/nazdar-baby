@@ -248,7 +248,6 @@ public final class SimulationState {
 
 	private void autoApplyKnownPredictions() {
 		while (phase == Phase.PREDICTING && knownPrediction[currentPlayerIndex]) {
-			expectedTakes[currentPlayerIndex] = expectedTakes[currentPlayerIndex]; // already set
 			predictionsDone++;
 
 			if (predictionsDone >= totalPlayers) {

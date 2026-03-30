@@ -179,9 +179,8 @@ public final class MctsEngine {
 
 	private void aggregateCardResults(MctsNode root, Map<Card, double[]> cardStats) {
 		for (MctsNode child : root.getChildren()) {
-			if (child.getAction() instanceof MctsAction.PlayCard play) {
-				Card card = play.card();
-				double[] stats = cardStats.computeIfAbsent(card, k -> new double[2]);
+			if (child.getAction() instanceof MctsAction.PlayCard(Card card)) {
+                double[] stats = cardStats.computeIfAbsent(card, k -> new double[2]);
 				stats[0] += child.getTotalReward();
 				stats[1] += child.getVisitCount();
 			}
@@ -190,9 +189,8 @@ public final class MctsEngine {
 
 	private void aggregateTakesResults(MctsNode root, Map<Integer, double[]> takesStats) {
 		for (MctsNode child : root.getChildren()) {
-			if (child.getAction() instanceof MctsAction.PredictTakes predict) {
-				int takes = predict.takes();
-				double[] stats = takesStats.computeIfAbsent(takes, k -> new double[2]);
+			if (child.getAction() instanceof MctsAction.PredictTakes(int takes)) {
+                double[] stats = takesStats.computeIfAbsent(takes, k -> new double[2]);
 				stats[0] += child.getTotalReward();
 				stats[1] += child.getVisitCount();
 			}

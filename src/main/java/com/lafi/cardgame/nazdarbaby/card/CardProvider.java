@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.IntStream;
 
 public record CardProvider(List<Card> deckOfCards) {
 
@@ -31,14 +30,6 @@ public record CardProvider(List<Card> deckOfCards) {
         return deckOfCards.size();
     }
 
-    public int getHighestCardValue() {
-        return getDeckOfCardValueStream().max().getAsInt();
-    }
-
-    public int getLowestCardValue() {
-        return getDeckOfCardValueStream().min().getAsInt();
-    }
-
     private static synchronized void loadCards() {
         if (!BIG_DECK_OF_CARDS.isEmpty()) {
             return;
@@ -56,9 +47,5 @@ public record CardProvider(List<Card> deckOfCards) {
                 BIG_DECK_OF_CARDS.add(card);
             }
         }
-    }
-
-    private IntStream getDeckOfCardValueStream() {
-        return deckOfCards.stream().mapToInt(Card::getValue);
     }
 }

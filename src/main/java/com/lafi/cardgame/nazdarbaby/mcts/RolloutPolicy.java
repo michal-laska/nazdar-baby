@@ -83,7 +83,7 @@ final class RolloutPolicy {
 		}
 
 		int result = (int) Math.round(estimate);
-		return Math.max(0, Math.min(result, hand.size()));
+		return Math.clamp(result, 0, hand.size());
 	}
 
 	/**
@@ -115,7 +115,7 @@ final class RolloutPolicy {
 		int estimate = estimateTakes(hand, state.getTotalPlayers());
 
 		for (MctsAction action : actions) {
-			if (action instanceof MctsAction.PredictTakes predict && predict.takes() == estimate) {
+			if (action instanceof MctsAction.PredictTakes(int takes) && takes == estimate) {
 				return action;
 			}
 		}
@@ -168,7 +168,7 @@ final class RolloutPolicy {
 			}
 			// Lead with a strong non-heart card if possible (save hearts for trumping later)
 			MctsAction bestNonHeart = selectHighestInCategory(actions, false);
-			if (bestNonHeart instanceof MctsAction.PlayCard play && play.card().getValue() >= KING_VALUE) {
+			if (bestNonHeart instanceof MctsAction.PlayCard(Card card) && card.getValue() >= KING_VALUE) {
 				return bestNonHeart;
 			}
 			return selectHighest(actions);
@@ -255,7 +255,7 @@ final class RolloutPolicy {
 		List<MctsAction> losers = new ArrayList<>();
 
 		for (MctsAction action : actions) {
-			if (action instanceof MctsAction.PlayCard play && wouldWinTrick(play.card(), currentTrick)) {
+			if (action instanceof MctsAction.PlayCard(Card card) && wouldWinTrick(card, currentTrick)) {
 				winners.add(action);
 			} else {
 				losers.add(action);
@@ -287,7 +287,7 @@ final class RolloutPolicy {
 		List<MctsAction> winners = new ArrayList<>();
 
 		for (MctsAction action : actions) {
-			if (action instanceof MctsAction.PlayCard play && wouldWinTrick(play.card(), currentTrick)) {
+			if (action instanceof MctsAction.PlayCard(Card card) && wouldWinTrick(card, currentTrick)) {
 				winners.add(action);
 			} else {
 				losers.add(action);
@@ -325,8 +325,8 @@ final class RolloutPolicy {
 		int bestValue = Integer.MIN_VALUE;
 
 		for (MctsAction action : actions) {
-			if (action instanceof MctsAction.PlayCard play) {
-				int value = cardStrength(play.card());
+			if (action instanceof MctsAction.PlayCard(Card card)) {
+				int value = cardStrength(card);
 				if (value > bestValue) {
 					bestValue = value;
 					best = action;
@@ -344,8 +344,8 @@ final class RolloutPolicy {
 		int bestValue = Integer.MAX_VALUE;
 
 		for (MctsAction action : actions) {
-			if (action instanceof MctsAction.PlayCard play) {
-				int value = cardStrength(play.card());
+			if (action instanceof MctsAction.PlayCard(Card card)) {
+				int value = cardStrength(card);
 				if (value < bestValue) {
 					bestValue = value;
 					best = action;
@@ -365,8 +365,8 @@ final class RolloutPolicy {
 		int secondValue = Integer.MIN_VALUE;
 
 		for (MctsAction action : actions) {
-			if (action instanceof MctsAction.PlayCard play) {
-				int value = cardStrength(play.card());
+			if (action instanceof MctsAction.PlayCard(Card card)) {
+				int value = cardStrength(card);
 				if (value > highestValue) {
 					secondHighest = highest;
 					secondValue = highestValue;
@@ -390,10 +390,10 @@ final class RolloutPolicy {
 		int bestValue = Integer.MIN_VALUE;
 
 		for (MctsAction action : actions) {
-			if (action instanceof MctsAction.PlayCard play) {
-				boolean isHeart = play.card().getColor() == Color.HEARTS;
+			if (action instanceof MctsAction.PlayCard(Card card)) {
+				boolean isHeart = card.getColor() == Color.HEARTS;
 				if (isHeart == hearts) {
-					int value = cardStrength(play.card());
+					int value = cardStrength(card);
 					if (value > bestValue) {
 						bestValue = value;
 						best = action;
@@ -421,8 +421,8 @@ final class RolloutPolicy {
 		// Find the minimum suit count among playable cards (prefer non-hearts for void creation)
 		int minCount = Integer.MAX_VALUE;
 		for (MctsAction action : actions) {
-			if (action instanceof MctsAction.PlayCard play) {
-				Color color = play.card().getColor();
+			if (action instanceof MctsAction.PlayCard(Card card)) {
+				Color color = card.getColor();
 				int count = suitCount[color.ordinal()];
 				if (count < minCount) {
 					minCount = count;
@@ -435,11 +435,11 @@ final class RolloutPolicy {
 		int bestValue = Integer.MAX_VALUE;
 
 		for (MctsAction action : actions) {
-			if (action instanceof MctsAction.PlayCard play) {
-				Color color = play.card().getColor();
+			if (action instanceof MctsAction.PlayCard(Card card)) {
+				Color color = card.getColor();
 				int count = suitCount[color.ordinal()];
 				if (count == minCount) {
-					int value = cardStrength(play.card());
+					int value = cardStrength(card);
 					if (value < bestValue) {
 						bestValue = value;
 						best = action;
@@ -457,10 +457,10 @@ final class RolloutPolicy {
 	 * toward promising actions, then fades as visit count grows.
 	 */
 	static double heuristicValue(SimulationState state, MctsAction action) {
-		if (action instanceof MctsAction.PredictTakes predict) {
+		if (action instanceof MctsAction.PredictTakes(int takes)) {
 			int playerIndex = state.getCurrentPlayerIndex();
 			int estimate = estimateInContext(state, playerIndex);
-			int distance = Math.abs(predict.takes() - estimate);
+			int distance = Math.abs(takes - estimate);
 			// 1.0 for exact match, 0.5 for off-by-1, 0.33 for off-by-2, etc.
 			return 1.0 / (1.0 + distance);
 		}
@@ -503,8 +503,8 @@ final class RolloutPolicy {
 		// Sort by distance from heuristic estimate — closest last (tried first)
 		List<MctsAction> sorted = new ArrayList<>(actions);
 		sorted.sort(Comparator.comparingInt((MctsAction a) -> {
-			if (a instanceof MctsAction.PredictTakes predict) {
-				return -Math.abs(predict.takes() - estimate);
+			if (a instanceof MctsAction.PredictTakes(int takes)) {
+				return -Math.abs(takes - estimate);
 			}
 			return 0;
 		}));
@@ -526,12 +526,11 @@ final class RolloutPolicy {
 
 	private static int scorePlayAction(MctsAction action, int needed, int remaining,
 									List<Card> currentTrick, boolean isLast) {
-		if (!(action instanceof MctsAction.PlayCard play)) {
+		if (!(action instanceof MctsAction.PlayCard(Card card))) {
 			return 0;
 		}
 
-		Card card = play.card();
-		int strength = cardStrength(card);
+        int strength = cardStrength(card);
 		boolean leading = currentTrick.isEmpty();
 
 		// Can't match prediction — disrupt others
@@ -596,7 +595,7 @@ final class RolloutPolicy {
 		remaining = Math.min(remaining, hand.size());
 
 		int blended = (int) Math.round(0.7 * handEstimate + 0.3 * remaining);
-		return Math.max(0, Math.min(blended, hand.size()));
+		return Math.clamp(blended, 0, hand.size());
 	}
 
 	private static int cardStrength(Card card) {
