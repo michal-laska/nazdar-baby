@@ -4,22 +4,21 @@ import com.lafi.cardgame.nazdarbaby.user.User;
 import com.vaadin.flow.server.VaadinSession;
 
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class UserProvider {
 
-	private final Map<VaadinSession, User> sessionToUser = new HashMap<>();
-	private final Map<String, User> botNameToBot = new HashMap<>();
-	private final Set<VaadinSession> loggedInSessions = new HashSet<>();
-	private final Set<Integer> takeoverCodes = new HashSet<>();
+	private final Map<VaadinSession, User> sessionToUser = new ConcurrentHashMap<>();
+	private final Map<String, User> botNameToBot = new ConcurrentHashMap<>();
+	private final Set<VaadinSession> loggedInSessions = ConcurrentHashMap.newKeySet();
+	private final Set<Integer> takeoverCodes = ConcurrentHashMap.newKeySet();
 
 	UserProvider() {
 	}

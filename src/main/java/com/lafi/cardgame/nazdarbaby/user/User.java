@@ -4,14 +4,14 @@ import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.Color;
 import org.apache.commons.rng.simple.RandomSource;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class User {
 
-	private final List<Card> cards = new ArrayList<>();
+	private final List<Card> cards = new CopyOnWriteArrayList<>();
 	private final String name;
 	private final Integer takeoverCode;
 	private final boolean isBot;

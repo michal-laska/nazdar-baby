@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 public class Game {
@@ -38,19 +39,19 @@ public class Game {
 		this.pointProvider = pointProvider;
 	}
 
-	public List<User> getSetUsers() {
+	public synchronized List<User> getSetUsers() {
 		return setUsers;
 	}
 
-	public List<User> getTrickUsers() {
+	public synchronized List<User> getTrickUsers() {
 		return trickUsers;
 	}
 
-	public List<Card> getCardPlaceholders() {
+	public synchronized List<Card> getCardPlaceholders() {
 		return cardPlaceholders;
 	}
 
-	public boolean isGameInProgress() {
+	public synchronized boolean isGameInProgress() {
 		return gameInProgress;
 	}
 
@@ -62,7 +63,7 @@ public class Game {
 		return userProvider;
 	}
 
-	public void setGameInProgress(boolean gameInProgress) {
+	public synchronized void setGameInProgress(boolean gameInProgress) {
 		this.gameInProgress = gameInProgress;
 
 		if (gameInProgress) {
@@ -81,12 +82,12 @@ public class Game {
 		resetReadyFlags();
 	}
 
-	public boolean isActiveUser() {
+	public synchronized boolean isActiveUser() {
 		User currentUser = userProvider.getCurrentUser();
 		return currentUser.equals(activeUser);
 	}
 
-	public void changeActiveUser() {
+	public synchronized void changeActiveUser() {
 		int activeUserIndex = activeUser == null ? trickUsers.size() : trickUsers.indexOf(activeUser);
 
 		if (activeUserIndex == trickUsers.size()) {
@@ -111,7 +112,7 @@ public class Game {
 		tryBotMove();
 	}
 
-	public void afterActiveUserSetExpectedTakes() {
+	public synchronized void afterActiveUserSetExpectedTakes() {
 		if (isLastUser()) {
 			resetActiveUser();
 			tryBotMove();
@@ -120,15 +121,15 @@ public class Game {
 		}
 	}
 
-	public boolean isEndOfTrick() {
+	public synchronized boolean isEndOfTrick() {
 		return activeUser == null;
 	}
 
-	public boolean isEndOfSet() {
+	public synchronized boolean isEndOfSet() {
 		return isEndOfTrick() && trickNumber == trickUsers.getFirst().getCards().size();
 	}
 
-	public boolean isLastUserWithInvalidExpectedTakes(int expectedTakes) {
+	public synchronized boolean isLastUserWithInvalidExpectedTakes(int expectedTakes) {
 		if (!isLastUser()) {
 			return false;
 		}
@@ -137,16 +138,16 @@ public class Game {
 		return expectedTakes == invalidExpectedTakes;
 	}
 
-	public int getTrickCharacter() {
+	public synchronized int getTrickCharacter() {
 		int sumOfExpectedTakes = getSumOfExpectedTakes();
 		return sumOfExpectedTakes - trickUsers.getFirst().getCards().size();
 	}
 
-	public boolean setCanStart() {
+	public synchronized boolean setCanStart() {
 		return trickUsers.getLast().getExpectedTakes() != null;
 	}
 
-	public int getWinningIndex() {
+	public synchronized int getWinningIndex() {
 		Card winnerCard = getWinningCard();
 		return cardPlaceholders.indexOf(winnerCard);
 	}
@@ -167,7 +168,7 @@ public class Game {
 		return winningCard;
 	}
 
-	public void startNewGame() {
+	public synchronized void startNewGame() {
 		if (tryResetTerminatorFlags()) {
 			Collections.rotate(gameUsers, -1);
 		}
@@ -176,13 +177,13 @@ public class Game {
 
 		rotateGameUsersAccordingToTerminators();
 
-		setUsers = new ArrayList<>(gameUsers);
+		setUsers = new CopyOnWriteArrayList<>(gameUsers);
 
 		startNewSet();
 		startNewTrick();
 	}
 
-	public int getSumOfExpectedTakes() {
+	public synchronized int getSumOfExpectedTakes() {
 		return trickUsers.stream()
 				.map(User::getExpectedTakes)
 				.filter(Objects::nonNull)
@@ -190,17 +191,17 @@ public class Game {
 				.sum();
 	}
 
-	public boolean usersWantNewGame() {
+	public synchronized boolean usersWantNewGame() {
 		return gameUsers.stream()
 				.filter(user -> !user.isBot())
 				.noneMatch(user -> !user.wantNewGame() && !user.isLoggedOut());
 	}
 
-	boolean isLastUser() {
+	synchronized boolean isLastUser() {
 		return trickUsers.indexOf(activeUser) + 1 == trickUsers.size();
 	}
 
-	CardProvider getCardProvider() {
+	synchronized CardProvider getCardProvider() {
 		return cardProvider;
 	}
 
@@ -268,8 +269,8 @@ public class Game {
 
 	private void initCardPlaceholders() {
 		cardPlaceholders = trickUsers.stream()
-				.map(user -> CardProvider.CARD_PLACEHOLDER)
-				.collect(Collectors.toList());
+				.map(_ -> CardProvider.CARD_PLACEHOLDER)
+				.collect(Collectors.toCollection(CopyOnWriteArrayList::new));
 		botSimulator.setCardPlaceholders(cardPlaceholders);
 	}
 
@@ -344,7 +345,7 @@ public class Game {
 		if (setNumber > 0) {
 			Collections.rotate(setUsers, -1);
 		}
-		setTrickUsers(new ArrayList<>(setUsers));
+		setTrickUsers(new CopyOnWriteArrayList<>(setUsers));
 
 		trickNumber = 0;
 		resetActiveUser();
