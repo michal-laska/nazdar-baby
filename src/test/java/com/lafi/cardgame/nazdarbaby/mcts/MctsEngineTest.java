@@ -51,7 +51,7 @@ class MctsEngineTest {
 			double prediction = engine.predictTakes(state, unknownCards, opponentSlots,
 					Map.of(), Map.of());
 
-			assertThat(prediction).isEqualTo(1.0);
+			assertThat(Math.round(prediction)).isEqualTo(1);
 		}
 
 		@Test
@@ -68,7 +68,30 @@ class MctsEngineTest {
 			double prediction = engine.predictTakes(state, unknownCards, opponentSlots,
 					Map.of(), Map.of());
 
-			assertThat(prediction).isZero();
+			assertThat(Math.round(prediction)).isZero();
+		}
+
+		@Test
+		void strongHand_multiCard_leansUp() {
+			// Ace of hearts + weak card: best prediction is 1,
+			// direction should lean toward 2 (not toward 0)
+			Card aceHearts = getCard(14, Color.HEARTS);
+			Card sevenDiamonds = getCard(7, Color.DIAMONDS);
+			List<Card> botHand = List.of(aceHearts, sevenDiamonds);
+
+			SimulationState state = createPredictionState(botHand, 0, 0);
+
+			List<Card> unknownCards = new ArrayList<>(deckOfCards);
+			unknownCards.removeAll(botHand);
+			int[] opponentSlots = {0, 2, 2};
+
+			double prediction = engine.predictTakes(state, unknownCards, opponentSlots,
+					Map.of(), Map.of());
+
+			// Best prediction rounds to 1, but leans up — if 1 is forbidden,
+			// last-predictor adjustment goes to 2 rather than 0
+			assertThat(Math.round(prediction)).isEqualTo(1);
+			assertThat(prediction).isGreaterThan(1.0);
 		}
 
 		@Test
@@ -88,7 +111,7 @@ class MctsEngineTest {
 			double prediction = engine.predictTakes(state, unknownCards, opponentSlots,
 					Map.of(), Map.of());
 
-			assertThat(prediction).isEqualTo(1.0);
+			assertThat(Math.round(prediction)).isEqualTo(1);
 		}
 
 		@Test

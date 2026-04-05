@@ -218,6 +218,9 @@ public final class MctsEngine {
 		int bestTakes = 0;
 		double bestAvg = Double.NEGATIVE_INFINITY;
 
+		double weightedSum = 0;
+		double weightTotal = 0;
+
 		for (Map.Entry<Integer, double[]> entry : takesStats.entrySet()) {
 			double[] stats = entry.getValue();
 			double avg = stats[1] > 0 ? stats[0] / stats[1] : 0;
@@ -225,8 +228,19 @@ public final class MctsEngine {
 				bestAvg = avg;
 				bestTakes = entry.getKey();
 			}
+			if (avg > 0) {
+				weightedSum += entry.getKey() * avg;
+				weightTotal += avg;
+			}
 		}
 
+		// Return weighted average so the fractional part indicates
+		// which direction to adjust when the best prediction is forbidden
+		if (weightTotal > 0) {
+			double weightedAvg = weightedSum / weightTotal;
+			// Clamp so Math.round still yields bestTakes
+			return Math.clamp(weightedAvg, bestTakes - 0.49, bestTakes + 0.49);
+		}
 		return bestTakes;
 	}
 

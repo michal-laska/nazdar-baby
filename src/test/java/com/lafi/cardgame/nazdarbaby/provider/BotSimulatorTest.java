@@ -110,6 +110,37 @@ class BotSimulatorTest {
 
 			assertThat(bot.getExpectedTakes()).isEqualTo(1);
 		}
+
+		@Test
+		void aceOfHearts_singleCard_forbiddenOne_predictsZero() {
+			List<Card> cardPlaceholders = List.of(CARD_PLACEHOLDER, CARD_PLACEHOLDER, CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
+			User bot = bots.getFirst();
+			bot.addCard(getCard(14, Color.HEARTS));
+			botSimulator.setActiveUser(bot);
+			doReturn(true).when(game).isLastUserWithInvalidExpectedTakes(1);
+
+			botSimulator.tryBotMove();
+
+			// Single card — prediction 1 is forbidden, 0 is the only alternative
+			assertThat(bot.getExpectedTakes()).isZero();
+		}
+
+		@Test
+		void aceOfHearts_twoCards_forbiddenOne_predictsTwo() {
+			List<Card> cardPlaceholders = List.of(CARD_PLACEHOLDER, CARD_PLACEHOLDER, CARD_PLACEHOLDER);
+			botSimulator.setCardPlaceholders(cardPlaceholders);
+			User bot = bots.getFirst();
+			bot.addCard(getCard(14, Color.HEARTS));
+			bot.addCard(getCard(7, Color.DIAMONDS));
+			botSimulator.setActiveUser(bot);
+			doReturn(true).when(game).isLastUserWithInvalidExpectedTakes(1);
+
+			botSimulator.tryBotMove();
+
+			// Two cards with ace of hearts — prediction 1 is forbidden, should go up to 2 (not down to 0)
+			assertThat(bot.getExpectedTakes()).isEqualTo(2);
+		}
 	}
 
 	private void rememberCards(List<Card> cards) {
