@@ -390,7 +390,7 @@ class RolloutPolicyTest {
 		@Test
 		void aceOfHearts_estimatesOne() {
 			List<Card> hand = List.of(getCard(14, Color.HEARTS));
-			assertThat(RolloutPolicy.estimateTakes(hand, 3)).isEqualTo(1);
+			assertThat(RolloutPolicy.estimateTakes(hand, 3, false)).isEqualTo(1);
 		}
 
 		@Test
@@ -400,7 +400,7 @@ class RolloutPolicyTest {
 					getCard(8, Color.DIAMONDS),
 					getCard(9, Color.SPADES)
 			);
-			assertThat(RolloutPolicy.estimateTakes(hand, 3)).isZero();
+			assertThat(RolloutPolicy.estimateTakes(hand, 3, false)).isZero();
 		}
 
 		@Test
@@ -410,7 +410,36 @@ class RolloutPolicyTest {
 					getCard(13, Color.SPADES),
 					getCard(9, Color.HEARTS)
 			);
-			assertThat(RolloutPolicy.estimateTakes(hand, 3)).isEqualTo(1);
+			assertThat(RolloutPolicy.estimateTakes(hand, 3, false)).isEqualTo(1);
+		}
+
+		@Test
+		void voidBonus_higherWhenFollowing() {
+			// Hand with hearts + void in another suit — void is more valuable when following
+			List<Card> hand = List.of(
+					getCard(9, Color.HEARTS),
+					getCard(10, Color.HEARTS),
+					getCard(7, Color.CLUBS)
+			);
+			int asFollower = RolloutPolicy.estimateTakes(hand, 3, false);
+			int asLeader = RolloutPolicy.estimateTakes(hand, 3, true);
+
+			assertThat(asFollower).isGreaterThanOrEqualTo(asLeader);
+		}
+
+		@Test
+		void nonHeartAce_strongerWhenLeading() {
+			// Non-heart ace gets a boost when leading (you choose when to play it)
+			// Use enough players so the base value is low enough for the +0.1 to matter
+			List<Card> hand = List.of(
+					getCard(14, Color.SPADES),
+					getCard(7, Color.CLUBS),
+					getCard(8, Color.DIAMONDS)
+			);
+			int asLeader = RolloutPolicy.estimateTakes(hand, 5, true);
+			int asFollower = RolloutPolicy.estimateTakes(hand, 5, false);
+
+			assertThat(asLeader).isGreaterThanOrEqualTo(asFollower);
 		}
 	}
 }

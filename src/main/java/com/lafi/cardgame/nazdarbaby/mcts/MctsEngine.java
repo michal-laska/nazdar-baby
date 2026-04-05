@@ -140,7 +140,8 @@ public final class MctsEngine {
 		if (state.getPhase() == SimulationState.Phase.PREDICTING) {
 			for (int i = 0; i < state.getTotalPlayers(); i++) {
 				if (i != botIndex && !state.isKnownPrediction(i)) {
-					int estimate = RolloutPolicy.estimateTakes(state.getHand(i), state.getTotalPlayers());
+					boolean isLeader = i == state.getLeadPlayerIndex();
+					int estimate = RolloutPolicy.estimateTakes(state.getHand(i), state.getTotalPlayers(), isLeader);
 					state.setFixedPrediction(i, estimate);
 				}
 			}

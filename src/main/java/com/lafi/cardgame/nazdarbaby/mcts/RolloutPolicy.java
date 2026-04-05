@@ -24,7 +24,7 @@ final class RolloutPolicy {
 	 * More players means each trick is harder to win — scales non-ace strength down.
 	 * Void suits (0 cards) increase estimate since the player can trump.
 	 */
-	static int estimateTakes(List<Card> hand, int totalPlayers) {
+	static int estimateTakes(List<Card> hand, int totalPlayers, boolean isLeader) {
 		double estimate = 0.0;
 
 		// Player count scaling: with more players, non-guaranteed cards are worth less
@@ -57,7 +57,9 @@ final class RolloutPolicy {
 				} else {
 					// Non-heart ace: strong but can be trumped if opponents are void
 					// With more players, more likely someone is void
-					estimate += Math.max(0.5, 1.0 - 0.1 * (totalPlayers - 2));
+					// Leading: you choose when to play it, opponents must follow suit
+					double base = Math.max(0.5, 1.0 - 0.1 * (totalPlayers - 2));
+					estimate += isLeader ? Math.min(1.0, base + 0.1) : base;
 				}
 			} else if (card.getColor() == Color.HEARTS) {
 				// Hearts (trump): value depends on how high and how many players
@@ -70,16 +72,22 @@ final class RolloutPolicy {
 				}
 			} else if (card.getValue() == KING_VALUE) {
 				// King: decent but easily beaten by ace or trumped
-				estimate += 0.4 * opponentFactor * 2;
+				// Leading: you set the suit before opponents act
+				double base = 0.4 * opponentFactor * 2;
+				estimate += isLeader ? base * 1.2 : base;
 			} else if (card.getValue() >= 12) {
 				// Queen: marginal strength
-				estimate += 0.2 * opponentFactor * 2;
+				double base = 0.2 * opponentFactor * 2;
+				estimate += isLeader ? base * 1.2 : base;
 			}
 		}
 
-		// Void bonus: each void suit lets us trump, but only if we have hearts
+		// Void bonus: each void suit lets us trump, but only if we have hearts.
+		// When leading, voids are less useful in trick 1 (you choose the suit),
+		// but still help in later tricks after losing the lead.
 		if (heartsCount > 0 && voidSuits > 0) {
-			estimate += Math.min(voidSuits, heartsCount) * 0.3;
+			double voidValue = isLeader ? 0.15 : 0.3;
+			estimate += Math.min(voidSuits, heartsCount) * voidValue;
 		}
 
 		int result = (int) Math.round(estimate);
@@ -112,7 +120,8 @@ final class RolloutPolicy {
 	private static MctsAction selectPredictionAction(SimulationState state, List<MctsAction> actions) {
 		int playerIndex = state.getCurrentPlayerIndex();
 		List<Card> hand = state.getHand(playerIndex);
-		int estimate = estimateTakes(hand, state.getTotalPlayers());
+		boolean isLeader = playerIndex == state.getLeadPlayerIndex();
+		int estimate = estimateTakes(hand, state.getTotalPlayers(), isLeader);
 
 		for (MctsAction action : actions) {
 			if (action instanceof MctsAction.PredictTakes(int takes) && takes == estimate) {
@@ -576,7 +585,8 @@ final class RolloutPolicy {
 	 */
 	private static int estimateInContext(SimulationState state, int playerIndex) {
 		List<Card> hand = state.getHand(playerIndex);
-		int handEstimate = estimateTakes(hand, state.getTotalPlayers());
+		boolean isLeader = playerIndex == state.getLeadPlayerIndex();
+		int handEstimate = estimateTakes(hand, state.getTotalPlayers(), isLeader);
 
 		// Only blend when all other players have actually predicted (not just
 		// fixed by determinizer). predictionsDone tracks real predictions only.
