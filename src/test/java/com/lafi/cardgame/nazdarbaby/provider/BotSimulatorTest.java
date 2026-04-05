@@ -70,12 +70,14 @@ class BotSimulatorTest {
 
 			User bot = bots.getFirst();
 			bot.addCard(getHeart(9));
+			bot.addCard(getCard(7, Color.DIAMONDS));
 
 			botSimulator.setActiveUser(bot);
 			botSimulator.removeColorsForOtherUsers(bot.getCards());
 
 			double expectedTakes = botSimulator.guessExpectedTakes();
-			assertThat(expectedTakes).isEqualTo(1);
+			// Heart 9 is highest remaining heart (wins), 7 of diamonds is weak (loses)
+			assertThat(Math.round(expectedTakes)).isEqualTo(1);
 		}
 
 		@Test

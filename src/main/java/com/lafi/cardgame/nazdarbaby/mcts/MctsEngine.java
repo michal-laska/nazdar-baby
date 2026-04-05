@@ -79,7 +79,14 @@ public final class MctsEngine {
 							   Map<Integer, Set<Card>> excludedCards) {
 		baseState.setPredictionMode(true);
 
-		int handSize = baseState.getHand(baseState.getBotPlayerIndex()).size();
+		int botIndex = baseState.getBotPlayerIndex();
+		int handSize = baseState.getHand(botIndex).size();
+
+		if (handSize == 1) {
+			boolean isLeader = botIndex == baseState.getLeadPlayerIndex();
+			return RolloutPolicy.estimateTakes(baseState.getHand(botIndex), baseState.getTotalPlayers(), isLeader);
+		}
+
 		int opponents = baseState.getTotalPlayers() - 1;
 		int iterations = computeIterations(handSize, opponents);
 		int determinizations = computeDeterminizations(handSize, opponents);
