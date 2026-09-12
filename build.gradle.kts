@@ -38,3 +38,11 @@ vaadin {
 tasks.test {
     useJUnitPlatform()
 }
+
+// ./gradlew botArena --args="<deals> <players> <tricks> <threads>"
+tasks.register<JavaExec>("botArena") {
+    group = "verification"
+    description = "Play paired deals between two bot versions to measure a change to the MCTS engine."
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass = "com.lafi.cardgame.nazdarbaby.mcts.BotArena"
+}
