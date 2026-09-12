@@ -1,0 +1,17 @@
+[versions]
+commonsLang3 = "3.20.0"
+commonsRng = "1.7"
+springBoot = "4.1.1"
+vaadin = "25.2.7"
+
+[libraries]
+commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commonsLang3" }
+commons-rng-simple = { module = "org.apache.commons:commons-rng-simple", version.ref = "commonsRng" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "springBoot" }
+vaadin-dev = { module = "com.vaadin:vaadin-dev", version.ref = "vaadin" }
+vaadin-spring-boot-starter = { module = "com.vaadin:vaadin-spring-boot-starter", version.ref = "vaadin" }
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
+vaadin = { id = "com.vaadin", version.ref = "vaadin" }

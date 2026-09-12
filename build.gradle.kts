@@ -1,16 +1,16 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
-    id("com.vaadin")
-    id("org.springframework.boot")
-    kotlin("jvm")
+    alias(libs.plugins.vaadin)
+    alias(libs.plugins.spring.boot)
+    java
 }
 
 group = "com.lafi.cardgame.nazdarbaby"
 version = "2.0-SNAPSHOT"
 
-tasks.compileKotlin {
-    compilerOptions.jvmTarget.set(JvmTarget.JVM_25)
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
 }
 
 repositories {
@@ -18,18 +18,17 @@ repositories {
 }
 
 dependencies {
-    val commonsLang3Version: String by project
-    val commonsRngVersion: String by project
-    val springBootVersion: String by project
-    val vaadinVersion: String by project
+    developmentOnly(libs.vaadin.dev)
+    implementation(libs.vaadin.spring.boot.starter)
+    implementation(libs.commons.lang3)
+    implementation(libs.commons.rng.simple)
 
-    implementation("com.vaadin:vaadin-dev:$vaadinVersion")
-    implementation("com.vaadin:vaadin-spring-boot-starter:$vaadinVersion")
-    implementation("org.apache.commons:commons-lang3:$commonsLang3Version")
-    implementation("org.apache.commons:commons-rng-simple:$commonsRngVersion")
+    testImplementation(libs.spring.boot.starter.test)
+    testRuntimeOnly(libs.junit.platform.launcher)
+}
 
-    testImplementation("org.springframework.boot:spring-boot-starter-test:$springBootVersion")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+tasks.jar {
+    enabled = false
 }
 
 vaadin {

@@ -1,5 +1,6 @@
+.git
 .gradle
 .idea
 build
-src/main/bundles
 src/main/frontend
+src/main/bundles

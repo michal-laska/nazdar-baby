@@ -14,6 +14,7 @@ import com.lafi.cardgame.nazdarbaby.user.User;
 import com.lafi.cardgame.nazdarbaby.util.Constant;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.HasComponents;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -35,6 +36,8 @@ public class BoardView extends ParameterizedView {
     static final String ROUTE_LOCATION = "board";
 
     private static final String NEW_GAME_LABEL = "New game";
+
+    private static final int CARDS_PER_TOUCH_ROW = 4;
 
     private static final String FONT_WEIGHT_STYLE = "fontWeight";
     private static final String BOLD = "bold";
@@ -125,7 +128,7 @@ public class BoardView extends ParameterizedView {
             expectedTakesField.addKeyPressListener(Key.ENTER, keyPressEvent -> expectedTakesFieldEnterAction());
 
             if (game.isActiveUser()) {
-                UiUtil.focusForNonMobileDevice(expectedTakesField);
+                UiUtil.focusForNonTouchDevice(expectedTakesField);
                 addExpectedTakesFieldBlinking();
             } else {
                 expectedTakesField.addFocusListener(focusEvent -> notYourTurnAction());
@@ -159,7 +162,7 @@ public class BoardView extends ParameterizedView {
                 expectedTakesField.getStyle().set(BORDER_STYLE, whiteBorder);
             } else {
                 makeExpectedTakesFieldValid();
-                UiUtil.focusForNonMobileDevice(expectedTakesField);
+                UiUtil.focusForNonTouchDevice(expectedTakesField);
                 addExpectedTakesFieldBlinking();
             }
         }
@@ -220,15 +223,10 @@ public class BoardView extends ParameterizedView {
         userCardsHL.setDefaultVerticalComponentAlignment(Alignment.CENTER);
         add(userCardsHL);
 
-        var mobileVl = addCurrentUserCardsTo(userCardsHL);
+        var autoNextTarget = addCurrentUserCardsTo(userCardsHL);
 
         var autoNextVL = new VerticalLayout();
-
-        if (UiUtil.isMobileDevice()) {
-            mobileVl.add(autoNextVL);
-        } else {
-            userCardsHL.add(autoNextVL);
-        }
+        autoNextTarget.add(autoNextVL);
 
         var game = table.getGame();
 
@@ -265,50 +263,68 @@ public class BoardView extends ParameterizedView {
         }
     }
 
-    private VerticalLayout addCurrentUserCardsTo(HorizontalLayout userCardsHL) {
-        var mobileVl = new VerticalLayout();
-        var mobileHl = new HorizontalLayout();
-        if (UiUtil.isMobileDevice()) {
-            userCardsHL.add(mobileVl);
-            mobileVl.add(mobileHl);
-        }
-
+    private HasComponents addCurrentUserCardsTo(HorizontalLayout userCardsHL) {
         var userProvider = table.getUserProvider();
         var currentUser = userProvider.getCurrentUser();
         var currentUserCards = currentUser.getCards();
 
         var numberOfCardsLeft = getNumberOfCardsLeft(currentUserCards);
 
-        for (Card card : currentUserCards) {
-            var image = card.getImage();
+        if (UiUtil.isTouchDevice()) {
+            return addWrappedCardRows(userCardsHL, currentUserCards, numberOfCardsLeft);
+        }
+        return addSingleCardRow(userCardsHL, currentUserCards, numberOfCardsLeft);
+    }
 
-            if (UiUtil.isMobileDevice()) {
-                mobileHl.add(image);
+    private VerticalLayout addWrappedCardRows(HorizontalLayout userCardsHL, List<Card> cards, long numberOfCardsLeft) {
+        var touchVl = new VerticalLayout();
+        userCardsHL.add(touchVl);
 
-                if (mobileHl.getComponentCount() == 4) {
-                    mobileHl = new HorizontalLayout();
-                    mobileVl.add(mobileHl);
-                }
-            } else {
-                userCardsHL.add(image);
+        var touchHl = addCardRowTo(touchVl);
+
+        for (Card card : cards) {
+            if (touchHl.getComponentCount() == CARDS_PER_TOUCH_ROW) {
+                touchHl = addCardRowTo(touchVl);
             }
 
-            if (card.isPlaceholder()) {
-                continue;
-            }
-
-            if (numberOfCardsLeft == 1L) {
-                cardImageClickAction(image, card, currentUserCards);
-            }
-
-            if (preselectedCardImage != null && preselectedCardImage.getSrc().equals(image.getSrc())) {
-                cardImageClickAction(image, card, currentUserCards);
-            }
-
-            image.addClickListener(click -> cardImageClickAction(image, card, currentUserCards));
+            addCardImageTo(touchHl, card, cards, numberOfCardsLeft);
         }
 
-        return mobileVl;
+        return touchVl;
+    }
+
+    private HorizontalLayout addCardRowTo(VerticalLayout touchVl) {
+        var touchHl = new HorizontalLayout();
+        touchVl.add(touchHl);
+
+        return touchHl;
+    }
+
+    private HorizontalLayout addSingleCardRow(HorizontalLayout userCardsHL, List<Card> cards, long numberOfCardsLeft) {
+        for (Card card : cards) {
+            addCardImageTo(userCardsHL, card, cards, numberOfCardsLeft);
+        }
+
+        return userCardsHL;
+    }
+
+    private void addCardImageTo(HasComponents cardTarget, Card card, List<Card> cards, long numberOfCardsLeft) {
+        var image = card.getImage();
+        cardTarget.add(image);
+
+        if (card.isPlaceholder()) {
+            return;
+        }
+
+        if (numberOfCardsLeft == 1L) {
+            cardImageClickAction(image, card, cards);
+        }
+
+        if (preselectedCardImage != null && preselectedCardImage.getSrc().equals(image.getSrc())) {
+            cardImageClickAction(image, card, cards);
+        }
+
+        image.addClickListener(click -> cardImageClickAction(image, card, cards));
     }
 
     private long getNumberOfCardsLeft(List<Card> cards) {
