@@ -5,7 +5,7 @@ WORKDIR /home/gradle/src
 RUN ./gradlew build --no-daemon
 
 # Package stage
-FROM amazoncorretto:25.0.4-alpine
+FROM amazoncorretto:26.0.2-alpine
 RUN mkdir /app
 COPY --from=build /home/gradle/src/build/libs/*.jar /app/nazdar-baby.jar
 EXPOSE 8080
