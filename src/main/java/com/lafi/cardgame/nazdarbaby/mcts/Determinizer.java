@@ -17,8 +17,7 @@ import java.util.Set;
 final class Determinizer {
 
 	private static final int MAX_ATTEMPTS = 50;
-	private static final int ACE_VALUE = 14;
-	private static final int KING_VALUE = 13;
+	private static final int PREDICTION_TOLERANCE = 1;
 
 	private Determinizer() {
 	}
@@ -30,12 +29,13 @@ final class Determinizer {
 	 * @param opponentSlots     how many cards each player holds (bot slot = 0)
 	 * @param colorVoids        per-player set of colors the player is known NOT to have
 	 * @param botPlayerIndex    index of the bot player (skipped in dealing)
-	 * @param opponentPredictions per-player predicted takes (-1 if unknown/not yet predicted)
+	 * @param neededTakes       per-player tricks still to win; negative when the prediction cannot
+	 *                          constrain the hand (no prediction yet, or already past it)
 	 * @return list of hands indexed by player index; bot hand is empty list
 	 */
 	static List<List<Card>> sampleOpponentHands(List<Card> unknownCards, int[] opponentSlots,
 												Map<Integer, Set<Color>> colorVoids, int botPlayerIndex,
-												int[] opponentPredictions,
+												int[] neededTakes,
 												Map<Integer, Set<Card>> excludedCards) {
 		int totalPlayers = opponentSlots.length;
 
@@ -50,30 +50,38 @@ final class Determinizer {
 				(Integer idx) -> colorVoids.getOrDefault(idx, Set.of()).size()
 						+ excludedCards.getOrDefault(idx, Set.of()).size()).reversed());
 
+		List<List<Card>> closestHands = null;
+		int lowestMismatch = Integer.MAX_VALUE;
+
 		for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
 			List<Card> shuffled = new ArrayList<>(unknownCards);
 			Collections.shuffle(shuffled);
 
-			List<List<Card>> hands = new ArrayList<>(totalPlayers);
-			for (int i = 0; i < totalPlayers; i++) {
-				hands.add(new ArrayList<>());
+			List<List<Card>> hands = emptyHands(totalPlayers);
+			if (!tryDeal(shuffled, hands, opponentSlots, colorVoids, excludedCards, dealOrder)) {
+				continue;
 			}
 
-			boolean valid = tryDeal(shuffled, hands, opponentSlots, colorVoids, excludedCards, dealOrder);
-			if (valid && isPredictionPlausible(hands, opponentPredictions, botPlayerIndex)) {
+			int mismatch = predictionMismatch(hands, neededTakes, botPlayerIndex);
+			if (mismatch == 0) {
 				return hands;
+			}
+			if (mismatch < lowestMismatch) {
+				lowestMismatch = mismatch;
+				closestHands = hands;
 			}
 		}
 
-		// Fallback: unconstrained deal (ignore prediction plausibility)
+		// No perfectly plausible world — the closest one still respects voids and exclusions
+		if (closestHands != null) {
+			return closestHands;
+		}
+
+		// The constraints cannot be satisfied at all: deal without them
 		List<Card> shuffled = new ArrayList<>(unknownCards);
 		Collections.shuffle(shuffled);
 
-		List<List<Card>> hands = new ArrayList<>(totalPlayers);
-		for (int i = 0; i < totalPlayers; i++) {
-			hands.add(new ArrayList<>());
-		}
-
+		List<List<Card>> hands = emptyHands(totalPlayers);
 		int cardIndex = 0;
 		for (int playerIndex : dealOrder) {
 			for (int j = 0; j < opponentSlots[playerIndex]; j++) {
@@ -86,23 +94,31 @@ final class Determinizer {
 		return hands;
 	}
 
+	private static List<List<Card>> emptyHands(int totalPlayers) {
+		List<List<Card>> hands = new ArrayList<>(totalPlayers);
+		for (int i = 0; i < totalPlayers; i++) {
+			hands.add(new ArrayList<>());
+		}
+		return hands;
+	}
+
 	/**
 	 * Overload without exclusions for backward compatibility (tests).
 	 */
 	static List<List<Card>> sampleOpponentHands(List<Card> unknownCards, int[] opponentSlots,
 												Map<Integer, Set<Color>> colorVoids, int botPlayerIndex,
-												int[] opponentPredictions) {
-		return sampleOpponentHands(unknownCards, opponentSlots, colorVoids, botPlayerIndex, opponentPredictions, Map.of());
+												int[] neededTakes) {
+		return sampleOpponentHands(unknownCards, opponentSlots, colorVoids, botPlayerIndex, neededTakes, Map.of());
 	}
 
 	/**
-	 * Overload without predictions and exclusions for backward compatibility (tests).
+	 * Overload without needed takes and exclusions for backward compatibility (tests).
 	 */
 	static List<List<Card>> sampleOpponentHands(List<Card> unknownCards, int[] opponentSlots,
 												Map<Integer, Set<Color>> colorVoids, int botPlayerIndex) {
-		int[] noPredictions = new int[opponentSlots.length];
-		java.util.Arrays.fill(noPredictions, -1);
-		return sampleOpponentHands(unknownCards, opponentSlots, colorVoids, botPlayerIndex, noPredictions, Map.of());
+		int[] unknownNeededTakes = new int[opponentSlots.length];
+		java.util.Arrays.fill(unknownNeededTakes, -1);
+		return sampleOpponentHands(unknownCards, opponentSlots, colorVoids, botPlayerIndex, unknownNeededTakes, Map.of());
 	}
 
 	private static boolean tryDeal(List<Card> shuffled, List<List<Card>> hands,
@@ -140,17 +156,17 @@ final class Determinizer {
 	}
 
 	/**
-	 * Check if dealt hands are roughly consistent with opponent predictions.
-	 * Rejects wildly implausible hands (e.g., predicted 0 but holding 3 aces).
+	 * How far the dealt hands are from what the players' outstanding predictions suggest.
+	 * Zero means every hand is a believable holding for the tricks that player still needs.
+	 * Players whose needed takes are negative are skipped: their prediction says nothing
+	 * about what they hold, so scoring them would only bias the sample.
 	 */
-	private static boolean isPredictionPlausible(List<List<Card>> hands, int[] predictions, int botPlayerIndex) {
+	private static int predictionMismatch(List<List<Card>> hands, int[] neededTakes, int botPlayerIndex) {
+		int mismatch = 0;
+
 		for (int i = 0; i < hands.size(); i++) {
-			if (i == botPlayerIndex) {
+			if (i == botPlayerIndex || neededTakes[i] < 0) {
 				continue;
-			}
-			int prediction = predictions[i];
-			if (prediction < 0) {
-				continue; // Unknown prediction, skip check
 			}
 
 			List<Card> hand = hands.get(i);
@@ -158,36 +174,10 @@ final class Determinizer {
 				continue;
 			}
 
-			int strength = estimateHandStrength(hand);
-
-			// Reject if hand strength is wildly inconsistent with prediction
-			// Allow generous margin since predictions aren't perfect
-			if (prediction == 0 && strength > hand.size()) {
-				return false; // Predicted 0 but hand is very strong
-			}
-			if (prediction >= hand.size() && strength == 0) {
-				return false; // Predicted max but hand has no strength
-			}
+			int estimate = RolloutPolicy.estimateTakes(hand, hands.size(), false);
+			mismatch += Math.max(0, Math.abs(estimate - neededTakes[i]) - PREDICTION_TOLERANCE);
 		}
-		return true;
-	}
 
-	/**
-	 * Crude hand strength estimate: count aces, high hearts, kings.
-	 */
-	private static int estimateHandStrength(List<Card> hand) {
-		int strength = 0;
-		for (Card card : hand) {
-			if (card.getValue() == ACE_VALUE) {
-				strength += 2;
-			} else if (card.getColor() == Color.HEARTS && card.getValue() >= 10) {
-				strength += 2;
-			} else if (card.getValue() == KING_VALUE) {
-				strength += 1;
-			} else if (card.getColor() == Color.HEARTS) {
-				strength += 1;
-			}
-		}
-		return strength;
+		return mismatch;
 	}
 }
