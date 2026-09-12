@@ -115,9 +115,13 @@ public final class SimulationState {
 			}
 
 			int handSize = hands.get(currentPlayerIndex).size();
+			int forbiddenTakes = getForbiddenTakes();
+
 			List<MctsAction> actions = new ArrayList<>(handSize + 1);
 			for (int i = 0; i <= handSize; i++) {
-				actions.add(new MctsAction.PredictTakes(i));
+				if (i != forbiddenTakes) {
+					actions.add(new MctsAction.PredictTakes(i));
+				}
 			}
 			return actions;
 		}
@@ -150,25 +154,14 @@ public final class SimulationState {
 	 * Reward for the bot player.
 	 * In prediction mode: pure binary (1.0 exact match, 0.0 otherwise) to avoid
 	 * bias toward extreme "sole winner" predictions.
-	 * In play mode: opponent-aware (sole winner > shared win) to incentivize disruption.
+	 * In play mode: the normalized points the set actually pays out, so the
+	 * search optimizes the real scoring instead of an approximation of it.
 	 */
 	double getRewardForBot() {
-		int expected = expectedTakes[botPlayerIndex];
-		int actual = actualTakes[botPlayerIndex];
-		boolean botWon = expected == actual;
+		boolean botWon = expectedTakes[botPlayerIndex] == actualTakes[botPlayerIndex];
 
 		if (predictionMode) {
 			return botWon ? 1.0 : 0.0;
-		}
-
-		if (!botWon) {
-			int loseCount = 0;
-			for (int i = 0; i < totalPlayers; i++) {
-				if (expectedTakes[i] != actualTakes[i]) {
-					loseCount++;
-				}
-			}
-			return loseCount > 1 ? 0.1 : 0.0;
 		}
 
 		int winCount = 0;
@@ -177,7 +170,8 @@ public final class SimulationState {
 				winCount++;
 			}
 		}
-		return 1.0 / winCount;
+
+		return Payoff.normalized(totalPlayers, winCount, botWon);
 	}
 
 	int getCurrentPlayerIndex() {
@@ -230,6 +224,25 @@ public final class SimulationState {
 
 	int getLeadPlayerIndex() {
 		return leadPlayerIndex;
+	}
+
+	/**
+	 * The prediction the last player to predict is not allowed to make: the game
+	 * forbids the predictions from summing up to the number of tricks.
+	 */
+	private int getForbiddenTakes() {
+		if (predictionsDone != totalPlayers - 1) {
+			return -1;
+		}
+
+		int othersSum = 0;
+		for (int i = 0; i < totalPlayers; i++) {
+			if (i != currentPlayerIndex) {
+				othersSum += expectedTakes[i];
+			}
+		}
+
+		return totalTricks - othersSum;
 	}
 
 	private void applyPrediction(int takes) {

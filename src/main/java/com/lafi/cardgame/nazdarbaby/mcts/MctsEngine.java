@@ -15,10 +15,10 @@ import java.util.Set;
 public final class MctsEngine {
 
 	private static final int ITERATIONS_PER_CARD = 2000;
-	private static final int MIN_DETERMINIZATIONS = 10;
-	private static final int DETERMINIZATIONS_PER_CARD = 3;
-	private static final int DETERMINIZATIONS_PER_OPPONENT = 5;
-	private static final double EXPLORATION_CONSTANT = 0.7;
+	private static final int MIN_DETERMINIZATIONS = 40;
+	private static final int DETERMINIZATIONS_PER_CARD = 12;
+	private static final int DETERMINIZATIONS_PER_OPPONENT = 20;
+	private static final double EXPLORATION_CONSTANT = 1.2;
 
 	public MctsEngine() {
 	}
@@ -115,22 +115,19 @@ public final class MctsEngine {
 		SimulationState state = baseState.deepCopy();
 		int botIndex = state.getBotPlayerIndex();
 
-		// Build opponent predictions array for prediction-aware determinization
-		// Use -1 for bot and opponents whose predictions aren't known yet,
-		// so Determinizer skips plausibility checks and avoids hand-strength bias.
-		int[] opponentPredictions = new int[state.getTotalPlayers()];
+		// Tricks each opponent still needs, which is what their remaining cards have to
+		// support. Stays negative whenever a prediction cannot constrain the hand — the bot
+		// itself, an opponent who has not predicted yet, and one already past its prediction
+		// — so Determinizer skips the plausibility check and avoids hand-strength bias.
+		int[] neededTakes = new int[state.getTotalPlayers()];
 		for (int i = 0; i < state.getTotalPlayers(); i++) {
-			if (i == botIndex) {
-				opponentPredictions[i] = -1;
-			} else if (!state.isKnownPrediction(i)) {
-				opponentPredictions[i] = -1;
-			} else {
-				opponentPredictions[i] = state.getExpectedTakes(i);
-			}
+			neededTakes[i] = i == botIndex || !state.isKnownPrediction(i)
+					? -1
+					: state.getExpectedTakes(i) - state.getActualTakes(i);
 		}
 
 		List<List<Card>> sampledHands = Determinizer.sampleOpponentHands(
-				unknownCards, opponentSlots, colorVoids, botIndex, opponentPredictions, excludedCards);
+				unknownCards, opponentSlots, colorVoids, botIndex, neededTakes, excludedCards);
 
 		// Replace opponent hands in the state copy
 		for (int i = 0; i < state.getTotalPlayers(); i++) {

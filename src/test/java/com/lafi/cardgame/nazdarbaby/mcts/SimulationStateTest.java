@@ -46,6 +46,39 @@ class SimulationStateTest {
 		}
 
 		@Test
+		void lastPredictor_cannotMakePredictionsSumToTrickCount() {
+			SimulationState state = createPredictionState(3);
+
+			state.applyAction(new MctsAction.PredictTakes(1)); // player 0
+			state.applyAction(new MctsAction.PredictTakes(1)); // player 1
+
+			// Player 2 would complete a sum of 3 by predicting 1, which the game forbids
+			assertThat(state.getLegalActions())
+					.containsExactly(new MctsAction.PredictTakes(0), new MctsAction.PredictTakes(2),
+							new MctsAction.PredictTakes(3));
+		}
+
+		@Test
+		void beforeLastPredictor_keepsWholePredictionRange() {
+			SimulationState state = createPredictionState(3);
+
+			state.applyAction(new MctsAction.PredictTakes(1)); // player 0
+
+			assertThat(state.getLegalActions()).hasSize(4);
+		}
+
+		@Test
+		void lastPredictor_keepsWholeRangeWhenNoPredictionIsForbidden() {
+			SimulationState state = createPredictionState(3);
+
+			state.applyAction(new MctsAction.PredictTakes(2)); // player 0
+			state.applyAction(new MctsAction.PredictTakes(2)); // player 1
+
+			// The others already claimed more than the 3 tricks available
+			assertThat(state.getLegalActions()).hasSize(4);
+		}
+
+		@Test
 		void allPredictionsDone_switchesToPlayingPhase() {
 			SimulationState state = createPredictionState(2);
 
@@ -119,36 +152,54 @@ class SimulationStateTest {
 	class RewardTest {
 
 		@Test
-		void perfectPrediction_returnsPositiveReward() {
-			// Bot predicted 0, took 0. Other players also predicted 0, took 0.
-			// All 3 win → reward = 1.0/3
-			SimulationState state = createTerminalState(0, 0);
-			assertThat(state.getRewardForBot()).isGreaterThan(0.0);
-		}
-
-		@Test
 		void soleWinner_returnsBestReward() {
-			// Bot predicted 1, took 1 (wins). Others predicted 0, took 0 → also win.
-			// 3 winners → reward = 1/3
-			SimulationState allWin = createTerminalState(0, 0);
 			// Bot predicted 1, took 1 (wins). Others predicted 1, took 0 → they lose.
-			SimulationState soleWin = createTerminalStateWithOpponents(1, 1, 1, 0);
-			assertThat(soleWin.getRewardForBot()).isGreaterThan(allWin.getRewardForBot());
+			SimulationState state = createTerminalStateWithOpponents(1, 1, 1, 0);
+			assertThat(state.getRewardForBot()).isEqualTo(1.0);
 		}
 
 		@Test
-		void offByOne_returnsLowReward() {
-			// Bot predicted 1, took 0 → loss. Only 1 loser → reward 0.0
+		void sharedWin_returnsLessThanSoleWin() {
+			// Bot predicted 1, took 1. One opponent wins too, the other loses.
+			SimulationState sharedWin = createTerminalState(new int[]{1, 0, 1}, new int[]{1, 0, 0});
+			SimulationState soleWin = createTerminalStateWithOpponents(1, 1, 1, 0);
+
+			assertThat(sharedWin.getRewardForBot())
+					.isGreaterThan(0.5)
+					.isLessThan(soleWin.getRewardForBot());
+		}
+
+		@Test
+		void everyoneWins_scoresAsIfOnePlayerLost() {
+			// The game forbids it, but opponent predictions fixed during determinization can still add up to it
+			SimulationState everyoneWins = createTerminalState(0, 0);
+			SimulationState sharedWin = createTerminalState(new int[]{1, 0, 1}, new int[]{1, 0, 0});
+
+			assertThat(everyoneWins.getRewardForBot()).isEqualTo(sharedWin.getRewardForBot());
+		}
+
+		@Test
+		void soleLoser_returnsWorstReward() {
+			// Bot predicted 1, took 0 → loss. Both opponents predicted 0, took 0 → they win.
 			SimulationState state = createTerminalState(1, 0);
 			assertThat(state.getRewardForBot()).isEqualTo(0.0);
 		}
 
 		@Test
-		void multipleLoserConsolation_returnsSmallReward() {
-			// Bot predicted 1, took 0 → loss. Opponents predicted 1, took 0 → also lose.
-			// Multiple losers → consolation reward 0.1
+		void nobodyWins_returnsNeutralReward() {
+			// A set nobody wins pays out nothing, so it beats losing while someone wins
 			SimulationState state = createTerminalStateWithOpponents(1, 0, 1, 0);
-			assertThat(state.getRewardForBot()).isEqualTo(0.1);
+			assertThat(state.getRewardForBot()).isEqualTo(0.5);
+		}
+
+		@Test
+		void losingWithOtherLosers_beatsLosingAlone() {
+			SimulationState oneOpponentWins = createTerminalState(new int[]{1, 0, 1}, new int[]{0, 0, 0});
+			SimulationState bothOpponentsWin = createTerminalState(1, 0);
+
+			assertThat(oneOpponentWins.getRewardForBot())
+					.isGreaterThan(bothOpponentsWin.getRewardForBot())
+					.isLessThan(0.5);
 		}
 
 		@Test
@@ -351,6 +402,17 @@ class SimulationStateTest {
 	}
 
 	private SimulationState createTerminalState(int expectedTakes, int actualTakes) {
+		return createTerminalState(new int[]{expectedTakes, 0, 0}, new int[]{actualTakes, 0, 0});
+	}
+
+	private SimulationState createTerminalStateWithOpponents(int botExpected, int botActual,
+															 int opponentExpected, int opponentActual) {
+		return createTerminalState(
+				new int[]{botExpected, opponentExpected, opponentExpected},
+				new int[]{botActual, opponentActual, opponentActual});
+	}
+
+	private SimulationState createTerminalState(int[] expectedTakes, int[] actualTakes) {
 		List<List<Card>> hands = new ArrayList<>();
 		for (int i = 0; i < 3; i++) {
 			hands.add(new ArrayList<>());
@@ -358,33 +420,13 @@ class SimulationStateTest {
 
 		return new SimulationState(
 				hands,
-				new int[]{expectedTakes, 0, 0},
-				new int[]{actualTakes, 0, 0},
+				expectedTakes,
+				actualTakes,
 				new ArrayList<>(),
 				SimulationState.Phase.PLAYING,
 				0, 0,
 				1, // 1 trick played
 				1, // 1 trick total
-				0, 3
-		);
-	}
-
-	private SimulationState createTerminalStateWithOpponents(int botExpected, int botActual,
-															 int opponentExpected, int opponentActual) {
-		List<List<Card>> hands = new ArrayList<>();
-		for (int i = 0; i < 3; i++) {
-			hands.add(new ArrayList<>());
-		}
-
-		return new SimulationState(
-				hands,
-				new int[]{botExpected, opponentExpected, opponentExpected},
-				new int[]{botActual, opponentActual, opponentActual},
-				new ArrayList<>(),
-				SimulationState.Phase.PLAYING,
-				0, 0,
-				1,
-				1,
 				0, 3
 		);
 	}

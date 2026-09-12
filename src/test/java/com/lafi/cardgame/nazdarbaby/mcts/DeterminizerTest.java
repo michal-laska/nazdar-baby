@@ -23,6 +23,13 @@ class DeterminizerTest {
 		deckOfCards = cardProvider.getShuffledDeckOfCards();
 	}
 
+	private Card getCard(int value, Color color) {
+		return deckOfCards.stream()
+				.filter(card -> card.getValue() == value && card.getColor() == color)
+				.findFirst()
+				.orElseThrow();
+	}
+
 	@Test
 	void dealsCorrectNumberOfCards() {
 		// Bot is player 0, opponents are 1 and 2
@@ -98,6 +105,42 @@ class DeterminizerTest {
 					assertThat(card.getValue()).isGreaterThanOrEqualTo(13);
 				}
 			}
+		}
+	}
+
+	@Test
+	void dealsHandsMatchingTheTricksAPlayerStillNeeds() {
+		// Opponent 1 needs no more tricks, opponent 2 needs both of its remaining ones,
+		// so the two trump cards cannot both sit with opponent 1
+		List<Card> unknownCards = List.of(getCard(14, Color.HEARTS), getCard(13, Color.HEARTS),
+				getCard(7, Color.CLUBS), getCard(8, Color.CLUBS));
+		int[] opponentSlots = {0, 2, 2};
+		int[] neededTakes = {-1, 0, 2};
+
+		for (int i = 0; i < 50; i++) {
+			List<List<Card>> hands = Determinizer.sampleOpponentHands(
+					unknownCards, opponentSlots, Map.of(), 0, neededTakes);
+
+			assertThat(hands.get(1)).filteredOn(card -> card.getColor() == Color.HEARTS)
+					.hasSizeLessThan(2);
+		}
+	}
+
+	@Test
+	void keepsColorVoidsWhenNoHandMatchesTheNeededTricks() {
+		// Nobody can hold a hand worth 2 tricks here, so no deal is fully plausible
+		List<Card> unknownCards = List.of(
+				getCard(7, Color.CLUBS), getCard(8, Color.CLUBS),
+				getCard(7, Color.SPADES), getCard(8, Color.SPADES));
+		int[] opponentSlots = {0, 2, 2};
+		int[] neededTakes = {-1, 2, 2};
+		Map<Integer, Set<Color>> colorVoids = Map.of(1, Set.of(Color.CLUBS));
+
+		for (int i = 0; i < 50; i++) {
+			List<List<Card>> hands = Determinizer.sampleOpponentHands(
+					unknownCards, opponentSlots, colorVoids, 0, neededTakes);
+
+			assertThat(hands.get(1)).noneMatch(card -> card.getColor() == Color.CLUBS);
 		}
 	}
 
