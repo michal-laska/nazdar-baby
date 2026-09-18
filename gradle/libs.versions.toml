@@ -2,7 +2,7 @@
 commonsLang3 = "3.20.0"
 commonsRng = "1.7"
 springBoot = "4.1.1"
-vaadin = "25.2.7"
+vaadin = "25.2.8"
 
 [libraries]
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commonsLang3" }
