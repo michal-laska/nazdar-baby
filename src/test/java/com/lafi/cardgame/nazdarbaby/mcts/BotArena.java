@@ -4,6 +4,7 @@ import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.CardProvider;
 import com.lafi.cardgame.nazdarbaby.card.Color;
 import com.lafi.cardgame.nazdarbaby.point.PointProvider;
+import com.lafi.cardgame.nazdarbaby.provider.Table;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,16 +14,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.function.Function;
 
 /**
  * Plays whole sets between two bot versions to measure whether a change to the engine
  * actually makes it stronger. Reading the engine cannot answer that — several plausible
  * improvements measured worse than what they replaced.
  *
- * <p>Run it with {@code ./gradlew botArena --args="<deals> <players> <tricks> <threads>"}.
+ * <p>Run it with {@code ./gradlew botArena --args="<deals> <players> <tricks> <threads> [--baseline <git-ref>]"}.
  * It is a main method rather than a test: a useful sample takes minutes.
  *
  * <p>Every deal is played twice with the seats mirrored, and the score reported is the
@@ -30,12 +33,13 @@ import java.util.concurrent.Future;
  * effect of the change. Even so the noise floor is around 0.7 points per deal over 600
  * deals, so treat anything smaller than about 1.5 points per deal as no evidence.
  *
- * <p>Out of the box both seats play the current engine, which measures the noise floor and
- * the absolute hit rate. To compare two versions, copy {@code com.lafi.cardgame.nazdarbaby.mcts}
- * to a second package (changing only the package declarations), and point {@link #createOldBot()}
- * at a {@link Bot} backed by that copy.
+ * <p>Without {@code --baseline} both seats play the current engine, which measures the noise
+ * floor and the absolute hit rate. With it, the OLD seats play the engine as it was at that git
+ * ref (see {@link BaselineBots}), so a change is measured against the commit it started from.
  */
 public final class BotArena {
+
+	static final String THREAD_PREFIX = "bot-arena-";
 
 	private static final PointProvider POINT_PROVIDER = new PointProvider();
 
@@ -50,51 +54,101 @@ public final class BotArena {
 	}
 
 	public static void main(String[] args) throws Exception {
-		int deals = args.length > 0 ? Integer.parseInt(args[0]) : 100;
-		int totalPlayers = args.length > 1 ? Integer.parseInt(args[1]) : 4;
-		int totalTricks = args.length > 2 ? Integer.parseInt(args[2]) : 5;
-		int threads = args.length > 3 ? Integer.parseInt(args[3]) : Runtime.getRuntime().availableProcessors();
+		Options options = Options.parse(args);
 
-		ExecutorService pool = Executors.newFixedThreadPool(threads);
-		List<Future<DealResult>> futures = new ArrayList<>(deals);
+		BaselineBots.Baseline baseline = options.baseline() == null ? null : BaselineBots.load(options.baseline());
+		Function<String, Bot> oldBots = baseline == null ? MctsArenaBot::new : baseline.botFactory();
+		String oldEngine = baseline == null ? "current engine (noise floor)" : options.baseline() + " (" + baseline.commit() + ")";
 
-		for (int deal = 0; deal < deals; deal++) {
-			futures.add(pool.submit(() -> playMirroredDeal(totalPlayers, totalTricks)));
-		}
-
-		Totals totals = new Totals();
-		for (Future<DealResult> future : futures) {
-			totals.add(future.get());
-		}
-		pool.shutdown();
-
-		totals.print(deals, totalPlayers, totalTricks);
+		play(options, oldBots).print(options.deals(), options.players(), options.tricks(), oldEngine);
 	}
 
-	private static DealResult playMirroredDeal(int totalPlayers, int totalTricks) {
+	static Totals play(Options options, Function<String, Bot> oldBots) throws InterruptedException, ExecutionException {
+		ExecutorService pool = Executors.newFixedThreadPool(options.threads(), Thread.ofPlatform().name(THREAD_PREFIX, 0).factory());
+		// A failed deal must not leave the pool's threads keeping the JVM alive
+		try {
+			List<Future<DealResult>> futures = new ArrayList<>(options.deals());
+			for (int deal = 0; deal < options.deals(); deal++) {
+				futures.add(pool.submit(() -> playMirroredDeal(options.players(), options.tricks(), oldBots)));
+			}
+
+			Totals totals = new Totals();
+			for (Future<DealResult> future : futures) {
+				totals.add(future.get());
+			}
+			return totals;
+		} finally {
+			pool.shutdownNow();
+		}
+	}
+
+	record Options(int deals, int players, int tricks, int threads, String baseline) {
+
+		static Options parse(String[] args) {
+			List<String> positional = new ArrayList<>();
+			String baseline = null;
+			for (int i = 0; i < args.length; i++) {
+				if (args[i].equals("--baseline")) {
+					if (i + 1 == args.length) {
+						throw new IllegalArgumentException("--baseline needs a git ref");
+					}
+					baseline = args[++i];
+				} else {
+					positional.add(args[i]);
+				}
+			}
+			if (positional.size() > 4) {
+				throw new IllegalArgumentException("Expected <deals> <players> <tricks> <threads> [--baseline <git-ref>], got "
+						+ String.join(" ", args));
+			}
+
+			int deals = number(positional, 0, "deals", 100);
+			int players = number(positional, 1, "players", 4);
+			int tricks = number(positional, 2, "tricks", 5);
+			int threads = number(positional, 3, "threads", Runtime.getRuntime().availableProcessors());
+
+			require(deals >= 1, "deals must be at least 1, got " + deals);
+			require(players >= Table.MINIMUM_USERS && players <= Table.MAXIMUM_USERS,
+					"players must be " + Table.MINIMUM_USERS + " to " + Table.MAXIMUM_USERS + ", got " + players);
+			int maxTricks = new CardProvider(players).getDeckOfCardsSize() / players;
+			require(tricks >= 1 && tricks <= maxTricks,
+					"tricks must be 1 to " + maxTricks + " for " + players + " players, got " + tricks);
+			require(threads >= 1, "threads must be at least 1, got " + threads);
+
+			return new Options(deals, players, tricks, threads, baseline);
+		}
+
+		private static int number(List<String> positional, int index, String name, int fallback) {
+			if (index >= positional.size()) {
+				return fallback;
+			}
+			try {
+				return Integer.parseInt(positional.get(index));
+			} catch (NumberFormatException e) {
+				throw new IllegalArgumentException(name + " must be a number, got " + positional.get(index));
+			}
+		}
+
+		private static void require(boolean valid, String message) {
+			if (!valid) {
+				throw new IllegalArgumentException(message);
+			}
+		}
+	}
+
+	private static DealResult playMirroredDeal(int totalPlayers, int totalTricks, Function<String, Bot> oldBots) {
 		List<Card> deck = new CardProvider(totalPlayers).getShuffledDeckOfCards();
 		DealResult result = new DealResult();
 
 		for (int mirror = 0; mirror < 2; mirror++) {
 			Bot[] seats = new Bot[totalPlayers];
 			for (int seat = 0; seat < totalPlayers; seat++) {
-				seats[seat] = (seat + mirror) % 2 == 0 ? createNewBot() : createOldBot();
+				seats[seat] = (seat + mirror) % 2 == 0 ? new MctsArenaBot("NEW") : oldBots.apply("OLD");
 			}
 			new BotArena(totalPlayers, totalTricks, seats).playSet(new ArrayList<>(deck), result);
 		}
 
 		return result;
-	}
-
-	private static Bot createNewBot() {
-		return new MctsBot("NEW");
-	}
-
-	/**
-	 * The version to measure against. Point this at a copy of the engine to compare two versions.
-	 */
-	private static Bot createOldBot() {
-		return new MctsBot("OLD");
 	}
 
 	private void playSet(List<Card> deck, DealResult result) {
@@ -126,7 +180,7 @@ public final class BotArena {
 			registerVoids(order, table, voids);
 			playedOut.addAll(table);
 
-			int winnerPosition = getWinningIndex(table);
+			int winnerPosition = TrickEvaluator.getWinningIndex(table);
 			++order.get(winnerPosition).actualTakes;
 			Collections.rotate(order, -winnerPosition);
 		}
@@ -145,7 +199,6 @@ public final class BotArena {
 
 			double guess = player.bot.predict(player.hand, position, totalPlayers, totalTricks,
 					predictions, unknownCards, getVoidsByPosition(order, position, voids));
-			int takes = (int) Math.round(guess);
 
 			int othersSum = 0;
 			for (Integer prediction : predictions) {
@@ -156,9 +209,8 @@ public final class BotArena {
 
 			// The last player may not make the predictions sum up to the number of tricks
 			boolean last = position == totalPlayers - 1;
-			if (last && othersSum + takes == totalTricks) {
-				takes = guess > takes || takes == 0 ? takes + 1 : takes - 1;
-			}
+			int forbiddenTakes = totalTricks - othersSum;
+			int takes = MctsEngine.allowedPrediction(guess, candidate -> last && candidate == forbiddenTakes);
 
 			player.expectedTakes = takes;
 			predictions[position] = takes;
@@ -167,7 +219,7 @@ public final class BotArena {
 
 	private Card chooseCard(List<Player> order, Player player, int position, List<Card> table,
 							Set<Card> playedOut, List<Card> fullDeck, Map<Player, Set<Color>> voids) {
-		List<Card> legalPlays = getLegalPlays(player.hand, table);
+		List<Card> legalPlays = TrickEvaluator.getLegalPlays(player.hand, table);
 		if (legalPlays.size() == 1) {
 			return legalPlays.getFirst();
 		}
@@ -236,9 +288,8 @@ public final class BotArena {
 			}
 		}
 
-		int loseCount = totalPlayers - winCount;
 		float winPoints = POINT_PROVIDER.getWinnerPoints(totalPlayers, winCount);
-		float losePoints = loseCount == 0 ? 0 : winCount * winPoints / -loseCount;
+		float losePoints = POINT_PROVIDER.getLoserPoints(totalPlayers, winCount);
 
 		for (Player player : order) {
 			boolean won = player.isWinner();
@@ -246,42 +297,7 @@ public final class BotArena {
 		}
 	}
 
-	private static List<Card> getLegalPlays(List<Card> hand, List<Card> table) {
-		if (table.isEmpty()) {
-			return hand;
-		}
-
-		Color leadingColor = table.getFirst().getColor();
-		List<Card> leadingColorCards = hand.stream().filter(card -> card.getColor() == leadingColor).toList();
-		if (!leadingColorCards.isEmpty()) {
-			return leadingColorCards;
-		}
-
-		List<Card> hearts = hand.stream().filter(card -> card.getColor() == Color.HEARTS).toList();
-		return hearts.isEmpty() ? hand : hearts;
-	}
-
-	private static int getWinningIndex(List<Card> table) {
-		Card winningCard = table.getFirst();
-		int winningIndex = 0;
-
-		for (int i = 1; i < table.size(); i++) {
-			Card card = table.get(i);
-			if (winningCard.getColor() == card.getColor()) {
-				if (card.getValue() > winningCard.getValue()) {
-					winningCard = card;
-					winningIndex = i;
-				}
-			} else if (card.getColor() == Color.HEARTS) {
-				winningCard = card;
-				winningIndex = i;
-			}
-		}
-
-		return winningIndex;
-	}
-
-	interface Bot {
+	public interface Bot {
 
 		String name();
 
@@ -291,61 +307,6 @@ public final class BotArena {
 		Card play(List<Card> hand, int position, int totalPlayers, int totalTricks, int tricksPlayed,
 				  int[] expectedTakes, int[] actualTakes, List<Card> table,
 				  List<Card> unknownCards, int[] opponentSlots, Map<Integer, Set<Color>> voids);
-	}
-
-	private record MctsBot(String name, MctsEngine engine) implements Bot {
-
-		private MctsBot(String name) {
-			this(name, new MctsEngine());
-		}
-
-		@Override
-		public double predict(List<Card> hand, int position, int totalPlayers, int totalTricks,
-							  Integer[] predictions, List<Card> unknownCards, Map<Integer, Set<Color>> voids) {
-			int[] expectedTakes = new int[totalPlayers];
-			int[] opponentSlots = new int[totalPlayers];
-			int predictionsDone = 0;
-
-			List<List<Card>> hands = new ArrayList<>(totalPlayers);
-			for (int i = 0; i < totalPlayers; i++) {
-				hands.add(i == position ? new ArrayList<>(hand) : new ArrayList<>());
-				opponentSlots[i] = i == position ? 0 : totalTricks;
-				if (predictions[i] != null) {
-					expectedTakes[i] = predictions[i];
-					++predictionsDone;
-				}
-			}
-
-			SimulationState state = new SimulationState(hands, expectedTakes, new int[totalPlayers],
-					new ArrayList<>(), SimulationState.Phase.PREDICTING, 0, position, 0, totalTricks,
-					position, predictionsDone);
-			for (int i = 0; i < totalPlayers; i++) {
-				if (predictions[i] != null) {
-					state.setKnownPrediction(i);
-				}
-			}
-
-			return engine.predictTakes(state, unknownCards, opponentSlots, voids, Map.of());
-		}
-
-		@Override
-		public Card play(List<Card> hand, int position, int totalPlayers, int totalTricks, int tricksPlayed,
-						 int[] expectedTakes, int[] actualTakes, List<Card> table,
-						 List<Card> unknownCards, int[] opponentSlots, Map<Integer, Set<Color>> voids) {
-			List<List<Card>> hands = new ArrayList<>(totalPlayers);
-			for (int i = 0; i < totalPlayers; i++) {
-				hands.add(i == position ? new ArrayList<>(hand) : new ArrayList<>());
-			}
-
-			SimulationState state = new SimulationState(hands, expectedTakes.clone(), actualTakes.clone(),
-					new ArrayList<>(table), SimulationState.Phase.PLAYING, 0, position, tricksPlayed,
-					totalTricks, position, totalPlayers);
-			for (int i = 0; i < totalPlayers; i++) {
-				state.setKnownPrediction(i);
-			}
-
-			return engine.selectCard(state, unknownCards, opponentSlots, voids, Map.of());
-		}
 	}
 
 	private static final class Player {
@@ -384,7 +345,7 @@ public final class BotArena {
 		}
 	}
 
-	private static final class Totals {
+	static final class Totals {
 
 		private final Map<String, double[]> pointsAndHits = new HashMap<>();
 
@@ -404,9 +365,10 @@ public final class BotArena {
 			diffSquareSum += diff * diff;
 		}
 
-		private void print(int deals, int totalPlayers, int totalTricks) {
+		private void print(int deals, int totalPlayers, int totalTricks, String oldEngine) {
 			System.out.println("deals=" + deals + " (each played twice, seats mirrored)"
 					+ " players=" + totalPlayers + " tricks=" + totalTricks);
+			System.out.println("OLD = " + oldEngine);
 
 			pointsAndHits.forEach((name, totals) -> System.out.printf("%-4s points=%9.1f  hitRate=%5.2f%%%n",
 					name, totals[0], 100 * totals[1] / totals[2]));
