@@ -5,6 +5,7 @@ import com.lafi.cardgame.nazdarbaby.card.CardProvider;
 import com.lafi.cardgame.nazdarbaby.card.Color;
 import com.lafi.cardgame.nazdarbaby.mcts.MctsEngine;
 import com.lafi.cardgame.nazdarbaby.mcts.SimulationState;
+import com.lafi.cardgame.nazdarbaby.mcts.TrickEvaluator;
 import com.lafi.cardgame.nazdarbaby.user.User;
 
 import java.util.ArrayList;
@@ -71,18 +72,9 @@ public class BotSimulator {
 		}
 
 		if (activeUser.getExpectedTakes() == null) {
-			var expectedTakes = guessExpectedTakes();
-			var expectedTakesRounded = (int) Math.round(expectedTakes);
-
-			if (game.isLastUserWithInvalidExpectedTakes(expectedTakesRounded)) {
-				if (expectedTakes > expectedTakesRounded || expectedTakesRounded == 0) {
-					activeUser.setExpectedTakes(expectedTakesRounded + 1);
-				} else {
-					activeUser.setExpectedTakes(expectedTakesRounded - 1);
-				}
-			} else {
-				activeUser.setExpectedTakes(expectedTakesRounded);
-			}
+			var expectedTakes = guessExpectedTakes(activeUser);
+			activeUser.setExpectedTakes(
+					MctsEngine.allowedPrediction(expectedTakes, game::isLastUserWithInvalidExpectedTakes));
 
 			game.afterActiveUserSetExpectedTakes();
 		} else {
@@ -99,26 +91,18 @@ public class BotSimulator {
 		}
 	}
 
-	public double guessExpectedTakes() {
-		List<Card> cards;
-		if (activeUser.isBot()) {
-			cards = activeUser.getCards();
-		} else {
-			var userProvider = game.getUserProvider();
-			var currentUser = userProvider.getCurrentUser();
+	public double guessExpectedTakesForCurrentUser() {
+		return guessExpectedTakes(game.getUserProvider().getCurrentUser());
+	}
 
-			cards = currentUser.getCards();
-		}
+	private double guessExpectedTakes(User predictor) {
+		List<Card> cardsInHand = predictor.getCardsInHand();
 
-		List<Card> nonPlaceholderCards = cards.stream()
-				.filter(card -> !card.isPlaceholder())
-				.toList();
-
-		SimulationState state = buildPredictionState(nonPlaceholderCards);
-		List<Card> unknownCards = computeUnknownCards(nonPlaceholderCards);
-		int[] opponentSlots = computeOpponentSlots(nonPlaceholderCards.size());
-		Map<Integer, Set<Color>> colorVoids = computeColorVoids();
-		Map<Integer, Set<Card>> excludedCards = computeExcludedCards(unknownCards);
+		SimulationState state = buildPredictionState(cardsInHand, predictor);
+		List<Card> unknownCards = computeUnknownCards(cardsInHand);
+		int[] opponentSlots = computeOpponentSlots(cardsInHand.size(), predictor);
+		Map<Integer, Set<Color>> colorVoids = computeColorVoids(predictor);
+		Map<Integer, Set<Card>> excludedCards = computeExcludedCards(unknownCards, predictor);
 
 		return mctsEngine.predictTakes(state, unknownCards, opponentSlots, colorVoids, excludedCards);
 	}
@@ -139,22 +123,22 @@ public class BotSimulator {
 	private Card selectCard(List<Card> cards) {
 		removeColorsForOtherUsers(cards);
 
-		List<Card> sortedPlayableCards = getSortedPlayableCards(cards);
+		List<Card> cardsInHand = activeUser.getCardsInHand();
+
+		List<Card> sortedPlayableCards = TrickEvaluator.getLegalPlays(cardsInHand, TrickEvaluator.playedCards(cardPlaceholders)).stream()
+				.sorted()
+				.toList();
 		int sortedPlayableCardsSize = sortedPlayableCards.size();
 
 		if (sortedPlayableCardsSize == 1) {
 			return sortedPlayableCards.getFirst();
 		}
 
-		List<Card> nonPlaceholderCards = cards.stream()
-				.filter(card -> !card.isPlaceholder())
-				.toList();
-
-		SimulationState state = buildPlayingState(nonPlaceholderCards);
-		List<Card> unknownCards = computeUnknownCards(nonPlaceholderCards);
-		int[] opponentSlots = computeOpponentSlots(nonPlaceholderCards.size());
-		Map<Integer, Set<Color>> colorVoids = computeColorVoids();
-		Map<Integer, Set<Card>> excludedCards = computeExcludedCards(unknownCards);
+		SimulationState state = buildPlayingState(cardsInHand);
+		List<Card> unknownCards = computeUnknownCards(cardsInHand);
+		int[] opponentSlots = computeOpponentSlots(cardsInHand.size(), activeUser);
+		Map<Integer, Set<Color>> colorVoids = computeColorVoids(activeUser);
+		Map<Integer, Set<Card>> excludedCards = computeExcludedCards(unknownCards, activeUser);
 
 		Card mctsCard = mctsEngine.selectCard(state, unknownCards, opponentSlots, colorVoids, excludedCards);
 
@@ -163,26 +147,6 @@ public class BotSimulator {
 			return sortedPlayableCards.getFirst();
 		}
 		return mctsCard;
-	}
-
-	private List<Card> getSortedPlayableCards(List<Card> cards) {
-		Card leadingCard = cardPlaceholders.getFirst();
-		Color leadingCardColor = leadingCard.getColor();
-
-		Stream<Card> playableCardStream = cards.stream();
-		if (leadingCard.isPlaceholder()) {
-			playableCardStream = playableCardStream.filter(card -> !card.isPlaceholder());
-		} else if (activeUser.hasColor(leadingCardColor)) {
-			playableCardStream = playableCardStream.filter(card -> card.getColor() == leadingCardColor);
-		} else if (activeUser.hasColor(Color.HEARTS)) {
-			playableCardStream = playableCardStream.filter(card -> card.getColor() == Color.HEARTS);
-		} else {
-			playableCardStream = playableCardStream.filter(card -> !card.isPlaceholder());
-		}
-
-		return playableCardStream
-				.sorted()
-				.collect(Collectors.toList());
 	}
 
 	private void rememberCardsFromTable() {
@@ -241,21 +205,8 @@ public class BotSimulator {
 	 * cards of that suit — being last, there's no strategic reason to hold back.
 	 */
 	private void inferCardValueCaps() {
-		// Find the winning card and its position (same logic as TrickEvaluator)
-		Card winningCard = cardPlaceholders.getFirst();
-		int winnerIndex = 0;
-		for (int i = 1; i < cardPlaceholders.size(); i++) {
-			Card card = cardPlaceholders.get(i);
-			if (winningCard.getColor() == card.getColor()) {
-				if (card.getValue() > winningCard.getValue()) {
-					winningCard = card;
-					winnerIndex = i;
-				}
-			} else if (card.getColor() == Color.HEARTS) {
-				winningCard = card;
-				winnerIndex = i;
-			}
-		}
+		int winnerIndex = TrickEvaluator.getWinningIndex(cardPlaceholders);
+		Card winningCard = cardPlaceholders.get(winnerIndex);
 
 		int lastIndex = cardPlaceholders.size() - 1;
 		if (lastIndex == winnerIndex) {
@@ -277,9 +228,7 @@ public class BotSimulator {
 			return; // Doesn't need more tricks — may have played low deliberately
 		}
 
-		long remainingTricks = lastUser.getCards().stream()
-				.filter(card -> !card.isPlaceholder())
-				.count();
+		int remainingTricks = lastUser.getCardsInHand().size();
 		if (needed != remainingTricks) {
 			return; // Can afford to skip (needed < remaining) or already lost (needed > remaining)
 		}
@@ -301,9 +250,9 @@ public class BotSimulator {
 		return users.indexOf(activeUser);
 	}
 
-	private SimulationState buildPredictionState(List<Card> botCards) {
-		int activeUserIndex = getActiveUserIndex();
-		var base = buildBaseState(botCards, activeUserIndex);
+	private SimulationState buildPredictionState(List<Card> ownCards, User predictor) {
+		int predictorIndex = users.indexOf(predictor);
+		var base = buildBaseState(ownCards, predictorIndex);
 
 		// Count how many predictions are already done
 		int predictionsDone = 0;
@@ -318,10 +267,10 @@ public class BotSimulator {
 				new ArrayList<>(),
 				SimulationState.Phase.PREDICTING,
 				0, // leadPlayerIndex — first player in trick
-				activeUserIndex,
+				predictorIndex,
 				0, // tricksPlayed
-				botCards.size(), // totalTricks
-				activeUserIndex,
+				ownCards.size(), // totalTricks
+				predictorIndex,
 				predictionsDone
 		);
 
@@ -339,15 +288,7 @@ public class BotSimulator {
 		int activeUserIndex = getActiveUserIndex();
 		var base = buildBaseState(botCards, activeUserIndex);
 
-		// Current trick: cards already on table (non-placeholder)
-		List<Card> currentTrick = new ArrayList<>();
-		for (Card card : cardPlaceholders) {
-			if (!card.isPlaceholder()) {
-				currentTrick.add(card);
-			} else {
-				break;
-			}
-		}
+		List<Card> currentTrick = TrickEvaluator.playedCards(cardPlaceholders);
 
 		int tricksPlayed = 0;
 		for (User user : users) {
@@ -377,13 +318,13 @@ public class BotSimulator {
 		return state;
 	}
 
-	private BaseState buildBaseState(List<Card> botCards, int activeUserIndex) {
+	private BaseState buildBaseState(List<Card> ownCards, int ownIndex) {
 		List<List<Card>> hands = new ArrayList<>();
 		int[] expectedTakes = new int[users.size()];
 		int[] actualTakes = new int[users.size()];
 
 		for (int i = 0; i < users.size(); i++) {
-			hands.add(i == activeUserIndex ? new ArrayList<>(botCards) : new ArrayList<>());
+			hands.add(i == ownIndex ? new ArrayList<>(ownCards) : new ArrayList<>());
 			User user = users.get(i);
 			expectedTakes[i] = user.getExpectedTakes() != null ? user.getExpectedTakes() : 0;
 			actualTakes[i] = user.getActualTakes();
@@ -395,11 +336,11 @@ public class BotSimulator {
 	private record BaseState(List<List<Card>> hands, int[] expectedTakes, int[] actualTakes) {
 	}
 
-	private List<Card> computeUnknownCards(List<Card> botCards) {
+	private List<Card> computeUnknownCards(List<Card> ownCards) {
 		CardProvider cardProvider = game.getCardProvider();
 		List<Card> allCards = cardProvider.getShuffledDeckOfCards();
 
-		allCards.removeAll(botCards);
+		allCards.removeAll(ownCards);
 		allCards.removeAll(playedOutCards);
 
 		// Also remove cards currently on the table
@@ -412,33 +353,31 @@ public class BotSimulator {
 		return allCards;
 	}
 
-	private int[] computeOpponentSlots(int botCardCount) {
+	private int[] computeOpponentSlots(int ownCardCount, User self) {
 		int[] slots = new int[users.size()];
-		int activeUserIndex = getActiveUserIndex();
+		int selfIndex = users.indexOf(self);
 
 		for (int i = 0; i < users.size(); i++) {
-			if (i == activeUserIndex) {
-				slots[i] = 0; // bot's slot — not dealt by determinizer
+			if (i == selfIndex) {
+				slots[i] = 0; // own slot — not dealt by determinizer
 			} else {
-				long cardsInHand = users.get(i).getCards().stream()
-						.filter(card -> !card.isPlaceholder())
-						.count();
+				int cardsInHand = users.get(i).getCardsInHand().size();
 				// If opponent hand size is unknown (e.g. during prediction),
-				// assume same count as bot
-				slots[i] = cardsInHand > 0 ? (int) cardsInHand : botCardCount;
+				// assume same count as own hand
+				slots[i] = cardsInHand > 0 ? cardsInHand : ownCardCount;
 			}
 		}
 		return slots;
 	}
 
-	private Map<Integer, Set<Card>> computeExcludedCards(List<Card> unknownCards) {
+	private Map<Integer, Set<Card>> computeExcludedCards(List<Card> unknownCards, User self) {
 		Map<Integer, Set<Card>> excluded = new HashMap<>();
-		int activeUserIndex = getActiveUserIndex();
+		int selfIndex = users.indexOf(self);
 
-		Map<User, UserInfo> otherUsersInfo = botToOtherUsersInfo.getOrDefault(activeUser, Map.of());
+		Map<User, UserInfo> otherUsersInfo = botToOtherUsersInfo.getOrDefault(self, Map.of());
 
 		for (int i = 0; i < users.size(); i++) {
-			if (i == activeUserIndex) {
+			if (i == selfIndex) {
 				continue;
 			}
 			User user = users.get(i);
@@ -468,14 +407,14 @@ public class BotSimulator {
 		return excluded;
 	}
 
-	private Map<Integer, Set<Color>> computeColorVoids() {
+	private Map<Integer, Set<Color>> computeColorVoids(User self) {
 		Map<Integer, Set<Color>> voids = new HashMap<>();
-		int activeUserIndex = getActiveUserIndex();
+		int selfIndex = users.indexOf(self);
 
-		Map<User, UserInfo> otherUsersInfo = botToOtherUsersInfo.getOrDefault(activeUser, Map.of());
+		Map<User, UserInfo> otherUsersInfo = botToOtherUsersInfo.getOrDefault(self, Map.of());
 
 		for (int i = 0; i < users.size(); i++) {
-			if (i == activeUserIndex) {
+			if (i == selfIndex) {
 				continue;
 			}
 			User user = users.get(i);

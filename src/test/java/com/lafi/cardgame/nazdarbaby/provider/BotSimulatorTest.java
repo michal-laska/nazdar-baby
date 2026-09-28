@@ -1,5 +1,6 @@
 package com.lafi.cardgame.nazdarbaby.provider;
 
+import static com.lafi.cardgame.nazdarbaby.card.TestCards.getCard;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
@@ -9,8 +10,12 @@ import com.lafi.cardgame.nazdarbaby.card.CardProvider;
 import com.lafi.cardgame.nazdarbaby.card.Color;
 import com.lafi.cardgame.nazdarbaby.user.User;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -25,9 +30,12 @@ class BotSimulatorTest {
 	private static final Card CARD_PLACEHOLDER = CardProvider.CARD_PLACEHOLDER;
 
 	private final List<User> bots = List.of(new User("user1"), new User("user2"), new User("user3"));
+	private final Set<Integer> takeoverCodes = new HashSet<>();
 
 	@Mock
 	private Game game;
+	@Mock
+	private UserProvider userProvider;
 	private List<Card> deckOfCards;
 	private BotSimulator botSimulator;
 
@@ -44,7 +52,7 @@ class BotSimulatorTest {
 	}
 
 	@Nested
-	class GuessExpectedTakesTest {
+	class GuessExpectedTakesForCurrentUserTest {
 
 		@Test
 		void othersCanHaveHigherHeart_returnAtMostOne() {
@@ -57,8 +65,9 @@ class BotSimulatorTest {
 
 			botSimulator.setActiveUser(bot);
 			botSimulator.removeColorsForOtherUsers(bot.getCards());
+			givenCurrentUser(bot);
 
-			double expectedTakes = botSimulator.guessExpectedTakes();
+			double expectedTakes = botSimulator.guessExpectedTakesForCurrentUser();
 			assertThat(expectedTakes).isBetween(0.0, 1.0);
 		}
 
@@ -74,8 +83,9 @@ class BotSimulatorTest {
 
 			botSimulator.setActiveUser(bot);
 			botSimulator.removeColorsForOtherUsers(bot.getCards());
+			givenCurrentUser(bot);
 
-			double expectedTakes = botSimulator.guessExpectedTakes();
+			double expectedTakes = botSimulator.guessExpectedTakesForCurrentUser();
 			// Heart 9 is highest remaining heart (wins), 7 of diamonds is weak (loses)
 			assertThat(Math.round(expectedTakes)).isEqualTo(1);
 		}
@@ -91,14 +101,110 @@ class BotSimulatorTest {
 
 			botSimulator.setActiveUser(bot);
 			botSimulator.removeColorsForOtherUsers(bot.getCards());
+			givenCurrentUser(bot);
 
-			double expectedTakes = botSimulator.guessExpectedTakes();
+			double expectedTakes = botSimulator.guessExpectedTakesForCurrentUser();
 			assertThat(expectedTakes).isBetween(0.0, 1.0);
+		}
+
+		@Test
+		void humanOnTheirTurn_guessesFromTheirOwnSeat() {
+			User me = new User("me", takeoverCodes);
+			givenHumanAsking(me, List.of(me, new User("other", takeoverCodes), bots.getFirst()), me);
+			me.addCard(getHeart(7));
+
+			// A lone low trump is not worth a trick for the player who leads (seat 0)
+			assertThat(botSimulator.guessExpectedTakesForCurrentUser()).isZero();
+		}
+
+		@Test
+		void humanWaitingForTheirTurn_guessesFromTheirOwnSeat() {
+			User activeHuman = new User("active", takeoverCodes);
+			User me = new User("me", takeoverCodes);
+			givenHumanAsking(me, List.of(activeHuman, me, bots.getFirst()), activeHuman);
+			me.addCard(getHeart(7));
+
+			// Not leading, the same lone trump can trump a suit the player is void in
+			assertThat(botSimulator.guessExpectedTakesForCurrentUser()).isEqualTo(1.0);
+		}
+
+		@Test
+		void humanWaitingForTheirTurn_simulatesEveryoneHoldingCards() {
+			User activeHuman = new User("active", takeoverCodes);
+			User me = new User("me", takeoverCodes);
+			givenHumanAsking(me, List.of(activeHuman, me, bots.getFirst()), activeHuman);
+			me.addCard(getHeart(14));
+			me.addCard(getHeart(13));
+
+			// The two top trumps win both tricks whenever every seat holds a full hand
+			assertThat(botSimulator.guessExpectedTakesForCurrentUser()).isEqualTo(2.0);
+		}
+
+		@Test
+		void humanAskingDuringABotsTurn_guessesFromTheirOwnCards() {
+			User activeBot = bots.getFirst();
+			User me = new User("me", takeoverCodes);
+			givenHumanAsking(me, List.of(activeBot, me, bots.get(1)), activeBot);
+			activeBot.addCard(getCard(8, Color.CLUBS));
+			me.addCard(getHeart(7));
+
+			assertThat(botSimulator.guessExpectedTakesForCurrentUser()).isEqualTo(1.0);
+		}
+
+		private void givenHumanAsking(User me, List<User> users, User activeUser) {
+			botSimulator.setUsers(users);
+			botSimulator.setCardPlaceholders(List.of(CARD_PLACEHOLDER, CARD_PLACEHOLDER, CARD_PLACEHOLDER));
+			botSimulator.setActiveUser(activeUser);
+			givenCurrentUser(me);
 		}
 	}
 
 	@Nested
 	class TryBotMoveTest {
+
+		@Test
+		void lastToPlay_beatsTheCardAlreadyOnTheTable() {
+			// The bot still needs 2 of its 3 tricks and only the queen beats the 10♠ led. Simulating
+			// without the table it believes it leads, and plays the 7♠ in 300 of 300 moves.
+			List<Card> table = List.of(getCard(10, Color.SPADES), getCard(7, Color.CLUBS));
+			List<Card> hand = List.of(getCard(10, Color.DIAMONDS), getCard(12, Color.SPADES), getCard(7, Color.SPADES));
+
+			int queenPlays = 0;
+			for (int i = 0; i < 5; i++) {
+				if (playLastToTable(table, hand).equals(getCard(12, Color.SPADES))) {
+					queenPlays++;
+				}
+			}
+
+			assertThat(queenPlays).isGreaterThanOrEqualTo(4);
+		}
+
+		private Card playLastToTable(List<Card> table, List<Card> hand) {
+			List<User> users = List.of(new User("opponent1"), new User("opponent2"), new User("bot"));
+			List<Card> otherCards = new ArrayList<>(deckOfCards);
+			otherCards.removeAll(table);
+			otherCards.removeAll(hand);
+			for (int i = 0; i < 2; i++) {
+				users.get(i).setExpectedTakes(3);
+				users.get(i).addCard(CARD_PLACEHOLDER);
+				users.get(i).addCard(otherCards.get(2 * i));
+				users.get(i).addCard(otherCards.get(2 * i + 1));
+			}
+			User bot = users.get(2);
+			bot.setExpectedTakes(2);
+			hand.forEach(bot::addCard);
+
+			BotSimulator simulator = new BotSimulator(game);
+			simulator.setUsers(users);
+			simulator.setDeckOfCardsSize(deckOfCards.size());
+			List<Card> placeholders = new CopyOnWriteArrayList<>(List.of(table.get(0), table.get(1), CARD_PLACEHOLDER));
+			simulator.setCardPlaceholders(placeholders);
+			simulator.setActiveUser(bot);
+
+			simulator.tryBotMove();
+
+			return placeholders.get(2);
+		}
 
 		@Test
 		void expectedTakes_cannotBeNegative() {
@@ -135,14 +241,20 @@ class BotSimulatorTest {
 			User bot = bots.getFirst();
 			bot.addCard(getCard(14, Color.HEARTS));
 			bot.addCard(getCard(7, Color.DIAMONDS));
+			bots.get(1).setExpectedTakes(1);
+			bots.get(2).setExpectedTakes(0);
 			botSimulator.setActiveUser(bot);
-			doReturn(true).when(game).isLastUserWithInvalidExpectedTakes(1);
 
 			botSimulator.tryBotMove();
 
-			// Two cards with ace of hearts — prediction 1 is forbidden, should go up to 2 (not down to 0)
+			// Predicting last, 1 would make the sum 2 of 2 tricks; the ace of hearts always wins, so 0 is hopeless
 			assertThat(bot.getExpectedTakes()).isEqualTo(2);
 		}
+	}
+
+	private void givenCurrentUser(User user) {
+		doReturn(userProvider).when(game).getUserProvider();
+		doReturn(user).when(userProvider).getCurrentUser();
 	}
 
 	private void rememberCards(List<Card> cards) {
@@ -158,10 +270,4 @@ class BotSimulatorTest {
 		return getCard(value, Color.HEARTS);
 	}
 
-	private Card getCard(int value, Color color) {
-		return deckOfCards.stream()
-				.filter(card -> card.getValue() == value && card.getColor() == color)
-				.findFirst()
-				.get();
-	}
 }

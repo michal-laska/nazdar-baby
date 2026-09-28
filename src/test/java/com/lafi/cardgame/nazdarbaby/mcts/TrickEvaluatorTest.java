@@ -1,5 +1,6 @@
 package com.lafi.cardgame.nazdarbaby.mcts;
 
+import static com.lafi.cardgame.nazdarbaby.card.TestCards.getCard;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lafi.cardgame.nazdarbaby.card.Card;
@@ -8,18 +9,36 @@ import com.lafi.cardgame.nazdarbaby.card.Color;
 
 import java.util.List;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class TrickEvaluatorTest {
 
-	private List<Card> deckOfCards;
+	@Nested
+	class PlayedCardsTest {
 
-	@BeforeEach
-	void setUp() {
-		CardProvider cardProvider = new CardProvider(3);
-		deckOfCards = cardProvider.getShuffledDeckOfCards();
+		@Test
+		void noCardPlayedYet_isEmpty() {
+			List<Card> table = List.of(CardProvider.CARD_PLACEHOLDER, CardProvider.CARD_PLACEHOLDER, CardProvider.CARD_PLACEHOLDER);
+
+			assertThat(TrickEvaluator.playedCards(table)).isEmpty();
+		}
+
+		@Test
+		void seatsStillToPlay_areDropped() {
+			Card sevenOfClubs = getCard(7, Color.CLUBS);
+			Card aceOfClubs = getCard(14, Color.CLUBS);
+			List<Card> table = List.of(sevenOfClubs, aceOfClubs, CardProvider.CARD_PLACEHOLDER);
+
+			assertThat(TrickEvaluator.playedCards(table)).containsExactly(sevenOfClubs, aceOfClubs);
+		}
+
+		@Test
+		void completeTrick_isKeptInPlayOrder() {
+			List<Card> table = List.of(getCard(9, Color.SPADES), getCard(7, Color.HEARTS), getCard(14, Color.SPADES));
+
+			assertThat(TrickEvaluator.playedCards(table)).containsExactlyElementsOf(table);
+		}
 	}
 
 	@Nested
@@ -123,10 +142,4 @@ class TrickEvaluatorTest {
 		}
 	}
 
-	private Card getCard(int value, Color color) {
-		return deckOfCards.stream()
-				.filter(card -> card.getValue() == value && card.getColor() == color)
-				.findFirst()
-				.get();
-	}
 }

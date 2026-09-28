@@ -205,7 +205,7 @@ final class RolloutPolicy {
 		int totalOpponentsNeeded = 0;
 		for (int i = 0; i < state.getTotalPlayers(); i++) {
 			if (i != currentPlayer) {
-				totalOpponentsNeeded += Math.max(0, state.getExpectedTakes(i) - state.getActualTakes(i));
+				totalOpponentsNeeded += Math.max(0, state.getNeededTakes(i));
 			}
 		}
 		if (totalOpponentsNeeded == remaining) {
@@ -215,7 +215,7 @@ final class RolloutPolicy {
 		// Opponents have slack — fall back to winner-based disruption
 		int winnerOffset = TrickEvaluator.getWinningIndex(currentTrick);
 		int winnerIndex = (state.getLeadPlayerIndex() + winnerOffset) % state.getTotalPlayers();
-		int winnerNeeded = state.getExpectedTakes(winnerIndex) - state.getActualTakes(winnerIndex);
+		int winnerNeeded = state.getNeededTakes(winnerIndex);
 
 		if (winnerNeeded <= 0) {
 			// Current winner doesn't want this trick — shed high cards while letting them win
@@ -240,7 +240,7 @@ final class RolloutPolicy {
 			if (i == currentPlayer) {
 				continue;
 			}
-			int oppNeeded = state.getExpectedTakes(i) - state.getActualTakes(i);
+			int oppNeeded = state.getNeededTakes(i);
 			if (oppNeeded > 0) {
 				needingTricks++;
 			} else if (oppNeeded == 0) {
@@ -476,7 +476,7 @@ final class RolloutPolicy {
 
 		if (action instanceof MctsAction.PlayCard) {
 			int playerIndex = state.getCurrentPlayerIndex();
-			int needed = state.getExpectedTakes(playerIndex) - state.getActualTakes(playerIndex);
+			int needed = state.getNeededTakes(playerIndex);
 			int remaining = state.getTotalTricks() - state.getTricksPlayed();
 			List<Card> currentTrick = state.getCurrentTrick();
 			boolean isLast = currentTrick.size() == state.getTotalPlayers() - 1;
@@ -522,7 +522,7 @@ final class RolloutPolicy {
 
 	private static List<MctsAction> prioritizePlays(SimulationState state, List<MctsAction> actions) {
 		int playerIndex = state.getCurrentPlayerIndex();
-		int needed = state.getExpectedTakes(playerIndex) - state.getActualTakes(playerIndex);
+		int needed = state.getNeededTakes(playerIndex);
 		int remaining = state.getTotalTricks() - state.getTricksPlayed();
 		List<Card> currentTrick = state.getCurrentTrick();
 		boolean isLast = currentTrick.size() == state.getTotalPlayers() - 1;
@@ -539,7 +539,7 @@ final class RolloutPolicy {
 			return 0;
 		}
 
-        int strength = cardStrength(card);
+		int strength = cardStrength(card);
 		boolean leading = currentTrick.isEmpty();
 
 		// Can't match prediction — disrupt others

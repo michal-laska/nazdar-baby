@@ -7,6 +7,7 @@ import com.lafi.cardgame.nazdarbaby.card.Color;
 import com.lafi.cardgame.nazdarbaby.countdown.CountdownService;
 import com.lafi.cardgame.nazdarbaby.countdown.CountdownTask;
 import com.lafi.cardgame.nazdarbaby.exception.EndGameException;
+import com.lafi.cardgame.nazdarbaby.mcts.TrickEvaluator;
 import com.lafi.cardgame.nazdarbaby.provider.Game;
 import com.lafi.cardgame.nazdarbaby.provider.TableProvider;
 import com.lafi.cardgame.nazdarbaby.provider.UserProvider;
@@ -88,7 +89,7 @@ public class BoardView extends ParameterizedView {
                 addUserCardsHL(cardPlaceholdersHL);
             } else {
                 List<Card> cards = trickUsers.getFirst().getCards();
-                long round = cards.size() - getNumberOfCardsLeft(cards);
+                int round = cards.size() - trickUsers.getFirst().getCardsInHand().size();
 
                 NativeLabel roundLabel = new NativeLabel("Round " + round + "/" + cards.size());
                 add(roundLabel);
@@ -121,7 +122,7 @@ public class BoardView extends ParameterizedView {
         var game = table.getGame();
         if (expectedTakesField == null) {
             var botSimulator = game.getBotSimulator();
-            var guess = botSimulator.guessExpectedTakes();
+            var guess = botSimulator.guessExpectedTakesForCurrentUser();
 
             expectedTakesField = new IntegerField();
             expectedTakesField.setPlaceholder(String.format("Your guess (%.2f)", guess));
@@ -268,7 +269,7 @@ public class BoardView extends ParameterizedView {
         var currentUser = userProvider.getCurrentUser();
         var currentUserCards = currentUser.getCards();
 
-        var numberOfCardsLeft = getNumberOfCardsLeft(currentUserCards);
+        var numberOfCardsLeft = currentUser.getCardsInHand().size();
 
         if (UiUtil.isTouchDevice()) {
             return addWrappedCardRows(userCardsHL, currentUserCards, numberOfCardsLeft);
@@ -276,7 +277,7 @@ public class BoardView extends ParameterizedView {
         return addSingleCardRow(userCardsHL, currentUserCards, numberOfCardsLeft);
     }
 
-    private VerticalLayout addWrappedCardRows(HorizontalLayout userCardsHL, List<Card> cards, long numberOfCardsLeft) {
+    private VerticalLayout addWrappedCardRows(HorizontalLayout userCardsHL, List<Card> cards, int numberOfCardsLeft) {
         var touchVl = new VerticalLayout();
         userCardsHL.add(touchVl);
 
@@ -300,7 +301,7 @@ public class BoardView extends ParameterizedView {
         return touchHl;
     }
 
-    private HorizontalLayout addSingleCardRow(HorizontalLayout userCardsHL, List<Card> cards, long numberOfCardsLeft) {
+    private HorizontalLayout addSingleCardRow(HorizontalLayout userCardsHL, List<Card> cards, int numberOfCardsLeft) {
         for (Card card : cards) {
             addCardImageTo(userCardsHL, card, cards, numberOfCardsLeft);
         }
@@ -308,7 +309,7 @@ public class BoardView extends ParameterizedView {
         return userCardsHL;
     }
 
-    private void addCardImageTo(HasComponents cardTarget, Card card, List<Card> cards, long numberOfCardsLeft) {
+    private void addCardImageTo(HasComponents cardTarget, Card card, List<Card> cards, int numberOfCardsLeft) {
         var image = card.getImage();
         cardTarget.add(image);
 
@@ -316,7 +317,7 @@ public class BoardView extends ParameterizedView {
             return;
         }
 
-        if (numberOfCardsLeft == 1L) {
+        if (numberOfCardsLeft == 1) {
             cardImageClickAction(image, card, cards);
         }
 
@@ -325,12 +326,6 @@ public class BoardView extends ParameterizedView {
         }
 
         image.addClickListener(click -> cardImageClickAction(image, card, cards));
-    }
-
-    private long getNumberOfCardsLeft(List<Card> cards) {
-        return cards.stream()
-                .filter(card -> !card.isPlaceholder())
-                .count();
     }
 
     private void cardImageClickAction(Image image, Card card, List<Card> cards) {
@@ -343,21 +338,11 @@ public class BoardView extends ParameterizedView {
 
             List<Card> cardPlaceholders = game.getCardPlaceholders();
 
-            Card leadingCard = cardPlaceholders.getFirst();
-            if (!leadingCard.isPlaceholder()) {
-                boolean userHasLeadingCardColor = currentUser.hasColor(leadingCard.getColor());
-                if (userHasLeadingCardColor) {
-                    if (card.getColor() != leadingCard.getColor()) {
-                        showWrongCardNotification(leadingCard.getColor());
-                        return;
-                    }
-                } else {
-                    boolean userHasHearts = currentUser.hasColor(Color.HEARTS);
-                    if (userHasHearts && card.getColor() != Color.HEARTS) {
-                        showWrongCardNotification(Color.HEARTS);
-                        return;
-                    }
-                }
+            List<Card> playedCards = TrickEvaluator.playedCards(cardPlaceholders);
+            if (!TrickEvaluator.getLegalPlays(currentUser.getCardsInHand(), playedCards).contains(card)) {
+                Color leadingColor = playedCards.getFirst().getColor();
+                showWrongCardNotification(currentUser.hasColor(leadingColor) ? leadingColor : Color.HEARTS);
+                return;
             }
 
             List<User> trickUsers = game.getTrickUsers();
@@ -584,8 +569,7 @@ public class BoardView extends ParameterizedView {
             if (actualTakes == expectedTakes) {
                 style.set(Constant.COLOR_STYLE, GREEN_COLOR);
             } else {
-                List<Card> trickUserCards = trickUser.getCards();
-                long numberOfCardsLeft = getNumberOfCardsLeft(trickUserCards);
+                int numberOfCardsLeft = trickUser.getCardsInHand().size();
 
                 if (!isEndOfTrick && cardPlaceholders.get(i) != CardProvider.CARD_PLACEHOLDER) {
                     ++numberOfCardsLeft;

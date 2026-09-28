@@ -95,6 +95,12 @@ public class User {
 		return cards;
 	}
 
+	public List<Card> getCardsInHand() {
+		return cards.stream()
+				.filter(card -> !card.isPlaceholder())
+				.toList();
+	}
+
 	public void addCard(Card card) {
 		cards.add(card);
 	}

@@ -1,5 +1,6 @@
 package com.lafi.cardgame.nazdarbaby.mcts;
 
+import static com.lafi.cardgame.nazdarbaby.card.TestCards.getCard;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lafi.cardgame.nazdarbaby.card.Card;
@@ -24,13 +25,6 @@ class MctsEngineTest {
 		CardProvider cardProvider = new CardProvider(3);
 		deckOfCards = cardProvider.getShuffledDeckOfCards();
 		engine = new MctsEngine();
-	}
-
-	private Card getCard(int value, Color color) {
-		return deckOfCards.stream()
-				.filter(card -> card.getValue() == value && card.getColor() == color)
-				.findFirst()
-				.get();
 	}
 
 	@Nested
@@ -116,9 +110,30 @@ class MctsEngineTest {
 
 		@Test
 		void lastPredictor_usesRemainingTricksContext() {
-			// Opponents predicted 0 each (sum=0), 3 tricks total, remaining=3
-			// Bot has 3 aces — hand estimate ≈ 3, remaining = 3
-			// With context blending, should still predict at least 2
+			// Opponents predicted 0 and 1 (sum=1), 3 tricks total, remaining=2
+			// Bot has 3 aces — hand estimate ≈ 3
+			Card aceHearts = getCard(14, Color.HEARTS);
+			Card aceClubs = getCard(14, Color.CLUBS);
+			Card aceSpades = getCard(14, Color.SPADES);
+			List<Card> botHand = List.of(aceHearts, aceClubs, aceSpades);
+
+			SimulationState state = createPredictionState(botHand, 2, 2);
+			state.setFixedPrediction(0, 0);
+			state.setFixedPrediction(1, 1);
+
+			List<Card> unknownCards = new ArrayList<>(deckOfCards);
+			unknownCards.removeAll(botHand);
+			int[] opponentSlots = {3, 3, 0};
+
+			double prediction = engine.predictTakes(state, unknownCards, opponentSlots,
+					Map.of(), Map.of());
+
+			assertThat(prediction).isGreaterThanOrEqualTo(2.0);
+		}
+
+		@Test
+		void lastPredictor_neverPredictsTheForbiddenTakes() {
+			// Opponents claimed nothing, so predicting all 3 tricks is forbidden
 			Card aceHearts = getCard(14, Color.HEARTS);
 			Card aceClubs = getCard(14, Color.CLUBS);
 			Card aceSpades = getCard(14, Color.SPADES);
@@ -135,8 +150,7 @@ class MctsEngineTest {
 			double prediction = engine.predictTakes(state, unknownCards, opponentSlots,
 					Map.of(), Map.of());
 
-			// Opponents claimed 0 tricks → 3 remaining for bot, hand is very strong
-			assertThat(prediction).isGreaterThanOrEqualTo(2.0);
+			assertThat(Math.round(prediction)).isEqualTo(2);
 		}
 
 		@Test
@@ -163,6 +177,36 @@ class MctsEngineTest {
 	}
 
 	@Nested
+	class AllowedPredictionTest {
+
+		@Test
+		void allowed_roundsToNearest() {
+			assertThat(MctsEngine.allowedPrediction(1.4, takes -> false)).isEqualTo(1);
+			assertThat(MctsEngine.allowedPrediction(1.6, takes -> false)).isEqualTo(2);
+		}
+
+		@Test
+		void forbidden_guessAboveRounded_stepsUp() {
+			assertThat(MctsEngine.allowedPrediction(1.3, takes -> takes == 1)).isEqualTo(2);
+		}
+
+		@Test
+		void forbidden_guessBelowRounded_stepsDown() {
+			assertThat(MctsEngine.allowedPrediction(1.7, takes -> takes == 2)).isEqualTo(1);
+		}
+
+		@Test
+		void forbidden_wholeGuess_stepsDown() {
+			assertThat(MctsEngine.allowedPrediction(2.0, takes -> takes == 2)).isEqualTo(1);
+		}
+
+		@Test
+		void forbiddenZero_stepsUpRatherThanNegative() {
+			assertThat(MctsEngine.allowedPrediction(0.0, takes -> takes == 0)).isEqualTo(1);
+		}
+	}
+
+	@Nested
 	class SelectCardEarlyReturnTest {
 
 		@Test
@@ -176,9 +220,7 @@ class MctsEngineTest {
 			Card eightClubs = getCard(8, Color.CLUBS);
 			SimulationState state = createPlayingStateWithTrick(botHand, 1,
 					new int[]{0, 0, 0}, new int[]{0, 0, 0}, List.of(eightClubs), 0);
-			state.setKnownPrediction(0);
-			state.setKnownPrediction(1);
-			state.setKnownPrediction(2);
+			givenAllPredictionsKnown(state);
 
 			List<Card> unknownCards = new ArrayList<>(deckOfCards);
 			unknownCards.removeAll(botHand);
@@ -201,9 +243,7 @@ class MctsEngineTest {
 			Card sevenClubs = getCard(7, Color.CLUBS);
 			SimulationState state = createPlayingStateWithTrick(botHand, 1,
 					new int[]{0, 0, 0}, new int[]{0, 0, 0}, List.of(sevenClubs), 0);
-			state.setKnownPrediction(0);
-			state.setKnownPrediction(1);
-			state.setKnownPrediction(2);
+			givenAllPredictionsKnown(state);
 
 			List<Card> unknownCards = new ArrayList<>(deckOfCards);
 			unknownCards.removeAll(botHand);
@@ -227,9 +267,7 @@ class MctsEngineTest {
 			Card nineClubs = getCard(9, Color.CLUBS);
 			SimulationState state = createPlayingStateWithTrick(botHand, 1,
 					new int[]{0, 0, 0}, new int[]{0, 0, 0}, List.of(sevenClubs), 0);
-			state.setKnownPrediction(0);
-			state.setKnownPrediction(1);
-			state.setKnownPrediction(2);
+			givenAllPredictionsKnown(state);
 
 			// 9♣ already played — not in unknownCards
 			List<Card> unknownCards = new ArrayList<>(deckOfCards);
@@ -254,9 +292,7 @@ class MctsEngineTest {
 			Card sevenClubs = getCard(7, Color.CLUBS);
 			SimulationState state = createPlayingStateWithTrick(botHand, 1,
 					new int[]{0, 0, 0}, new int[]{0, 0, 0}, List.of(sevenClubs), 0);
-			state.setKnownPrediction(0);
-			state.setKnownPrediction(1);
-			state.setKnownPrediction(2);
+			givenAllPredictionsKnown(state);
 
 			// 9♣ still unknown — opponents could hold it
 			List<Card> unknownCards = new ArrayList<>(deckOfCards);
@@ -279,9 +315,7 @@ class MctsEngineTest {
 
 			SimulationState state = createPlayingState(botHand, 0,
 					new int[]{0, 0, 0}, new int[]{0, 0, 0});
-			state.setKnownPrediction(0);
-			state.setKnownPrediction(1);
-			state.setKnownPrediction(2);
+			givenAllPredictionsKnown(state);
 
 			List<Card> unknownCards = new ArrayList<>(deckOfCards);
 			unknownCards.removeAll(botHand);
@@ -298,6 +332,38 @@ class MctsEngineTest {
 	class SelectCardTest {
 
 		@Test
+		void sampledOpponentHandsMatchTheTricksOpponentsStillNeed() {
+			// Opponent 1 needs all 3 of its tricks, so every sampled world hands it J♥, the one trump above
+			// the bot's 9♥, and the bot leads its own suit instead (300 of 300 searches per suit; 13–21%
+			// without the constraint, hence a majority). Nobody else holds that suit, so its two cards tie
+			// and the lowest must win; rotating the suits makes a tie left to hash order fail at least once.
+			List<Color> plainSuits = List.of(Color.CLUBS, Color.SPADES, Color.DIAMONDS);
+			for (int rotation = 0; rotation < plainSuits.size(); rotation++) {
+				Color botSuit = plainSuits.get(rotation);
+				Color otherSuit = plainSuits.get((rotation + 1) % 3);
+				Color thirdSuit = plainSuits.get((rotation + 2) % 3);
+
+				List<Card> botHand = List.of(getCard(9, botSuit), getCard(9, Color.HEARTS), getCard(7, botSuit));
+				List<Card> unknownCards = List.of(getCard(7, otherSuit), getCard(9, thirdSuit), getCard(14, thirdSuit),
+						getCard(13, otherSuit), getCard(11, Color.HEARTS), getCard(11, otherSuit));
+				int[] opponentSlots = {0, 3, 3};
+
+				SimulationState state = createPlayingState(botHand, 0, new int[]{3, 3, 1}, new int[]{0, 0, 0});
+				givenAllPredictionsKnown(state);
+
+				int lowestLeads = 0;
+				for (int i = 0; i < 10; i++) {
+					Card card = engine.selectCard(state, unknownCards, opponentSlots, Map.of(), Map.of());
+					if (card.equals(getCard(7, botSuit))) {
+						lowestLeads++;
+					}
+				}
+
+				assertThat(lowestLeads).as("bot suit %s", botSuit).isGreaterThanOrEqualTo(8);
+			}
+		}
+
+		@Test
 		void predictionMet_prefersLowCardWhenLeading() {
 			// Bot predicted 0, has 0 — should lead with weakest card to avoid winning
 			Card aceHearts = getCard(14, Color.HEARTS);
@@ -306,9 +372,7 @@ class MctsEngineTest {
 
 			SimulationState state = createPlayingState(botHand, 0,
 					new int[]{0, 0, 0}, new int[]{0, 0, 0});
-			state.setKnownPrediction(0);
-			state.setKnownPrediction(1);
-			state.setKnownPrediction(2);
+			givenAllPredictionsKnown(state);
 
 			List<Card> unknownCards = new ArrayList<>(deckOfCards);
 			unknownCards.removeAll(botHand);
@@ -332,9 +396,7 @@ class MctsEngineTest {
 
 			SimulationState state = createPlayingState(botHand, 0,
 					new int[]{1, 0, 0}, new int[]{1, 0, 0});
-			state.setKnownPrediction(0);
-			state.setKnownPrediction(1);
-			state.setKnownPrediction(2);
+			givenAllPredictionsKnown(state);
 
 			List<Card> unknownCards = new ArrayList<>(deckOfCards);
 			unknownCards.removeAll(botHand);
@@ -385,6 +447,12 @@ class MctsEngineTest {
 				botHand.size(),
 				botIndex, 3
 		);
+	}
+
+	private static void givenAllPredictionsKnown(SimulationState state) {
+		for (int i = 0; i < state.getTotalPlayers(); i++) {
+			state.setKnownPrediction(i);
+		}
 	}
 
 	private SimulationState createPredictionState(List<Card> botHand, int botIndex,
