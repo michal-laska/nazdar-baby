@@ -153,7 +153,7 @@ class BotSimulatorTest {
 
 		private void givenHumanAsking(User me, List<User> users, User activeUser) {
 			botSimulator.setUsers(users);
-			botSimulator.setCardPlaceholders(List.of(CARD_PLACEHOLDER, CARD_PLACEHOLDER, CARD_PLACEHOLDER));
+			givenEmptyTable();
 			botSimulator.setActiveUser(activeUser);
 			givenCurrentUser(me);
 		}
@@ -207,22 +207,24 @@ class BotSimulatorTest {
 		}
 
 		@Test
-		void expectedTakes_cannotBeNegative() {
-			List<Card> cardPlaceholders = List.of(CARD_PLACEHOLDER, CARD_PLACEHOLDER, CARD_PLACEHOLDER);
-			botSimulator.setCardPlaceholders(cardPlaceholders);
-			User bot = bots.getFirst();
+		void weakSingleCard_forbiddenZero_predictsOne() {
+			givenEmptyTable();
+			bots.get(0).setExpectedTakes(1);
+			bots.get(1).setExpectedTakes(0);
+			User bot = bots.get(2);
+			bot.addCard(getCard(7, Color.CLUBS));
 			botSimulator.setActiveUser(bot);
 			doReturn(true).when(game).isLastUserWithInvalidExpectedTakes(0);
 
 			botSimulator.tryBotMove();
 
+			// Predicting last for the one trick, 0 is forbidden; a lone 7♣ is worth nothing, so it steps up
 			assertThat(bot.getExpectedTakes()).isEqualTo(1);
 		}
 
 		@Test
 		void aceOfHearts_singleCard_forbiddenOne_predictsZero() {
-			List<Card> cardPlaceholders = List.of(CARD_PLACEHOLDER, CARD_PLACEHOLDER, CARD_PLACEHOLDER);
-			botSimulator.setCardPlaceholders(cardPlaceholders);
+			givenEmptyTable();
 			User bot = bots.getFirst();
 			bot.addCard(getCard(14, Color.HEARTS));
 			botSimulator.setActiveUser(bot);
@@ -236,8 +238,7 @@ class BotSimulatorTest {
 
 		@Test
 		void aceOfHearts_twoCards_forbiddenOne_predictsTwo() {
-			List<Card> cardPlaceholders = List.of(CARD_PLACEHOLDER, CARD_PLACEHOLDER, CARD_PLACEHOLDER);
-			botSimulator.setCardPlaceholders(cardPlaceholders);
+			givenEmptyTable();
 			User bot = bots.getFirst();
 			bot.addCard(getCard(14, Color.HEARTS));
 			bot.addCard(getCard(7, Color.DIAMONDS));
@@ -250,6 +251,10 @@ class BotSimulatorTest {
 			// Predicting last, 1 would make the sum 2 of 2 tricks; the ace of hearts always wins, so 0 is hopeless
 			assertThat(bot.getExpectedTakes()).isEqualTo(2);
 		}
+	}
+
+	private void givenEmptyTable() {
+		botSimulator.setCardPlaceholders(List.of(CARD_PLACEHOLDER, CARD_PLACEHOLDER, CARD_PLACEHOLDER));
 	}
 
 	private void givenCurrentUser(User user) {
