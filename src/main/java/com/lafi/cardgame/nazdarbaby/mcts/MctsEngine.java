@@ -3,10 +3,12 @@ package com.lafi.cardgame.nazdarbaby.mcts;
 import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.Color;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.IntPredicate;
 
 /**
  * Monte Carlo Tree Search with determinization (Information Set MCTS).
@@ -19,6 +21,7 @@ public final class MctsEngine {
 	private static final int DETERMINIZATIONS_PER_CARD = 12;
 	private static final int DETERMINIZATIONS_PER_OPPONENT = 20;
 	private static final double EXPLORATION_CONSTANT = 1.2;
+	private static final Comparator<Card> LOWEST_FIRST = Comparator.comparingInt(Card::getValue).thenComparing(Card::getColor);
 
 	public MctsEngine() {
 	}
@@ -109,22 +112,25 @@ public final class MctsEngine {
 		return bestTakes(takesStats);
 	}
 
+	/**
+	 * Round a {@link #predictTakes} guess to a prediction the game allows.
+	 */
+	public static int allowedPrediction(double guess, IntPredicate isForbidden) {
+		int takes = (int) Math.round(guess);
+		if (!isForbidden.test(takes)) {
+			return takes;
+		}
+
+		return guess > takes || takes == 0 ? takes + 1 : takes - 1;
+	}
+
 	private SimulationState createDeterminizedState(SimulationState baseState, List<Card> unknownCards,
 													int[] opponentSlots, Map<Integer, Set<Color>> colorVoids,
 													Map<Integer, Set<Card>> excludedCards) {
 		SimulationState state = baseState.deepCopy();
 		int botIndex = state.getBotPlayerIndex();
 
-		// Tricks each opponent still needs, which is what their remaining cards have to
-		// support. Stays negative whenever a prediction cannot constrain the hand — the bot
-		// itself, an opponent who has not predicted yet, and one already past its prediction
-		// — so Determinizer skips the plausibility check and avoids hand-strength bias.
-		int[] neededTakes = new int[state.getTotalPlayers()];
-		for (int i = 0; i < state.getTotalPlayers(); i++) {
-			neededTakes[i] = i == botIndex || !state.isKnownPrediction(i)
-					? -1
-					: state.getExpectedTakes(i) - state.getActualTakes(i);
-		}
+		int[] neededTakes = state.getOpponentNeededTakes();
 
 		List<List<Card>> sampledHands = Determinizer.sampleOpponentHands(
 				unknownCards, opponentSlots, colorVoids, botIndex, neededTakes, excludedCards);
@@ -185,7 +191,7 @@ public final class MctsEngine {
 	private void aggregateCardResults(MctsNode root, Map<Card, double[]> cardStats) {
 		for (MctsNode child : root.getChildren()) {
 			if (child.getAction() instanceof MctsAction.PlayCard(Card card)) {
-                double[] stats = cardStats.computeIfAbsent(card, k -> new double[2]);
+				double[] stats = cardStats.computeIfAbsent(card, k -> new double[2]);
 				stats[0] += child.getTotalReward();
 				stats[1] += child.getVisitCount();
 			}
@@ -195,7 +201,7 @@ public final class MctsEngine {
 	private void aggregateTakesResults(MctsNode root, Map<Integer, double[]> takesStats) {
 		for (MctsNode child : root.getChildren()) {
 			if (child.getAction() instanceof MctsAction.PredictTakes(int takes)) {
-                double[] stats = takesStats.computeIfAbsent(takes, k -> new double[2]);
+				double[] stats = takesStats.computeIfAbsent(takes, k -> new double[2]);
 				stats[0] += child.getTotalReward();
 				stats[1] += child.getVisitCount();
 			}
@@ -209,7 +215,8 @@ public final class MctsEngine {
 		for (Map.Entry<Card, double[]> entry : cardStats.entrySet()) {
 			double[] stats = entry.getValue();
 			double avg = stats[1] > 0 ? stats[0] / stats[1] : 0;
-			if (avg > bestAvg) {
+			// Exact ties are equivalent cards; taking the lowest keeps the pick independent of hash order
+			if (avg > bestAvg || avg == bestAvg && LOWEST_FIRST.compare(entry.getKey(), bestCard) < 0) {
 				bestAvg = avg;
 				bestCard = entry.getKey();
 			}
@@ -238,8 +245,7 @@ public final class MctsEngine {
 			}
 		}
 
-		// Return weighted average so the fractional part indicates
-		// which direction to adjust when the best prediction is forbidden
+		// The fraction feeds the human guess hint and the direction allowedPrediction steps in
 		if (weightTotal > 0) {
 			double weightedAvg = weightedSum / weightTotal;
 			// Clamp so Math.round still yields bestTakes

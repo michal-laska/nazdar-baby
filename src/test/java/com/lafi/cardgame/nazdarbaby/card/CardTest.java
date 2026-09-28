@@ -1,21 +1,11 @@
 package com.lafi.cardgame.nazdarbaby.card;
 
+import static com.lafi.cardgame.nazdarbaby.card.TestCards.getCard;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class CardTest {
-
-	private List<Card> deckOfCards;
-
-	@BeforeEach
-	void setUp() {
-		CardProvider cardProvider = new CardProvider(3);
-		deckOfCards = cardProvider.getShuffledDeckOfCards();
-	}
 
 	@Test
 	void isHigherThan_placeholderVsAnyCard_returnFalse() {
@@ -77,10 +67,4 @@ class CardTest {
 		assertThat(higherThan).isTrue();
 	}
 
-	private Card getCard(int value, Color color) {
-		return deckOfCards.stream()
-				.filter(card -> card.getValue() == value && card.getColor() == color)
-				.findFirst()
-				.get();
-	}
 }

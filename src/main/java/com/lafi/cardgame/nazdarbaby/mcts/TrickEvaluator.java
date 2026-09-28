@@ -3,6 +3,7 @@ package com.lafi.cardgame.nazdarbaby.mcts;
 import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.Color;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public final class TrickEvaluator {
@@ -11,10 +12,24 @@ public final class TrickEvaluator {
 	}
 
 	/**
-	 * Returns the index of the winning card in the trick.
-	 * Replicates Game.getWinningCard() logic.
+	 * The cards on a table that have been played, without the placeholders of the seats still to play.
 	 */
-	static int getWinningIndex(List<Card> trick) {
+	public static List<Card> playedCards(List<Card> table) {
+		List<Card> playedCards = new ArrayList<>();
+		for (Card card : table) {
+			if (card.isPlaceholder()) {
+				break;
+			}
+			playedCards.add(card);
+		}
+		return playedCards;
+	}
+
+	/**
+	 * Returns the index of the winning card in the trick. Seats still to play, the placeholders
+	 * after the cards on the table, never win.
+	 */
+	public static int getWinningIndex(List<Card> trick) {
 		Card winningCard = null;
 		int winningIndex = 0;
 
@@ -39,12 +54,11 @@ public final class TrickEvaluator {
 
 	/**
 	 * Returns legal cards that can be played from hand given the current trick.
-	 * Replicates BotSimulator.getSortedPlayableCards() logic.
 	 *
 	 * @param hand         non-placeholder cards in player's hand
 	 * @param currentTrick cards played so far in current trick (may be empty)
 	 */
-	static List<Card> getLegalPlays(List<Card> hand, List<Card> currentTrick) {
+	public static List<Card> getLegalPlays(List<Card> hand, List<Card> currentTrick) {
 		if (currentTrick.isEmpty()) {
 			return hand;
 		}

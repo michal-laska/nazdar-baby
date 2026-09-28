@@ -51,6 +51,11 @@ public class PointProvider {
 		return winPoints;
 	}
 
+	public float getLoserPoints(int numberOfUsers, int numberOfWinners) {
+		var winnerPoints = getWinnerPoints(numberOfUsers, numberOfWinners);
+		return (numberOfWinners * winnerPoints) / -(numberOfUsers - numberOfWinners);
+	}
+
 	private static void addWinnerMap(Map<Integer, Float> winMap, Map<Integer, Map<Integer, Float>> numberOfUsersToWinMap) {
 		numberOfUsersToWinMap.put(winMap.size() + 1, winMap);
 	}

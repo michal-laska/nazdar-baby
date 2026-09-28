@@ -342,6 +342,76 @@ class SimulationStateTest {
 	}
 
 	@Nested
+	class GetNeededTakesTest {
+
+		@Test
+		void playerShortOfItsPrediction_needsTheDifference() {
+			SimulationState state = createTerminalState(new int[]{3, 0, 0}, new int[]{1, 0, 0});
+
+			assertThat(state.getNeededTakes(0)).isEqualTo(2);
+		}
+
+		@Test
+		void playerAtItsPrediction_needsNothing() {
+			SimulationState state = createTerminalState(new int[]{2, 0, 0}, new int[]{2, 0, 0});
+
+			assertThat(state.getNeededTakes(0)).isZero();
+		}
+
+		@Test
+		void playerPastItsPrediction_isNegative() {
+			SimulationState state = createTerminalState(new int[]{1, 0, 0}, new int[]{3, 0, 0});
+
+			assertThat(state.getNeededTakes(0)).isEqualTo(-2);
+		}
+	}
+
+	@Nested
+	class GetOpponentNeededTakesTest {
+
+		@Test
+		void predictedOpponent_needsItsPredictionMinusTricksWon() {
+			SimulationState state = createTerminalState(new int[]{1, 3, 2}, new int[]{0, 1, 0});
+			state.setKnownPrediction(1);
+			state.setKnownPrediction(2);
+
+			assertThat(state.getOpponentNeededTakes()).containsExactly(-1, 2, 2);
+		}
+
+		@Test
+		void opponentThatMetItsPrediction_needsNoMoreTricks() {
+			SimulationState state = createTerminalState(new int[]{0, 2, 0}, new int[]{0, 2, 0});
+			state.setKnownPrediction(1);
+
+			assertThat(state.getOpponentNeededTakes()[1]).isZero();
+		}
+
+		@Test
+		void opponentPastItsPrediction_isUnconstrained() {
+			SimulationState state = createTerminalState(new int[]{0, 1, 0}, new int[]{0, 2, 0});
+			state.setKnownPrediction(1);
+
+			assertThat(state.getOpponentNeededTakes()[1]).isNegative();
+		}
+
+		@Test
+		void unpredictedOpponent_isUnconstrained() {
+			SimulationState state = createTerminalState(new int[]{0, 0, 0}, new int[]{0, 0, 0});
+			state.setKnownPrediction(1);
+
+			assertThat(state.getOpponentNeededTakes()[2]).isNegative();
+		}
+
+		@Test
+		void bot_isUnconstrainedEvenWithAKnownPrediction() {
+			SimulationState state = createTerminalState(new int[]{2, 0, 0}, new int[]{0, 0, 0});
+			state.setKnownPrediction(0);
+
+			assertThat(state.getOpponentNeededTakes()[0]).isNegative();
+		}
+	}
+
+	@Nested
 	class DeepCopyTest {
 
 		@Test

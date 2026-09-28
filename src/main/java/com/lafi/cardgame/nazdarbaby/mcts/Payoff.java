@@ -19,12 +19,20 @@ final class Payoff {
 	 * and a set nobody wins scores 0.5 for everyone — nobody gains or loses points there.
 	 */
 	static double normalized(int totalPlayers, int winCount, boolean playerWon) {
+		if (winCount > totalPlayers) {
+			throw new IllegalArgumentException("winCount = " + winCount);
+		}
+		if (playerWon ? winCount == 0 : winCount == totalPlayers) {
+			throw new IllegalArgumentException("playerWon = " + playerWon + " with winCount = " + winCount);
+		}
+
 		// Everybody winning needs the predictions to sum to the trick count, which the game forbids
 		int winners = Math.min(winCount, totalPlayers - 1);
 
 		float soleWinnerPoints = POINT_PROVIDER.getWinnerPoints(totalPlayers, 1);
-		float winnerPoints = POINT_PROVIDER.getWinnerPoints(totalPlayers, winners);
-		float points = playerWon ? winnerPoints : -(winners * winnerPoints) / (totalPlayers - winners);
+		float points = playerWon
+				? POINT_PROVIDER.getWinnerPoints(totalPlayers, winners)
+				: POINT_PROVIDER.getLoserPoints(totalPlayers, winners);
 
 		return (points + soleWinnerPoints) / (2 * soleWinnerPoints);
 	}

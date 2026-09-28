@@ -2,8 +2,8 @@ package com.lafi.cardgame.nazdarbaby.provider;
 
 import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.CardProvider;
-import com.lafi.cardgame.nazdarbaby.card.Color;
 import com.lafi.cardgame.nazdarbaby.exception.EndGameException;
+import com.lafi.cardgame.nazdarbaby.mcts.TrickEvaluator;
 import com.lafi.cardgame.nazdarbaby.point.PointProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
 
@@ -148,24 +148,7 @@ public class Game {
 	}
 
 	public synchronized int getWinningIndex() {
-		Card winnerCard = getWinningCard();
-		return cardPlaceholders.indexOf(winnerCard);
-	}
-
-	private Card getWinningCard() {
-		Card winningCard = null;
-
-		for (Card card : cardPlaceholders) {
-			if (winningCard == null) {
-				winningCard = card;
-			} else if (winningCard.getColor() == card.getColor()) {
-				winningCard = winningCard.getValue() < card.getValue() ? card : winningCard;
-			} else if (card.getColor() == Color.HEARTS) {
-				winningCard = card;
-			}
-		}
-
-		return winningCard;
+		return TrickEvaluator.getWinningIndex(cardPlaceholders);
 	}
 
 	public synchronized void startNewGame() {
@@ -367,17 +350,14 @@ public class Game {
 		}
 
 		int winCount = 0;
-		int loseCount = 0;
 		for (User user : setUsers) {
 			if (user.isWinner()) {
 				++winCount;
-			} else {
-				++loseCount;
 			}
 		}
 
 		float winPoints = pointProvider.getWinnerPoints(setUsers.size(), winCount);
-		float losePoints = (winCount * winPoints) / -loseCount;
+		float losePoints = pointProvider.getLoserPoints(setUsers.size(), winCount);
 
 		for (User user : setUsers) {
 			float points = user.isWinner() ? winPoints : losePoints;

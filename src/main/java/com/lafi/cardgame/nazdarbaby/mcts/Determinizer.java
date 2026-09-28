@@ -102,25 +102,6 @@ final class Determinizer {
 		return hands;
 	}
 
-	/**
-	 * Overload without exclusions for backward compatibility (tests).
-	 */
-	static List<List<Card>> sampleOpponentHands(List<Card> unknownCards, int[] opponentSlots,
-												Map<Integer, Set<Color>> colorVoids, int botPlayerIndex,
-												int[] neededTakes) {
-		return sampleOpponentHands(unknownCards, opponentSlots, colorVoids, botPlayerIndex, neededTakes, Map.of());
-	}
-
-	/**
-	 * Overload without needed takes and exclusions for backward compatibility (tests).
-	 */
-	static List<List<Card>> sampleOpponentHands(List<Card> unknownCards, int[] opponentSlots,
-												Map<Integer, Set<Color>> colorVoids, int botPlayerIndex) {
-		int[] unknownNeededTakes = new int[opponentSlots.length];
-		java.util.Arrays.fill(unknownNeededTakes, -1);
-		return sampleOpponentHands(unknownCards, opponentSlots, colorVoids, botPlayerIndex, unknownNeededTakes, Map.of());
-	}
-
 	private static boolean tryDeal(List<Card> shuffled, List<List<Card>> hands,
 									int[] opponentSlots, Map<Integer, Set<Color>> colorVoids,
 									Map<Integer, Set<Card>> excludedCards,

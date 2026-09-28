@@ -202,6 +202,10 @@ public final class SimulationState {
 		return actualTakes[playerIndex];
 	}
 
+	int getNeededTakes(int playerIndex) {
+		return expectedTakes[playerIndex] - actualTakes[playerIndex];
+	}
+
 	List<Card> getCurrentTrick() {
 		return currentTrick;
 	}
@@ -224,6 +228,20 @@ public final class SimulationState {
 
 	int getLeadPlayerIndex() {
 		return leadPlayerIndex;
+	}
+
+	/**
+	 * Tricks each opponent still needs; negative for the bot and wherever the prediction
+	 * cannot constrain the hand (no prediction yet, or already past it).
+	 */
+	int[] getOpponentNeededTakes() {
+		int[] neededTakes = new int[totalPlayers];
+		for (int i = 0; i < totalPlayers; i++) {
+			neededTakes[i] = i == botPlayerIndex || !knownPrediction[i]
+					? -1
+					: getNeededTakes(i);
+		}
+		return neededTakes;
 	}
 
 	/**

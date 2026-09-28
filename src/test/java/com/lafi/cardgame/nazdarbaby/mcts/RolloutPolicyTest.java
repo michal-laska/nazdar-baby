@@ -1,34 +1,18 @@
 package com.lafi.cardgame.nazdarbaby.mcts;
 
+import static com.lafi.cardgame.nazdarbaby.card.TestCards.getCard;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lafi.cardgame.nazdarbaby.card.Card;
-import com.lafi.cardgame.nazdarbaby.card.CardProvider;
 import com.lafi.cardgame.nazdarbaby.card.Color;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class RolloutPolicyTest {
-
-	private List<Card> deckOfCards;
-
-	@BeforeEach
-	void setUp() {
-		CardProvider cardProvider = new CardProvider(3);
-		deckOfCards = cardProvider.getShuffledDeckOfCards();
-	}
-
-	private Card getCard(int value, Color color) {
-		return deckOfCards.stream()
-				.filter(card -> card.getValue() == value && card.getColor() == color)
-				.findFirst()
-				.get();
-	}
 
 	/**
 	 * Create a single-trick 3-player state in PLAYING phase where player 0 (bot) leads.
