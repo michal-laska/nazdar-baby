@@ -12,10 +12,12 @@ import static org.mockito.Mockito.verify;
 import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.CardProvider;
 import com.lafi.cardgame.nazdarbaby.card.Color;
+import com.lafi.cardgame.nazdarbaby.mcts.TrickEvaluator;
 import com.lafi.cardgame.nazdarbaby.user.User;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +25,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -216,14 +219,8 @@ class BotSimulatorTest {
 			List<Card> table = List.of(getCard(10, Color.SPADES), getCard(7, Color.CLUBS));
 			List<Card> hand = List.of(getCard(10, Color.DIAMONDS), getCard(12, Color.SPADES), getCard(7, Color.SPADES));
 
-			int queenPlays = 0;
-			for (int i = 0; i < 5; i++) {
-				if (playLastToTable(table, hand).equals(getCard(12, Color.SPADES))) {
-					queenPlays++;
-				}
-			}
-
-			assertThat(queenPlays).isGreaterThanOrEqualTo(4);
+			assertThat(timesOutOf5(getCard(12, Color.SPADES), () -> playLastToTable(table, hand)))
+					.isGreaterThanOrEqualTo(4);
 		}
 
 		private Card playLastToTable(List<Card> table, List<Card> hand) {
@@ -241,9 +238,7 @@ class BotSimulatorTest {
 			bot.setExpectedTakes(2);
 			hand.forEach(bot::addCard);
 
-			BotSimulator simulator = new BotSimulator(game);
-			simulator.setUsers(users);
-			simulator.setDeckOfCardsSize(deckOfCards.size());
+			BotSimulator simulator = newSimulator(users);
 			List<Card> placeholders = new CopyOnWriteArrayList<>(List.of(table.get(0), table.get(1), CARD_PLACEHOLDER));
 			simulator.setCardPlaceholders(placeholders);
 			simulator.setActiveUser(bot);
@@ -251,6 +246,87 @@ class BotSimulatorTest {
 			simulator.tryBotMove();
 
 			return placeholders.get(2);
+		}
+
+		@Test
+		void leading_neverExpectsOpponentsToHoldItsOwnCards() {
+			// Needing 1 of the last 3 tricks, it leads the 8♣ to lose and keeps both spades. Believing an
+			// opponent could hold its own A♠ or K♠, it cashes the A♠ in 95 of 100 moves instead.
+			List<List<Card>> hands = List.of(
+					List.of(getCard(12, Color.DIAMONDS), getCard(11, Color.CLUBS), getCard(9, Color.SPADES),
+							getCard(13, Color.DIAMONDS)),
+					List.of(getHeart(9), getCard(8, Color.SPADES), getHeart(7), getHeart(12)),
+					List.of(getHeart(13), getCard(8, Color.CLUBS), getCard(14, Color.SPADES),
+							getCard(13, Color.SPADES)));
+
+			assertThat(timesOutOf5(getCard(8, Color.CLUBS), () -> leadAfterFirstTrick(hands, 4, 4, 2)))
+					.isGreaterThanOrEqualTo(4);
+		}
+
+		@Test
+		void leading_usesWhatOpponentsShowedTheyLack() {
+			// The third player answered the Q♦ with a spade, so holds no diamonds and no hearts. Needing 2 of
+			// the last 3 tricks, the bot leads the A♥; ignoring that, it leads the 9♣ in 100 of 100 moves.
+			List<List<Card>> hands = List.of(
+					List.of(getCard(12, Color.DIAMONDS), getCard(9, Color.DIAMONDS), getHeart(8),
+							getCard(7, Color.SPADES)),
+					List.of(getHeart(9), getCard(9, Color.CLUBS), getHeart(14), getCard(14, Color.SPADES)),
+					List.of(getCard(8, Color.SPADES), getCard(8, Color.CLUBS), getCard(12, Color.SPADES),
+							getCard(9, Color.SPADES)));
+
+			assertThat(timesOutOf5(getHeart(14), () -> leadAfterFirstTrick(hands, 1, 3, 4)))
+					.isGreaterThanOrEqualTo(4);
+		}
+
+		// The first card of every hand makes the first trick, which the bots see; its winner leads the second
+		private Card leadAfterFirstTrick(List<List<Card>> hands, int... predictions) {
+			List<User> users = new CopyOnWriteArrayList<>();
+			for (int i = 0; i < hands.size(); i++) {
+				User user = new User("bot" + i);
+				hands.get(i).forEach(user::addCard);
+				user.setExpectedTakes(predictions[i]);
+				users.add(user);
+			}
+
+			BotSimulator simulator = newSimulator(users);
+
+			List<Card> firstTrick = new CopyOnWriteArrayList<>();
+			for (User user : users) {
+				firstTrick.add(user.getCards().getFirst());
+				user.getCards().set(0, CARD_PLACEHOLDER);
+			}
+			simulator.setCardPlaceholders(firstTrick);
+			simulator.setActiveUser(null);
+
+			int winnerIndex = TrickEvaluator.getWinningIndex(firstTrick);
+			users.get(winnerIndex).increaseActualTakes();
+			Collections.rotate(users, -winnerIndex);
+
+			List<Card> secondTrick = new CopyOnWriteArrayList<>(
+					List.of(CARD_PLACEHOLDER, CARD_PLACEHOLDER, CARD_PLACEHOLDER));
+			simulator.setCardPlaceholders(secondTrick);
+			simulator.setActiveUser(users.getFirst());
+
+			simulator.tryBotMove();
+
+			return secondTrick.getFirst();
+		}
+
+		private BotSimulator newSimulator(List<User> users) {
+			BotSimulator simulator = new BotSimulator(game);
+			simulator.setUsers(users);
+			simulator.setDeckOfCardsSize(deckOfCards.size());
+			return simulator;
+		}
+
+		private static int timesOutOf5(Card card, Supplier<Card> move) {
+			int times = 0;
+			for (int i = 0; i < 5; i++) {
+				if (move.get().equals(card)) {
+					times++;
+				}
+			}
+			return times;
 		}
 
 		@Test
