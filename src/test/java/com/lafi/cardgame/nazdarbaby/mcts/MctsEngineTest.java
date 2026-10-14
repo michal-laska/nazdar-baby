@@ -44,10 +44,10 @@ class MctsEngineTest {
 			unknownCards.removeAll(botHand);
 			int[] opponentSlots = {0, 1, 1};
 
-			double prediction = engine.predictTakes(state, unknownCards, opponentSlots,
+			int prediction = engine.predictTakes(state, unknownCards, opponentSlots,
 					Map.of(), Map.of());
 
-			assertThat(Math.round(prediction)).isEqualTo(1);
+			assertThat(prediction).isEqualTo(1);
 		}
 
 		@Test
@@ -61,33 +61,10 @@ class MctsEngineTest {
 			unknownCards.removeAll(botHand);
 			int[] opponentSlots = {0, 1, 1};
 
-			double prediction = engine.predictTakes(state, unknownCards, opponentSlots,
+			int prediction = engine.predictTakes(state, unknownCards, opponentSlots,
 					Map.of(), Map.of());
 
-			assertThat(Math.round(prediction)).isZero();
-		}
-
-		@Test
-		void strongHand_multiCard_leansUp() {
-			// Ace of hearts + weak card: best prediction is 1,
-			// direction should lean toward 2 (not toward 0)
-			Card aceHearts = getCard(14, Color.HEARTS);
-			Card sevenDiamonds = getCard(7, Color.DIAMONDS);
-			List<Card> botHand = List.of(aceHearts, sevenDiamonds);
-
-			SimulationState state = createPredictionState(botHand, 0, 0);
-
-			List<Card> unknownCards = new ArrayList<>(deckOfCards);
-			unknownCards.removeAll(botHand);
-			int[] opponentSlots = {0, 2, 2};
-
-			double prediction = engine.predictTakes(state, unknownCards, opponentSlots,
-					Map.of(), Map.of());
-
-			// Best prediction rounds to 1, but leans up — if 1 is forbidden,
-			// last-predictor adjustment goes to 2 rather than 0
-			assertThat(Math.round(prediction)).isEqualTo(1);
-			assertThat(prediction).isGreaterThan(1.0);
+			assertThat(prediction).isZero();
 		}
 
 		@Test
@@ -95,25 +72,24 @@ class MctsEngineTest {
 			Card aceHearts = getCard(14, Color.HEARTS);
 			List<Card> botHand = List.of(aceHearts);
 
-			// Bot is player 2 (last predictor), opponents already predicted
+			// Bot is player 2 (last predictor); the opponents' 1 and 0 leave 1 allowed
 			SimulationState state = createPredictionState(botHand, 2, 2);
-			state.setKnownPrediction(0);
-			state.setKnownPrediction(1);
+			state.setFixedPrediction(0, 1);
+			state.setFixedPrediction(1, 0);
 
 			List<Card> unknownCards = new ArrayList<>(deckOfCards);
 			unknownCards.removeAll(botHand);
 			int[] opponentSlots = {1, 1, 0};
 
-			double prediction = engine.predictTakes(state, unknownCards, opponentSlots,
+			int prediction = engine.predictTakes(state, unknownCards, opponentSlots,
 					Map.of(), Map.of());
 
-			assertThat(Math.round(prediction)).isEqualTo(1);
+			assertThat(prediction).isEqualTo(1);
 		}
 
 		@Test
-		void lastPredictor_usesRemainingTricksContext() {
-			// Opponents predicted 0 and 1 (sum=1), 3 tricks total, remaining=2
-			// Bot has 3 aces — hand estimate ≈ 3
+		void lastPredictor_twoForbidden_threeAcesPredictThree() {
+			// Opponents predicted 0 and 1 of 3 tricks, so 2 is forbidden; with the A♥, 3 beats 1 (57% vs 13%)
 			Card aceHearts = getCard(14, Color.HEARTS);
 			Card aceClubs = getCard(14, Color.CLUBS);
 			Card aceSpades = getCard(14, Color.SPADES);
@@ -127,10 +103,10 @@ class MctsEngineTest {
 			unknownCards.removeAll(botHand);
 			int[] opponentSlots = {3, 3, 0};
 
-			double prediction = engine.predictTakes(state, unknownCards, opponentSlots,
+			int prediction = engine.predictTakes(state, unknownCards, opponentSlots,
 					Map.of(), Map.of());
 
-			assertThat(prediction).isGreaterThanOrEqualTo(2.0);
+			assertThat(prediction).isEqualTo(3);
 		}
 
 		@Test
@@ -149,10 +125,29 @@ class MctsEngineTest {
 			unknownCards.removeAll(botHand);
 			int[] opponentSlots = {3, 3, 0};
 
-			double prediction = engine.predictTakes(state, unknownCards, opponentSlots,
+			int prediction = engine.predictTakes(state, unknownCards, opponentSlots,
 					Map.of(), Map.of());
 
-			assertThat(Math.round(prediction)).isEqualTo(2);
+			assertThat(prediction).isEqualTo(2);
+		}
+
+		@Test
+		void lastPredictor_onlyHopelessPredictionsLeft_predictsTheLower() {
+			// The two top trumps take both tricks, and 2 is forbidden after 0 and 0: 0 and 1 both never match
+			List<Card> botHand = List.of(getCard(14, Color.HEARTS), getCard(13, Color.HEARTS));
+
+			SimulationState state = createPredictionState(botHand, 2, 2);
+			state.setFixedPrediction(0, 0);
+			state.setFixedPrediction(1, 0);
+
+			List<Card> unknownCards = new ArrayList<>(deckOfCards);
+			unknownCards.removeAll(botHand);
+			int[] opponentSlots = {2, 2, 0};
+
+			int prediction = engine.predictTakes(state, unknownCards, opponentSlots,
+					Map.of(), Map.of());
+
+			assertThat(prediction).isZero();
 		}
 
 		@Test
@@ -170,11 +165,11 @@ class MctsEngineTest {
 			unknownCards.removeAll(botHand);
 			int[] opponentSlots = {0, 3, 3};
 
-			double prediction = engine.predictTakes(state, unknownCards, opponentSlots,
+			int prediction = engine.predictTakes(state, unknownCards, opponentSlots,
 					Map.of(), Map.of());
 
 			// Three aces including trump ace — should predict at least 2
-			assertThat(prediction).isGreaterThanOrEqualTo(2.0);
+			assertThat(prediction).isGreaterThanOrEqualTo(2);
 		}
 	}
 
@@ -218,9 +213,52 @@ class MctsEngineTest {
 			Map<Integer, Double> chances = firstPredictorChances(botHand);
 
 			// Played out by the engine in every seat, this hand matches 0 in 49% of 1500 deals;
-			// the tree search behind predictTakes rates predicting 0 at about 95%
+			// a tree search over the same deals rated predicting 0 at about 95%
 			assertThat(chances.get(0)).isBetween(0.40, 0.60);
 			assertThat(chances.get(0)).isGreaterThan(chances.get(1));
+		}
+
+		@Test
+		void smallHand_opensWithItsBestFirstCard() {
+			List<Card> botHand = List.of(getCard(14, Color.HEARTS), getCard(13, Color.HEARTS), getCard(7, Color.HEARTS));
+
+			Map<Integer, Double> chances = firstPredictorChances(botHand);
+
+			// Led first, the 7♥ loses unless none of the 6 cards dealt from the 29 unknown is one of the 5 other hearts;
+			// the policy's own opening takes exactly two tricks in under 1% of deals
+			assertThat(chances.get(2)).isCloseTo(340424.0 / 475020, within(0.07));
+		}
+
+		@Test
+		void smallHand_notLeading_choosesItsFirstCardOnItsTurn() {
+			List<Card> botHand = List.of(getCard(14, Color.HEARTS), getCard(9, Color.HEARTS));
+
+			Map<Integer, Double> chances = chancesInSeat(botHand, 1);
+
+			// 0.38 averaged over 100 runs; the policy's own first card gives 0.11
+			assertThat(chances.get(1)).isCloseTo(0.38, within(0.07));
+		}
+
+		@Test
+		void smallHand_firstCardThatMustNotBePlayed_isLeftToThePolicy() {
+			List<Card> botHand = List.of(getCard(14, Color.HEARTS), getCard(7, Color.DIAMONDS));
+
+			Map<Integer, Double> chances = chancesInSeat(botHand, 2);
+
+			// Ducking with the 7♦ first always takes exactly one trick, but a led heart forces the ace out:
+			// 0.79 averaged over 200 runs; playing the 7♦ anyway gives 1.0, counting it as a miss 0.57
+			assertThat(chances.get(1)).isCloseTo(0.79, within(0.07));
+		}
+
+		@Test
+		void largerHand_leavesItsFirstCardToThePolicy() {
+			List<Card> botHand = List.of(getCard(14, Color.HEARTS), getCard(11, Color.HEARTS),
+					getCard(11, Color.CLUBS), getCard(9, Color.CLUBS));
+
+			Map<Integer, Double> chances = firstPredictorChances(botHand);
+
+			// The best opening card would take exactly three tricks in about 66% of deals, the policy's in 2.5%
+			assertThat(chances.get(3)).isLessThan(0.10);
 		}
 
 		@Test
@@ -241,8 +279,15 @@ class MctsEngineTest {
 		}
 
 		private Map<Integer, Double> firstPredictorChances(List<Card> botHand) {
-			int handSize = botHand.size();
-			return predictionChances(createPredictionState(botHand, 0, 0), botHand, new int[]{0, handSize, handSize});
+			return chancesInSeat(botHand, 0);
+		}
+
+		private Map<Integer, Double> chancesInSeat(List<Card> botHand, int botIndex) {
+			int[] opponentSlots = new int[3];
+			for (int i = 0; i < opponentSlots.length; i++) {
+				opponentSlots[i] = i == botIndex ? 0 : botHand.size();
+			}
+			return predictionChances(createPredictionState(botHand, botIndex, 0), botHand, opponentSlots);
 		}
 
 		private Map<Integer, Double> predictionChances(SimulationState state, List<Card> botHand, int[] opponentSlots) {

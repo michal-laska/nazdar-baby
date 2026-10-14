@@ -95,7 +95,7 @@ final class RolloutPolicy {
 	}
 
 	/**
-	 * Heuristic playout to completion. Returns the reward for the bot player.
+	 * Heuristic playout to completion once every prediction is made. Returns the reward for the bot player.
 	 */
 	static double rollout(SimulationState state) {
 		while (!state.isTerminal()) {
@@ -104,32 +104,16 @@ final class RolloutPolicy {
 				break;
 			}
 
-			MctsAction action;
-			if (state.getPhase() == SimulationState.Phase.PREDICTING) {
-				action = selectPredictionAction(state, actions);
-			} else {
-				action = selectPlayAction(state, actions);
-			}
-
-			state.applyAction(action);
+			state.applyAction(selectPlayAction(state, actions));
 		}
 
 		return state.getRewardForBot();
 	}
 
-	private static MctsAction selectPredictionAction(SimulationState state, List<MctsAction> actions) {
-		int playerIndex = state.getCurrentPlayerIndex();
-		List<Card> hand = state.getHand(playerIndex);
-		boolean isLeader = playerIndex == state.getLeadPlayerIndex();
-		int estimate = estimateTakes(hand, state.getTotalPlayers(), isLeader);
-
-		for (MctsAction action : actions) {
-			if (action instanceof MctsAction.PredictTakes(int takes) && takes == estimate) {
-				return action;
-			}
+	static void playUntilTurnOf(SimulationState state, int playerIndex) {
+		while (state.getCurrentPlayerIndex() != playerIndex) {
+			state.applyAction(selectPlayAction(state, state.getLegalActions()));
 		}
-
-		return actions.get(Math.min(estimate, actions.size() - 1));
 	}
 
 	private static MctsAction selectPlayAction(SimulationState state, List<MctsAction> actions) {
@@ -466,14 +450,6 @@ final class RolloutPolicy {
 	 * toward promising actions, then fades as visit count grows.
 	 */
 	static double heuristicValue(SimulationState state, MctsAction action) {
-		if (action instanceof MctsAction.PredictTakes(int takes)) {
-			int playerIndex = state.getCurrentPlayerIndex();
-			int estimate = estimateInContext(state, playerIndex);
-			int distance = Math.abs(takes - estimate);
-			// 1.0 for exact match, 0.5 for off-by-1, 0.33 for off-by-2, etc.
-			return 1.0 / (1.0 + distance);
-		}
-
 		if (action instanceof MctsAction.PlayCard) {
 			int playerIndex = state.getCurrentPlayerIndex();
 			int needed = state.getNeededTakes(playerIndex);
@@ -499,25 +475,7 @@ final class RolloutPolicy {
 			return actions;
 		}
 
-		if (state.getPhase() == SimulationState.Phase.PREDICTING) {
-			return prioritizePredictions(state, actions);
-		}
 		return prioritizePlays(state, actions);
-	}
-
-	private static List<MctsAction> prioritizePredictions(SimulationState state, List<MctsAction> actions) {
-		int playerIndex = state.getCurrentPlayerIndex();
-		int estimate = estimateInContext(state, playerIndex);
-
-		// Sort by distance from heuristic estimate — closest last (tried first)
-		List<MctsAction> sorted = new ArrayList<>(actions);
-		sorted.sort(Comparator.comparingInt((MctsAction a) -> {
-			if (a instanceof MctsAction.PredictTakes(int takes)) {
-				return -Math.abs(takes - estimate);
-			}
-			return 0;
-		}));
-		return sorted;
 	}
 
 	private static List<MctsAction> prioritizePlays(SimulationState state, List<MctsAction> actions) {
@@ -576,36 +534,6 @@ final class RolloutPolicy {
 			// Forced to win — dump highest to shed dangerous cards
 			return -1000 + strength;
 		}
-	}
-
-	/**
-	 * Context-aware estimate: blends hand strength with remaining tricks
-	 * when all other players have actually committed their predictions
-	 * (last predictor advantage). Falls back to pure hand strength otherwise.
-	 */
-	private static int estimateInContext(SimulationState state, int playerIndex) {
-		List<Card> hand = state.getHand(playerIndex);
-		boolean isLeader = playerIndex == state.getLeadPlayerIndex();
-		int handEstimate = estimateTakes(hand, state.getTotalPlayers(), isLeader);
-
-		// Only blend when all other players have actually predicted (not just
-		// fixed by determinizer). predictionsDone tracks real predictions only.
-		if (state.getPredictionsDone() < state.getTotalPlayers() - 1) {
-			return handEstimate;
-		}
-
-		int knownSum = 0;
-		for (int i = 0; i < state.getTotalPlayers(); i++) {
-			if (i != playerIndex) {
-				knownSum += state.getExpectedTakes(i);
-			}
-		}
-
-		int remaining = Math.max(0, state.getTotalTricks() - knownSum);
-		remaining = Math.min(remaining, hand.size());
-
-		int blended = (int) Math.round(0.7 * handEstimate + 0.3 * remaining);
-		return Math.clamp(blended, 0, hand.size());
 	}
 
 	private static int cardStrength(Card card) {

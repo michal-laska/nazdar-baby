@@ -95,7 +95,7 @@ public class BotSimulator {
 		return simulatePrediction(game.getUserProvider().getCurrentUser(), mctsEngine::predictionChances);
 	}
 
-	private double guessExpectedTakes(User predictor) {
+	private int guessExpectedTakes(User predictor) {
 		return simulatePrediction(predictor, mctsEngine::predictTakes);
 	}
 

@@ -337,11 +337,10 @@ class BotSimulatorTest {
 			User bot = bots.get(2);
 			bot.addCard(getCard(7, Color.CLUBS));
 			botSimulator.setActiveUser(bot);
-			doReturn(true).when(game).isLastUserWithInvalidExpectedTakes(0);
 
 			botSimulator.tryBotMove();
 
-			// Predicting last for the one trick, 0 is forbidden; a lone 7♣ is worth nothing, so it steps up
+			// Predicting last for the one trick, 0 is forbidden, so even a lone 7♣ predicts 1
 			assertThat(bot.getExpectedTakes()).isEqualTo(1);
 		}
 

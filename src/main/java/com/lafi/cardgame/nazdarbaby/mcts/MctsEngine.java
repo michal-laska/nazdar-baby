@@ -3,6 +3,7 @@ package com.lafi.cardgame.nazdarbaby.mcts;
 import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.Color;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -12,18 +13,23 @@ import java.util.TreeMap;
 import java.util.function.IntPredicate;
 
 /**
- * Monte Carlo Tree Search with determinization (Information Set MCTS).
- * Orchestrates sampling of opponent hands, MCTS iterations, and result aggregation.
+ * Monte Carlo search over determinized deals: a tree search (Information Set MCTS) picks the card to play,
+ * flat playouts give each prediction's chance.
  */
 public final class MctsEngine {
+
+	public static final Comparator<Map.Entry<Integer, Double>> LIKELIEST_FIRST =
+			Map.Entry.<Integer, Double>comparingByValue().reversed().thenComparing(Map.Entry.comparingByKey());
 
 	private static final int ITERATIONS_PER_CARD = 2000;
 	private static final int MIN_DETERMINIZATIONS = 40;
 	private static final int DETERMINIZATIONS_PER_CARD = 12;
 	private static final int DETERMINIZATIONS_PER_OPPONENT = 20;
 	private static final double EXPLORATION_CONSTANT = 1.2;
-	// About 2 points of noise in the shown percentages; the search budget made a hint cost as much as a bot move
+	// About 2 points of noise in the chances; the card search's budget made a prediction cost as much as a card move
 	private static final int PREDICTION_CHANCE_WORLDS = 1000;
+	// Choosing costs a playout per card and world; without it 2-card hands lost to the tree search, larger ones did not
+	private static final int MAX_HAND_TO_CHOOSE_FIRST_CARD = 3;
 	private static final Comparator<Card> LOWEST_FIRST = Comparator.comparingInt(Card::getValue).thenComparing(Card::getColor);
 
 	public MctsEngine() {
@@ -77,47 +83,21 @@ public final class MctsEngine {
 	}
 
 	/**
-	 * Predict the number of takes using MCTS with determinization.
-	 * Uses pure binary reward (no sole-winner bias) to find the most likely outcome.
+	 * The prediction most likely to be matched, the lower one on equal chances.
 	 */
-	public double predictTakes(SimulationState baseState, List<Card> unknownCards,
-							   int[] opponentSlots, Map<Integer, Set<Color>> colorVoids,
-							   Map<Integer, Set<Card>> excludedCards) {
-		baseState.setPredictionMode(true);
-
-		int botIndex = baseState.getBotPlayerIndex();
-		int handSize = baseState.getHand(botIndex).size();
-
-		if (handSize == 1) {
-			boolean isLeader = botIndex == baseState.getLeadPlayerIndex();
-			return RolloutPolicy.estimateTakes(baseState.getHand(botIndex), baseState.getTotalPlayers(), isLeader);
-		}
-
-		int opponents = baseState.getTotalPlayers() - 1;
-		int iterations = computeIterations(handSize, opponents);
-		int determinizations = computeDeterminizations(handSize, opponents);
-
-		Map<Integer, double[]> takesStats = new HashMap<>();
-		int iterationsPerWorld = iterations / determinizations;
-
-		for (int d = 0; d < determinizations; d++) {
-			SimulationState state = createDeterminizedState(baseState, unknownCards, opponentSlots, colorVoids, excludedCards);
-
-			MctsNode root = new MctsNode(null, null, RolloutPolicy.prioritizeActions(state, state.getLegalActions()));
-
-			for (int i = 0; i < iterationsPerWorld; i++) {
-				runIteration(root, state.deepCopy());
-			}
-
-			aggregateTakesResults(root, takesStats);
-		}
-
-		return bestTakes(takesStats);
+	public int predictTakes(SimulationState baseState, List<Card> unknownCards,
+							int[] opponentSlots, Map<Integer, Set<Color>> colorVoids,
+							Map<Integer, Set<Card>> excludedCards) {
+		return predictionChances(baseState, unknownCards, opponentSlots, colorVoids, excludedCards).entrySet().stream()
+				.min(LIKELIEST_FIRST)
+				.orElseThrow()
+				.getKey();
 	}
 
 	/**
 	 * Chance of matching each allowed prediction. Every world is played out by the rollout policy
-	 * alone: the tree search of {@link #predictTakes} sees the other hands and overrates every prediction.
+	 * alone: a tree search sees the other hands in each world and overrates every prediction.
+	 * A small hand plays its first card for the best chance instead of the policy's.
 	 */
 	public Map<Integer, Double> predictionChances(SimulationState baseState, List<Card> unknownCards,
 												  int[] opponentSlots, Map<Integer, Set<Color>> colorVoids,
@@ -125,24 +105,31 @@ public final class MctsEngine {
 		baseState.setPredictionMode(true);
 
 		List<MctsAction> predictions = baseState.getLegalActions();
+		List<Card> hand = baseState.getHand(baseState.getBotPlayerIndex());
+		boolean choosesFirstCard = hand.size() > 1 && hand.size() <= MAX_HAND_TO_CHOOSE_FIRST_CARD;
 
-		Map<Integer, Double> chances = new TreeMap<>();
+		Map<Integer, double[]> hits = new TreeMap<>();
 		for (int w = 0; w < PREDICTION_CHANCE_WORLDS; w++) {
 			SimulationState world = createDeterminizedState(baseState, unknownCards, opponentSlots, colorVoids, excludedCards);
 
 			for (MctsAction prediction : predictions) {
 				SimulationState state = world.deepCopy();
 				state.applyAction(prediction);
-				chances.merge(((MctsAction.PredictTakes) prediction).takes(), RolloutPolicy.rollout(state), Double::sum);
+				double[] worldHits = choosesFirstCard
+						? hitsByFirstCard(state, hand)
+						: new double[]{RolloutPolicy.rollout(state)};
+				hits.merge(((MctsAction.PredictTakes) prediction).takes(), worldHits, MctsEngine::addUp);
 			}
 		}
 
-		chances.replaceAll((takes, hits) -> hits / PREDICTION_CHANCE_WORLDS);
+		Map<Integer, Double> chances = new TreeMap<>();
+		hits.forEach((takes, hitsPerFirstCard) ->
+				chances.put(takes, Arrays.stream(hitsPerFirstCard).max().orElseThrow() / PREDICTION_CHANCE_WORLDS));
 		return chances;
 	}
 
 	/**
-	 * Round a {@link #predictTakes} guess to a prediction the game allows.
+	 * Round a guess to a prediction the game allows; older engines seated by the bot arena predict fractions.
 	 */
 	public static int allowedPrediction(double guess, IntPredicate isForbidden) {
 		int takes = (int) Math.round(guess);
@@ -151,6 +138,29 @@ public final class MctsEngine {
 		}
 
 		return guess > takes || takes == 0 ? takes + 1 : takes - 1;
+	}
+
+	/**
+	 * A playout for each first card of the bot; one it may not play in this world is left to the policy.
+	 */
+	private static double[] hitsByFirstCard(SimulationState state, List<Card> hand) {
+		RolloutPolicy.playUntilTurnOf(state, state.getBotPlayerIndex());
+
+		double[] hits = new double[hand.size()];
+		for (int c = 0; c < hand.size(); c++) {
+			SimulationState withFirstCard = state.deepCopy();
+			MctsAction firstCard = new MctsAction.PlayCard(hand.get(c));
+			if (withFirstCard.getLegalActions().contains(firstCard)) {
+				withFirstCard.applyAction(firstCard);
+			}
+			hits[c] = RolloutPolicy.rollout(withFirstCard);
+		}
+		return hits;
+	}
+
+	private static double[] addUp(double[] sums, double[] values) {
+		Arrays.setAll(sums, i -> sums[i] + values[i]);
+		return sums;
 	}
 
 	private SimulationState createDeterminizedState(SimulationState baseState, List<Card> unknownCards,
@@ -173,9 +183,7 @@ public final class MctsEngine {
 			}
 		}
 
-		// Fix unknown opponent predictions based on their dealt hands.
-		// Avoids searching opponent predictions in the tree — UCB1 would
-		// select predictions that help the bot, creating cooperative bias.
+		// Every simulated opponent needs a prediction to play towards; a heuristic on its dealt hand gives it one
 		if (state.getPhase() == SimulationState.Phase.PREDICTING) {
 			for (int i = 0; i < state.getTotalPlayers(); i++) {
 				if (i != botIndex && !state.isKnownPrediction(i)) {
@@ -227,16 +235,6 @@ public final class MctsEngine {
 		}
 	}
 
-	private void aggregateTakesResults(MctsNode root, Map<Integer, double[]> takesStats) {
-		for (MctsNode child : root.getChildren()) {
-			if (child.getAction() instanceof MctsAction.PredictTakes(int takes)) {
-				double[] stats = takesStats.computeIfAbsent(takes, k -> new double[2]);
-				stats[0] += child.getTotalReward();
-				stats[1] += child.getVisitCount();
-			}
-		}
-	}
-
 	private Card bestCard(Map<Card, double[]> cardStats) {
 		Card bestCard = null;
 		double bestAvg = Double.NEGATIVE_INFINITY;
@@ -252,35 +250,6 @@ public final class MctsEngine {
 		}
 
 		return bestCard;
-	}
-
-	private double bestTakes(Map<Integer, double[]> takesStats) {
-		int bestTakes = 0;
-		double bestAvg = Double.NEGATIVE_INFINITY;
-
-		double weightedSum = 0;
-		double weightTotal = 0;
-
-		for (Map.Entry<Integer, double[]> entry : takesStats.entrySet()) {
-			double[] stats = entry.getValue();
-			double avg = stats[1] > 0 ? stats[0] / stats[1] : 0;
-			if (avg > bestAvg) {
-				bestAvg = avg;
-				bestTakes = entry.getKey();
-			}
-			if (avg > 0) {
-				weightedSum += entry.getKey() * avg;
-				weightTotal += avg;
-			}
-		}
-
-		// The fraction feeds the direction allowedPrediction steps in
-		if (weightTotal > 0) {
-			double weightedAvg = weightedSum / weightTotal;
-			// Clamp so Math.round still yields bestTakes
-			return Math.clamp(weightedAvg, bestTakes - 0.49, bestTakes + 0.49);
-		}
-		return bestTakes;
 	}
 
 	/**

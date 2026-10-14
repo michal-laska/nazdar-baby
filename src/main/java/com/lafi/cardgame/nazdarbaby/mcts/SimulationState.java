@@ -67,9 +67,7 @@ public final class SimulationState {
 	}
 
 	/**
-	 * Set a player's prediction and mark it as known.
-	 * Used to fix opponent predictions from heuristics before tree search,
-	 * avoiding cooperative bias from UCB1 optimizing opponent choices.
+	 * Set a player's prediction and mark it as known, as for an opponent whose prediction a simulation assumes.
 	 */
 	void setFixedPrediction(int playerIndex, int takes) {
 		expectedTakes[playerIndex] = takes;
@@ -220,10 +218,6 @@ public final class SimulationState {
 
 	int getTotalPlayers() {
 		return totalPlayers;
-	}
-
-	int getPredictionsDone() {
-		return predictionsDone;
 	}
 
 	int getLeadPlayerIndex() {
