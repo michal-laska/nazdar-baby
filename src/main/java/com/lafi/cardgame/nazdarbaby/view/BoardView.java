@@ -13,6 +13,7 @@ import com.lafi.cardgame.nazdarbaby.provider.TableProvider;
 import com.lafi.cardgame.nazdarbaby.provider.UserProvider;
 import com.lafi.cardgame.nazdarbaby.user.User;
 import com.lafi.cardgame.nazdarbaby.util.Constant;
+import com.lafi.cardgame.nazdarbaby.util.PredictionHint;
 import com.lafi.cardgame.nazdarbaby.util.UiUtil;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasComponents;
@@ -121,11 +122,8 @@ public class BoardView extends ParameterizedView {
 
         var game = table.getGame();
         if (expectedTakesField == null) {
-            var botSimulator = game.getBotSimulator();
-            var guess = botSimulator.guessExpectedTakesForCurrentUser();
-
             expectedTakesField = new IntegerField();
-            expectedTakesField.setPlaceholder(String.format("Your guess (%.2f)", guess));
+            expectedTakesField.setPlaceholder("Your guess");
             expectedTakesField.addKeyPressListener(Key.ENTER, keyPressEvent -> expectedTakesFieldEnterAction());
 
             if (game.isActiveUser()) {
@@ -166,6 +164,12 @@ public class BoardView extends ParameterizedView {
                 UiUtil.focusForNonTouchDevice(expectedTakesField);
                 addExpectedTakesFieldBlinking();
             }
+        }
+
+        // On every render: an earlier player's prediction changes the chances and what is forbidden
+        if (expectedTakesField != null) {
+            var chances = game.getBotSimulator().predictionChancesForCurrentUser();
+            expectedTakesField.setHelperText(PredictionHint.format(chances));
         }
     }
 

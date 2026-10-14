@@ -2,6 +2,8 @@ package com.lafi.cardgame.nazdarbaby.mcts;
 
 import static com.lafi.cardgame.nazdarbaby.card.TestCards.getCard;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
+import static org.assertj.core.api.Assertions.within;
 
 import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.CardProvider;
@@ -173,6 +175,81 @@ class MctsEngineTest {
 
 			// Three aces including trump ace — should predict at least 2
 			assertThat(prediction).isGreaterThanOrEqualTo(2.0);
+		}
+	}
+
+	@Nested
+	class PredictionChancesTest {
+
+		@Test
+		void aceOfHearts_singleTrick_alwaysTakesIt() {
+			List<Card> botHand = List.of(getCard(14, Color.HEARTS));
+
+			Map<Integer, Double> chances = firstPredictorChances(botHand);
+
+			assertThat(chances).containsExactly(entry(0, 0.0), entry(1, 1.0));
+		}
+
+		@Test
+		void twoTopTrumps_alwaysTakeBothTricks() {
+			List<Card> botHand = List.of(getCard(14, Color.HEARTS), getCard(13, Color.HEARTS));
+
+			Map<Integer, Double> chances = firstPredictorChances(botHand);
+
+			assertThat(chances).containsExactly(entry(0, 0.0), entry(1, 0.0), entry(2, 1.0));
+		}
+
+		@Test
+		void loneAceOfDiamonds_leading_matchesTheExactOdds() {
+			List<Card> botHand = List.of(getCard(14, Color.DIAMONDS));
+
+			Map<Integer, Double> chances = firstPredictorChances(botHand);
+
+			// Led, the ace loses only if one of the 2 cards dealt from the 31 unknown is a heart
+			assertThat(chances.get(1)).isCloseTo(253.0 / 465, within(0.05));
+			assertThat(chances.get(0) + chances.get(1)).isCloseTo(1.0, within(1e-9));
+		}
+
+		@Test
+		void chancesMatchRealPlay_notTheTreeSearchOdds() {
+			List<Card> botHand = List.of(getCard(11, Color.CLUBS), getCard(13, Color.DIAMONDS),
+					getCard(14, Color.DIAMONDS));
+
+			Map<Integer, Double> chances = firstPredictorChances(botHand);
+
+			// Played out by the engine in every seat, this hand matches 0 in 49% of 1500 deals;
+			// the tree search behind predictTakes rates predicting 0 at about 95%
+			assertThat(chances.get(0)).isBetween(0.40, 0.60);
+			assertThat(chances.get(0)).isGreaterThan(chances.get(1));
+		}
+
+		@Test
+		void lastPredictor_leavesOutTheForbiddenTakes() {
+			List<Card> botHand = List.of(getCard(14, Color.HEARTS), getCard(7, Color.DIAMONDS));
+
+			SimulationState state = createPredictionState(botHand, 2, 2);
+			state.setFixedPrediction(0, 1);
+			state.setFixedPrediction(1, 0);
+
+			assertThat(predictionChances(state, botHand, new int[]{2, 2, 0})).containsOnlyKeys(0, 2);
+		}
+
+		@Test
+		void emptyHand_noChances() {
+			// Between the last set and the next game every hand is empty
+			assertThat(firstPredictorChances(List.of())).isEmpty();
+		}
+
+		private Map<Integer, Double> firstPredictorChances(List<Card> botHand) {
+			int handSize = botHand.size();
+			return predictionChances(createPredictionState(botHand, 0, 0), botHand, new int[]{0, handSize, handSize});
+		}
+
+		private Map<Integer, Double> predictionChances(SimulationState state, List<Card> botHand, int[] opponentSlots) {
+			List<Card> unknownCards = new ArrayList<>(deckOfCards);
+			unknownCards.removeAll(botHand);
+
+			return engine.predictionChances(state, unknownCards, opponentSlots, Map.of(), Map.of());
 		}
 	}
 

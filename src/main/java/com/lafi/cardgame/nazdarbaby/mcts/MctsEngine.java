@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.IntPredicate;
 
 /**
@@ -110,6 +111,35 @@ public final class MctsEngine {
 		}
 
 		return bestTakes(takesStats);
+	}
+
+	/**
+	 * Chance of matching each allowed prediction. Every world is played out by the rollout policy
+	 * alone: the tree search of {@link #predictTakes} sees the other hands and overrates every prediction.
+	 */
+	public Map<Integer, Double> predictionChances(SimulationState baseState, List<Card> unknownCards,
+												  int[] opponentSlots, Map<Integer, Set<Color>> colorVoids,
+												  Map<Integer, Set<Card>> excludedCards) {
+		baseState.setPredictionMode(true);
+
+		List<MctsAction> predictions = baseState.getLegalActions();
+		int handSize = baseState.getHand(baseState.getBotPlayerIndex()).size();
+		int opponents = baseState.getTotalPlayers() - 1;
+		int worlds = computeIterations(handSize, opponents) / predictions.size();
+
+		Map<Integer, Double> chances = new TreeMap<>();
+		for (int w = 0; w < worlds; w++) {
+			SimulationState world = createDeterminizedState(baseState, unknownCards, opponentSlots, colorVoids, excludedCards);
+
+			for (MctsAction prediction : predictions) {
+				SimulationState state = world.deepCopy();
+				state.applyAction(prediction);
+				chances.merge(((MctsAction.PredictTakes) prediction).takes(), RolloutPolicy.rollout(state), Double::sum);
+			}
+		}
+
+		chances.replaceAll((takes, hits) -> hits / worlds);
+		return chances;
 	}
 
 	/**
@@ -245,7 +275,7 @@ public final class MctsEngine {
 			}
 		}
 
-		// The fraction feeds the human guess hint and the direction allowedPrediction steps in
+		// The fraction feeds the direction allowedPrediction steps in
 		if (weightTotal > 0) {
 			double weightedAvg = weightedSum / weightTotal;
 			// Clamp so Math.round still yields bestTakes

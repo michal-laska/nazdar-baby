@@ -91,20 +91,23 @@ public class BotSimulator {
 		}
 	}
 
-	public double guessExpectedTakesForCurrentUser() {
-		return guessExpectedTakes(game.getUserProvider().getCurrentUser());
+	public Map<Integer, Double> predictionChancesForCurrentUser() {
+		return simulatePrediction(game.getUserProvider().getCurrentUser(), mctsEngine::predictionChances);
 	}
 
 	private double guessExpectedTakes(User predictor) {
-		List<Card> cardsInHand = predictor.getCardsInHand();
+		return simulatePrediction(predictor, mctsEngine::predictTakes);
+	}
 
-		SimulationState state = buildPredictionState(cardsInHand, predictor);
-		List<Card> unknownCards = computeUnknownCards(cardsInHand);
-		int[] opponentSlots = computeOpponentSlots(cardsInHand.size(), predictor);
-		Map<Integer, Set<Color>> colorVoids = computeColorVoids(predictor);
-		Map<Integer, Set<Card>> excludedCards = computeExcludedCards(unknownCards, predictor);
+	private <T> T simulatePrediction(User predictor, Search<T> search) {
+		SearchInputs inputs;
+		// A human's hint runs outside Game's monitor, while bots move inside it
+		synchronized (game) {
+			List<Card> cardsInHand = predictor.getCardsInHand();
+			inputs = searchInputs(buildPredictionState(cardsInHand, predictor), cardsInHand, predictor);
+		}
 
-		return mctsEngine.predictTakes(state, unknownCards, opponentSlots, colorVoids, excludedCards);
+		return inputs.run(search);
 	}
 
 	void removeColorsForOtherUsers(List<Card> cards) {
@@ -134,13 +137,8 @@ public class BotSimulator {
 			return sortedPlayableCards.getFirst();
 		}
 
-		SimulationState state = buildPlayingState(cardsInHand);
-		List<Card> unknownCards = computeUnknownCards(cardsInHand);
-		int[] opponentSlots = computeOpponentSlots(cardsInHand.size(), activeUser);
-		Map<Integer, Set<Color>> colorVoids = computeColorVoids(activeUser);
-		Map<Integer, Set<Card>> excludedCards = computeExcludedCards(unknownCards, activeUser);
-
-		Card mctsCard = mctsEngine.selectCard(state, unknownCards, opponentSlots, colorVoids, excludedCards);
+		Card mctsCard = searchInputs(buildPlayingState(cardsInHand), cardsInHand, activeUser)
+				.run(mctsEngine::selectCard);
 
 		// Fallback if MCTS returns null or an illegal card
 		if (mctsCard == null || !sortedPlayableCards.contains(mctsCard)) {
@@ -256,8 +254,8 @@ public class BotSimulator {
 
 		// Count how many predictions are already done
 		int predictionsDone = 0;
-		for (User user : users) {
-			if (user.getExpectedTakes() != null) {
+		for (boolean predicted : base.predicted) {
+			if (predicted) {
 				predictionsDone++;
 			}
 		}
@@ -276,7 +274,7 @@ public class BotSimulator {
 
 		// Mark players who have already predicted as known — MCTS won't search over these
 		for (int i = 0; i < users.size(); i++) {
-			if (users.get(i).getExpectedTakes() != null) {
+			if (base.predicted[i]) {
 				state.setKnownPrediction(i);
 			}
 		}
@@ -322,18 +320,22 @@ public class BotSimulator {
 		List<List<Card>> hands = new ArrayList<>();
 		int[] expectedTakes = new int[users.size()];
 		int[] actualTakes = new int[users.size()];
+		boolean[] predicted = new boolean[users.size()];
 
 		for (int i = 0; i < users.size(); i++) {
 			hands.add(i == ownIndex ? new ArrayList<>(ownCards) : new ArrayList<>());
 			User user = users.get(i);
-			expectedTakes[i] = user.getExpectedTakes() != null ? user.getExpectedTakes() : 0;
+			// Read once: a human sets their prediction outside Game's monitor
+			Integer prediction = user.getExpectedTakes();
+			predicted[i] = prediction != null;
+			expectedTakes[i] = predicted[i] ? prediction : 0;
 			actualTakes[i] = user.getActualTakes();
 		}
 
-		return new BaseState(hands, expectedTakes, actualTakes);
+		return new BaseState(hands, expectedTakes, actualTakes, predicted);
 	}
 
-	private record BaseState(List<List<Card>> hands, int[] expectedTakes, int[] actualTakes) {
+	private record BaseState(List<List<Card>> hands, int[] expectedTakes, int[] actualTakes, boolean[] predicted) {
 	}
 
 	private List<Card> computeUnknownCards(List<Card> ownCards) {
@@ -433,6 +435,26 @@ public class BotSimulator {
 		}
 
 		return voids;
+	}
+
+	private SearchInputs searchInputs(SimulationState state, List<Card> cardsInHand, User self) {
+		List<Card> unknownCards = computeUnknownCards(cardsInHand);
+		return new SearchInputs(state, unknownCards, computeOpponentSlots(cardsInHand.size(), self),
+				computeColorVoids(self), computeExcludedCards(unknownCards, self));
+	}
+
+	private interface Search<T> {
+
+		T run(SimulationState state, List<Card> unknownCards, int[] opponentSlots,
+			  Map<Integer, Set<Color>> colorVoids, Map<Integer, Set<Card>> excludedCards);
+	}
+
+	private record SearchInputs(SimulationState state, List<Card> unknownCards, int[] opponentSlots,
+								Map<Integer, Set<Color>> colorVoids, Map<Integer, Set<Card>> excludedCards) {
+
+		<T> T run(Search<T> search) {
+			return search.run(state, unknownCards, opponentSlots, colorVoids, excludedCards);
+		}
 	}
 
 	private static final class UserInfo {
