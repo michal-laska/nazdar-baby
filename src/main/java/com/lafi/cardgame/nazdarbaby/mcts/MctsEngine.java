@@ -28,8 +28,8 @@ public final class MctsEngine {
 	private static final double EXPLORATION_CONSTANT = 1.2;
 	// About 2 points of noise in the chances; the card search's budget made a prediction cost as much as a card move
 	private static final int PREDICTION_CHANCE_WORLDS = 1000;
-	// Choosing costs a playout per card and world; without it 2-card hands lost to the tree search, larger ones did not
-	private static final int MAX_HAND_TO_CHOOSE_FIRST_CARD = 3;
+	// A playout per card and world: at 0.1 CPU 5 cards stay under 3 s a prediction, 7 players with 7 cards took 7.6 s
+	private static final int MAX_HAND_TO_CHOOSE_FIRST_CARD = 5;
 	private static final Comparator<Card> LOWEST_FIRST = Comparator.comparingInt(Card::getValue).thenComparing(Card::getColor);
 
 	public MctsEngine() {
