@@ -166,8 +166,8 @@ public class BoardView extends ParameterizedView {
             }
         }
 
-        // On every render: an earlier player's prediction changes the chances and what is forbidden
-        if (expectedTakesField != null) {
+        // Every earlier prediction is known once your turn comes, so the hint is computed then, once
+        if (expectedTakesField != null && game.isActiveUser() && expectedTakesField.getHelperText() == null) {
             var chances = game.getBotSimulator().predictionChancesForCurrentUser();
             expectedTakesField.setHelperText(PredictionHint.format(chances));
         }

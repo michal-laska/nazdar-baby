@@ -69,7 +69,7 @@ class BotSimulatorTest {
 			givenBotAsking(getHearts(10, 11, 12, 13, 14), getHeart(7), getHeart(8));
 
 			// The 8♥ loses only to the 9♥, the one higher heart among the 25 unseen cards
-			assertThat(botSimulator.predictionChancesForCurrentUser().get(1)).isCloseTo(23.0 / 25, within(0.05));
+			assertThat(botSimulator.predictionChancesForCurrentUser().get(1)).isCloseTo(23.0 / 25, within(0.07));
 		}
 
 		@Test
@@ -95,7 +95,7 @@ class BotSimulatorTest {
 			me.addCard(getCard(14, Color.DIAMONDS));
 
 			// Led, the ace loses only if one of the 2 cards dealt from the 31 unseen is a heart
-			assertThat(botSimulator.predictionChancesForCurrentUser().get(1)).isCloseTo(253.0 / 465, within(0.05));
+			assertThat(botSimulator.predictionChancesForCurrentUser().get(1)).isCloseTo(253.0 / 465, within(0.07));
 		}
 
 		@Test
@@ -107,7 +107,7 @@ class BotSimulatorTest {
 
 			// Second to play, the ace wins only if a diamond is led and the last player has no heart
 			assertThat(botSimulator.predictionChancesForCurrentUser().get(1))
-					.isCloseTo(7.0 / 31 * 22 / 30, within(0.05));
+					.isCloseTo(7.0 / 31 * 22 / 30, within(0.07));
 		}
 
 		@Test
@@ -132,7 +132,7 @@ class BotSimulatorTest {
 			me.addCard(getHeart(7));
 
 			// The lone 7♥ wins unless one of the 2 cards dealt from the 31 unseen is a higher heart
-			assertThat(botSimulator.predictionChancesForCurrentUser().get(1)).isCloseTo(276.0 / 465, within(0.05));
+			assertThat(botSimulator.predictionChancesForCurrentUser().get(1)).isCloseTo(276.0 / 465, within(0.07));
 		}
 
 		@Test

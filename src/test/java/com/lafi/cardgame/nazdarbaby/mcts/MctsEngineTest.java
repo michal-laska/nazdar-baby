@@ -206,7 +206,7 @@ class MctsEngineTest {
 			Map<Integer, Double> chances = firstPredictorChances(botHand);
 
 			// Led, the ace loses only if one of the 2 cards dealt from the 31 unknown is a heart
-			assertThat(chances.get(1)).isCloseTo(253.0 / 465, within(0.05));
+			assertThat(chances.get(1)).isCloseTo(253.0 / 465, within(0.07));
 			assertThat(chances.get(0) + chances.get(1)).isCloseTo(1.0, within(1e-9));
 		}
 
@@ -235,9 +235,9 @@ class MctsEngineTest {
 		}
 
 		@Test
-		void emptyHand_noChances() {
+		void emptyHand_alwaysTakesNothing() {
 			// Between the last set and the next game every hand is empty
-			assertThat(firstPredictorChances(List.of())).isEmpty();
+			assertThat(firstPredictorChances(List.of())).containsExactly(entry(0, 1.0));
 		}
 
 		private Map<Integer, Double> firstPredictorChances(List<Card> botHand) {

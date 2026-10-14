@@ -22,6 +22,8 @@ public final class MctsEngine {
 	private static final int DETERMINIZATIONS_PER_CARD = 12;
 	private static final int DETERMINIZATIONS_PER_OPPONENT = 20;
 	private static final double EXPLORATION_CONSTANT = 1.2;
+	// About 2 points of noise in the shown percentages; the search budget made a hint cost as much as a bot move
+	private static final int PREDICTION_CHANCE_WORLDS = 1000;
 	private static final Comparator<Card> LOWEST_FIRST = Comparator.comparingInt(Card::getValue).thenComparing(Card::getColor);
 
 	public MctsEngine() {
@@ -123,12 +125,9 @@ public final class MctsEngine {
 		baseState.setPredictionMode(true);
 
 		List<MctsAction> predictions = baseState.getLegalActions();
-		int handSize = baseState.getHand(baseState.getBotPlayerIndex()).size();
-		int opponents = baseState.getTotalPlayers() - 1;
-		int worlds = computeIterations(handSize, opponents) / predictions.size();
 
 		Map<Integer, Double> chances = new TreeMap<>();
-		for (int w = 0; w < worlds; w++) {
+		for (int w = 0; w < PREDICTION_CHANCE_WORLDS; w++) {
 			SimulationState world = createDeterminizedState(baseState, unknownCards, opponentSlots, colorVoids, excludedCards);
 
 			for (MctsAction prediction : predictions) {
@@ -138,7 +137,7 @@ public final class MctsEngine {
 			}
 		}
 
-		chances.replaceAll((takes, hits) -> hits / worlds);
+		chances.replaceAll((takes, hits) -> hits / PREDICTION_CHANCE_WORLDS);
 		return chances;
 	}
 
