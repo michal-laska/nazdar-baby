@@ -34,7 +34,8 @@ public final class MctsEngine {
 	private static final int MAX_HAND_TO_CHOOSE_FIRST_CARD_WITH_FEW_PLAYERS = 7;
 	private static final int MAX_FEW_PLAYERS = 4;
 	// Above the first-card limit the policy plays the first card and the hint's chances are too flat: with bots in every
-	// seat a shown 15% was matched about 30% of the time and, with 3 players, a shown 84% about 64%
+	// seat a shown 15% was matched about 30% of the time and, with 3 players, a shown 84% about 64%.
+	// ./gradlew hintCalibration re-fits these.
 	private static final Map<Integer, LogOddsCalibration> HINT_CALIBRATION_BY_PLAYERS = Map.of(
 			3, new LogOddsCalibration(-0.092, 0.448),
 			4, new LogOddsCalibration(0.172, 0.715),
@@ -155,16 +156,18 @@ public final class MctsEngine {
 	}
 
 	static double hintChance(double chance, int players, int handSize) {
-		if (handSize <= maxHandToChooseFirstCard(players)) {
+		if (!calibratesHint(players, handSize)) {
 			return chance;
 		}
 
-		LogOddsCalibration calibration = HINT_CALIBRATION_BY_PLAYERS.get(players);
-		double logOdds = calibration.shift() + calibration.scale() * Math.log(chance / (1 - chance));
-		return 1 / (1 + Math.exp(-logOdds));
+		return HINT_CALIBRATION_BY_PLAYERS.get(players).apply(chance);
 	}
 
-	private record LogOddsCalibration(double shift, double scale) {
+	record LogOddsCalibration(double shift, double scale) {
+
+		double apply(double chance) {
+			return 1 / (1 + Math.exp(-(shift + scale * Math.log(chance / (1 - chance)))));
+		}
 	}
 
 	/**
@@ -177,6 +180,10 @@ public final class MctsEngine {
 		}
 
 		return guess > takes || takes == 0 ? takes + 1 : takes - 1;
+	}
+
+	static boolean calibratesHint(int players, int handSize) {
+		return handSize > maxHandToChooseFirstCard(players);
 	}
 
 	private static int maxHandToChooseFirstCard(int players) {

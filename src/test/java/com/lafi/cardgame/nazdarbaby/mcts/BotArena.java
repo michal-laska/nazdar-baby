@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -64,19 +65,30 @@ public final class BotArena {
 	}
 
 	static Totals play(Options options, Function<String, Bot> oldBots) throws InterruptedException, ExecutionException {
-		ExecutorService pool = Executors.newFixedThreadPool(options.threads(), Thread.ofPlatform().name(THREAD_PREFIX, 0).factory());
-		// A failed deal must not leave the pool's threads keeping the JVM alive
+		List<Callable<DealResult>> deals = new ArrayList<>(options.deals());
+		for (int deal = 0; deal < options.deals(); deal++) {
+			deals.add(() -> playMirroredDeal(options.players(), options.tricks(), oldBots));
+		}
+
+		Totals totals = new Totals();
+		runAll(deals, options.threads()).forEach(totals::add);
+		return totals;
+	}
+
+	static <T> List<T> runAll(List<Callable<T>> tasks, int threads) throws InterruptedException, ExecutionException {
+		ExecutorService pool = Executors.newFixedThreadPool(threads, Thread.ofPlatform().name(THREAD_PREFIX, 0).factory());
+		// A failed task must not leave the pool's threads keeping the JVM alive
 		try {
-			List<Future<DealResult>> futures = new ArrayList<>(options.deals());
-			for (int deal = 0; deal < options.deals(); deal++) {
-				futures.add(pool.submit(() -> playMirroredDeal(options.players(), options.tricks(), oldBots)));
+			List<Future<T>> futures = new ArrayList<>(tasks.size());
+			for (Callable<T> task : tasks) {
+				futures.add(pool.submit(task));
 			}
 
-			Totals totals = new Totals();
-			for (Future<DealResult> future : futures) {
-				totals.add(future.get());
+			List<T> results = new ArrayList<>(tasks.size());
+			for (Future<T> future : futures) {
+				results.add(future.get());
 			}
-			return totals;
+			return results;
 		} finally {
 			pool.shutdownNow();
 		}
@@ -118,7 +130,7 @@ public final class BotArena {
 			return new Options(deals, players, tricks, threads, baseline);
 		}
 
-		private static int number(List<String> positional, int index, String name, int fallback) {
+		static int number(List<String> positional, int index, String name, int fallback) {
 			if (index >= positional.size()) {
 				return fallback;
 			}
@@ -129,11 +141,18 @@ public final class BotArena {
 			}
 		}
 
-		private static void require(boolean valid, String message) {
+		static void require(boolean valid, String message) {
 			if (!valid) {
 				throw new IllegalArgumentException(message);
 			}
 		}
+	}
+
+	/**
+	 * One set dealt from {@code deck}, with the seats in the order given rather than mirrored.
+	 */
+	static void playOneSet(Bot[] seatBots, int totalTricks, List<Card> deck) {
+		new BotArena(seatBots.length, totalTricks, seatBots).playSet(new ArrayList<>(deck), new DealResult());
 	}
 
 	private static DealResult playMirroredDeal(int totalPlayers, int totalTricks, Function<String, Bot> oldBots) {
@@ -294,6 +313,7 @@ public final class BotArena {
 		for (Player player : order) {
 			boolean won = player.isWinner();
 			result.add(player.bot.name(), won ? winPoints : losePoints, won);
+			player.bot.finished(won);
 		}
 	}
 
@@ -307,6 +327,9 @@ public final class BotArena {
 		Card play(List<Card> hand, int position, int totalPlayers, int totalTricks, int tricksPlayed,
 				  int[] expectedTakes, int[] actualTakes, List<Card> table,
 				  List<Card> unknownCards, int[] opponentSlots, Map<Integer, Set<Color>> voids);
+
+		default void finished(boolean matchedPrediction) {
+		}
 	}
 
 	private static final class Player {

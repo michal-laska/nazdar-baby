@@ -23,14 +23,18 @@ public record MctsArenaBot(String name, MctsEngine engine) implements Bot {
 	@Override
 	public double predict(List<Card> hand, int position, int totalPlayers, int totalTricks,
 						  Integer[] predictions, List<Card> unknownCards, Map<Integer, Set<Color>> voids) {
+		return engine.predictTakes(predictionState(hand, position, totalPlayers, totalTricks, predictions),
+				unknownCards, opponentSlots(position, totalPlayers, totalTricks), voids, Map.of());
+	}
+
+	static SimulationState predictionState(List<Card> hand, int position, int totalPlayers, int totalTricks,
+										   Integer[] predictions) {
 		int[] expectedTakes = new int[totalPlayers];
-		int[] opponentSlots = new int[totalPlayers];
 		int predictionsDone = 0;
 
 		List<List<Card>> hands = new ArrayList<>(totalPlayers);
 		for (int i = 0; i < totalPlayers; i++) {
 			hands.add(i == position ? new ArrayList<>(hand) : new ArrayList<>());
-			opponentSlots[i] = i == position ? 0 : totalTricks;
 			if (predictions[i] != null) {
 				expectedTakes[i] = predictions[i];
 				++predictionsDone;
@@ -45,8 +49,15 @@ public record MctsArenaBot(String name, MctsEngine engine) implements Bot {
 				state.setKnownPrediction(i);
 			}
 		}
+		return state;
+	}
 
-		return engine.predictTakes(state, unknownCards, opponentSlots, voids, Map.of());
+	static int[] opponentSlots(int position, int totalPlayers, int totalTricks) {
+		int[] opponentSlots = new int[totalPlayers];
+		for (int i = 0; i < totalPlayers; i++) {
+			opponentSlots[i] = i == position ? 0 : totalTricks;
+		}
+		return opponentSlots;
 	}
 
 	@Override

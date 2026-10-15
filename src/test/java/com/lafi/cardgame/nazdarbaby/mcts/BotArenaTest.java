@@ -1,8 +1,16 @@
 package com.lafi.cardgame.nazdarbaby.mcts;
 
+import static com.lafi.cardgame.nazdarbaby.card.TestCards.getCard;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.lafi.cardgame.nazdarbaby.card.Card;
+import com.lafi.cardgame.nazdarbaby.card.Color;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -34,6 +42,55 @@ class BotArenaTest {
 		private boolean arenaThreadsAlive() {
 			return Thread.getAllStackTraces().keySet().stream()
 					.anyMatch(thread -> thread.getName().startsWith(BotArena.THREAD_PREFIX) && thread.isAlive());
+		}
+	}
+
+	@Nested
+	class PlayOneSetTest {
+
+		@Test
+		void everySeat_learnsWhetherItMatchedItsPrediction() {
+			// One trick: the A♥ in the first seat takes it, so predicting 1 there and 0 elsewhere is matched
+			List<Card> deck = new ArrayList<>(List.of(
+					getCard(14, Color.HEARTS), getCard(7, Color.CLUBS), getCard(8, Color.CLUBS)));
+			FixedBot[] seats = {new FixedBot(1), new FixedBot(0), new FixedBot(1)};
+
+			BotArena.playOneSet(seats, 1, deck);
+
+			assertThat(seats).extracting(seat -> seat.matched).containsExactly(true, true, false);
+		}
+
+		private static final class FixedBot implements BotArena.Bot {
+
+			private final int prediction;
+			private Boolean matched;
+
+			private FixedBot(int prediction) {
+				this.prediction = prediction;
+			}
+
+			@Override
+			public String name() {
+				return "fixed";
+			}
+
+			@Override
+			public double predict(List<Card> hand, int position, int totalPlayers, int totalTricks,
+								  Integer[] predictions, List<Card> unknownCards, Map<Integer, Set<Color>> voids) {
+				return prediction;
+			}
+
+			@Override
+			public Card play(List<Card> hand, int position, int totalPlayers, int totalTricks, int tricksPlayed,
+							 int[] expectedTakes, int[] actualTakes, List<Card> table,
+							 List<Card> unknownCards, int[] opponentSlots, Map<Integer, Set<Color>> voids) {
+				return hand.getFirst();
+			}
+
+			@Override
+			public void finished(boolean matchedPrediction) {
+				matched = matchedPrediction;
+			}
 		}
 	}
 

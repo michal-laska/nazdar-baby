@@ -46,3 +46,11 @@ tasks.register<JavaExec>("botArena") {
     classpath = sourceSets["test"].runtimeClasspath
     mainClass = "com.lafi.cardgame.nazdarbaby.mcts.BotArena"
 }
+
+// ./gradlew hintCalibration --args="<deals per table> <threads>"
+tasks.register<JavaExec>("hintCalibration") {
+    group = "verification"
+    description = "Re-fit the hint's calibration in MctsEngine against bots playing in every seat."
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass = "com.lafi.cardgame.nazdarbaby.mcts.HintCalibration"
+}

@@ -64,6 +64,29 @@ class GameTest {
 	}
 
 	@Nested
+	class FirstSetTest {
+
+		@Test
+		void deckWithMoreThanTenCardsPerPlayer_dealsTen() {
+			assertThat(dealFirstSet(4)).allMatch(user -> user.getCards().size() == 10);
+		}
+
+		@Test
+		void deckWithFewerThanTenCardsPerPlayer_dealsAllItCan() {
+			assertThat(dealFirstSet(6)).allMatch(user -> user.getCards().size() == 8);
+		}
+
+		private List<User> dealFirstSet(int players) {
+			List<User> users = new ArrayList<>();
+			for (int i = 0; i < players; i++) {
+				users.add(new User("player" + i));
+			}
+			givenStartedGame(users, botMove -> {}, () -> {});
+			return users;
+		}
+	}
+
+	@Nested
 	class GetWinningIndexTest {
 
 		@Test
@@ -186,7 +209,11 @@ class GameTest {
 	}
 
 	private Game givenStartedGame(Executor botMoveExecutor, Runnable afterBotMove) {
-		doReturn(new ArrayList<>(bots)).when(userProvider).getPlayingUsers();
+		return givenStartedGame(bots, botMoveExecutor, afterBotMove);
+	}
+
+	private Game givenStartedGame(List<User> users, Executor botMoveExecutor, Runnable afterBotMove) {
+		doReturn(new ArrayList<>(users)).when(userProvider).getPlayingUsers();
 
 		Game game = new Game(userProvider, pointProvider, botMoveExecutor, afterBotMove);
 		game.setGameInProgress(true);

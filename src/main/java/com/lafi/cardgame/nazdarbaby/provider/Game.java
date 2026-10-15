@@ -17,6 +17,8 @@ import java.util.stream.Collectors;
 
 public class Game {
 
+	public static final int MAX_CARDS_IN_HAND = 10;
+
 	private final BotSimulator botSimulator = new BotSimulator(this);
 	private final UserProvider userProvider;
 	private final PointProvider pointProvider;
@@ -338,7 +340,7 @@ public class Game {
 		int gameUsersSize = gameUsers.size();
 
 		int userCardsCount = deckOfCardsSize / gameUsersSize;
-		userCardsCount = Math.min(userCardsCount, 10);
+		userCardsCount = Math.min(userCardsCount, MAX_CARDS_IN_HAND);
 		userCardsCount -= setNumber;
 
 		return userCardsCount;
