@@ -84,21 +84,15 @@ public final class TrickEvaluator {
 		}
 
 		Color leadingColor = currentTrick.getFirst().getColor();
-		if (hasColor(hand, leadingColor)) {
-			return leadingColor;
-		}
-		if (hasColor(hand, Color.HEARTS)) {
-			return Color.HEARTS;
-		}
-		return null;
-	}
-
-	private static boolean hasColor(List<Card> hand, Color color) {
+		boolean hasHearts = false;
 		for (Card card : hand) {
-			if (card.getColor() == color) {
-				return true;
+			if (card.getColor() == leadingColor) {
+				return leadingColor;
+			}
+			if (card.getColor() == Color.HEARTS) {
+				hasHearts = true;
 			}
 		}
-		return false;
+		return hasHearts ? Color.HEARTS : null;
 	}
 }

@@ -178,6 +178,20 @@ class TrickEvaluatorTest {
 		}
 
 		@Test
+		void voidInTheLedColor_mustTrump_whereverTheHeartIsInTheHand() {
+			List<Card> hand = List.of(getCard(7, Color.HEARTS), getCard(14, Color.SPADES), getCard(13, Color.CLUBS));
+
+			assertThat(TrickEvaluator.getLegalColor(hand, List.of(getCard(10, Color.DIAMONDS)))).isEqualTo(Color.HEARTS);
+		}
+
+		@Test
+		void heartsLed_voidInHearts_anyCard() {
+			List<Card> hand = List.of(getCard(14, Color.SPADES), getCard(13, Color.CLUBS));
+
+			assertThat(TrickEvaluator.getLegalColor(hand, List.of(getCard(10, Color.HEARTS)))).isNull();
+		}
+
+		@Test
 		void voidInTheLedColorAndHearts_anyCard() {
 			List<Card> hand = List.of(getCard(14, Color.SPADES), getCard(13, Color.CLUBS));
 
