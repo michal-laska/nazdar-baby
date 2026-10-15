@@ -114,7 +114,7 @@ public class BotSimulator {
 			inputs = predictionInputs(game.getUserProvider().getCurrentUser());
 		}
 
-		return inputs.run(mctsEngine::predictionChances);
+		return inputs.run(mctsEngine::hintChances);
 	}
 
 	private SearchInputs predictionInputs(User predictor) {

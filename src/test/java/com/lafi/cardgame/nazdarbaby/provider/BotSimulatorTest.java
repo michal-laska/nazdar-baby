@@ -28,6 +28,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -123,6 +124,26 @@ class BotSimulatorTest {
 			// The two top trumps win both tricks whenever every seat holds a full hand
 			assertThat(botSimulator.predictionChancesForCurrentUser())
 					.containsExactly(entry(0, 0.0), entry(1, 0.0), entry(2, 1.0));
+		}
+
+		@Test
+		void largeHandWithFivePlayers_showsTheCorrectedChance() {
+			User me = new User("me", takeoverCodes);
+			botSimulator.setUsers(List.of(me, new User("bot1"), new User("bot2"), new User("bot3"), new User("bot4")));
+			botSimulator.setCardPlaceholders(new CopyOnWriteArrayList<>(Collections.nCopies(5, CARD_PLACEHOLDER)));
+			botSimulator.setActiveUser(me);
+			givenCurrentUser(me);
+			doReturn(new CardProvider(5)).when(game).getCardProvider();
+			List.of(getCard(14, Color.SPADES), getCard(13, Color.DIAMONDS), getHeart(9), getCard(12, Color.CLUBS),
+					getCard(7, Color.SPADES), getCard(5, Color.DIAMONDS), getCard(3, Color.CLUBS), getHeart(2)).forEach(me::addCard);
+
+			double chanceOfTwo = IntStream.range(0, 6)
+					.mapToDouble(_ -> botSimulator.predictionChancesForCurrentUser().get(2))
+					.average()
+					.orElseThrow();
+
+			// Simulated at 0.45 on average, never above 0.48; the 5-player hint calibration shows it as 0.55
+			assertThat(chanceOfTwo).isCloseTo(0.55, within(0.03));
 		}
 
 		@Test

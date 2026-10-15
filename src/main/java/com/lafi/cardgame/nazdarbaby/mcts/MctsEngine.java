@@ -33,6 +33,14 @@ public final class MctsEngine {
 	private static final int MAX_HAND_TO_CHOOSE_FIRST_CARD = 6;
 	private static final int MAX_HAND_TO_CHOOSE_FIRST_CARD_WITH_FEW_PLAYERS = 7;
 	private static final int MAX_FEW_PLAYERS = 4;
+	// Above the first-card limit the policy plays the first card and the hint's chances are too flat: with bots in every
+	// seat a shown 15% was matched about 30% of the time and, with 3 players, a shown 84% about 64%
+	private static final Map<Integer, LogOddsCalibration> HINT_CALIBRATION_BY_PLAYERS = Map.of(
+			3, new LogOddsCalibration(-0.092, 0.448),
+			4, new LogOddsCalibration(0.172, 0.715),
+			5, new LogOddsCalibration(0.332, 0.678),
+			6, new LogOddsCalibration(0.344, 0.671),
+			7, new LogOddsCalibration(0.367, 0.676));
 	private static final Comparator<Card> LOWEST_FIRST = Comparator.comparingInt(Card::getValue).thenComparing(Card::getColor);
 
 	public MctsEngine() {
@@ -129,6 +137,34 @@ public final class MctsEngine {
 		hits.forEach((takes, hitsPerFirstCard) ->
 				chances.put(takes, Arrays.stream(hitsPerFirstCard).max().orElseThrow() / PREDICTION_CHANCE_WORLDS));
 		return chances;
+	}
+
+	/**
+	 * The chances as the hint shows them: for hands above the first-card limit, moved toward how often bots in every
+	 * seat match them.
+	 */
+	public Map<Integer, Double> hintChances(SimulationState baseState, List<Card> unknownCards,
+											int[] opponentSlots, Map<Integer, Set<Color>> colorVoids,
+											Map<Integer, Set<Card>> excludedCards) {
+		int players = baseState.getTotalPlayers();
+		int handSize = baseState.getHand(baseState.getBotPlayerIndex()).size();
+
+		Map<Integer, Double> chances = predictionChances(baseState, unknownCards, opponentSlots, colorVoids, excludedCards);
+		chances.replaceAll((takes, chance) -> hintChance(chance, players, handSize));
+		return chances;
+	}
+
+	static double hintChance(double chance, int players, int handSize) {
+		if (handSize <= maxHandToChooseFirstCard(players)) {
+			return chance;
+		}
+
+		LogOddsCalibration calibration = HINT_CALIBRATION_BY_PLAYERS.get(players);
+		double logOdds = calibration.shift() + calibration.scale() * Math.log(chance / (1 - chance));
+		return 1 / (1 + Math.exp(-logOdds));
+	}
+
+	private record LogOddsCalibration(double shift, double scale) {
 	}
 
 	/**

@@ -8,10 +8,13 @@ import static org.assertj.core.api.Assertions.within;
 import com.lafi.cardgame.nazdarbaby.card.Card;
 import com.lafi.cardgame.nazdarbaby.card.CardProvider;
 import com.lafi.cardgame.nazdarbaby.card.Color;
+import com.lafi.cardgame.nazdarbaby.point.PointProvider;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -296,6 +299,21 @@ class MctsEngineTest {
 		}
 
 		@Test
+		void hint_aboveTheFirstCardLimit_withFivePlayers_isRaised() {
+			List<Card> botHand = List.of(getCard(14, Color.SPADES), getCard(13, Color.DIAMONDS), getCard(9, Color.HEARTS),
+					getCard(12, Color.CLUBS), getCard(7, Color.SPADES), getCard(5, Color.DIAMONDS), getCard(3, Color.CLUBS),
+					getCard(2, Color.HEARTS));
+
+			double hintChance = IntStream.range(0, 6)
+					.mapToDouble(_ -> chancesInSeat(botHand, 0, 5, engine::hintChances).get(2))
+					.average()
+					.orElseThrow();
+
+			// Simulated at 0.45 on average over 20 runs, never above 0.48; the 5-player calibration shows it as 0.55
+			assertThat(hintChance).isCloseTo(0.55, within(0.03));
+		}
+
+		@Test
 		void lastPredictor_leavesOutTheForbiddenTakes() {
 			List<Card> botHand = List.of(getCard(14, Color.HEARTS), getCard(7, Color.DIAMONDS));
 
@@ -325,24 +343,72 @@ class MctsEngineTest {
 		}
 
 		private Map<Integer, Double> chancesInSeat(List<Card> botHand, int botIndex, int players) {
+			return chancesInSeat(botHand, botIndex, players, engine::predictionChances);
+		}
+
+		private Map<Integer, Double> chancesInSeat(List<Card> botHand, int botIndex, int players, Chances chances) {
 			int[] opponentSlots = new int[players];
 			for (int i = 0; i < opponentSlots.length; i++) {
 				opponentSlots[i] = i == botIndex ? 0 : botHand.size();
 			}
 			return predictionChances(createPredictionState(botHand, botIndex, 0, players), botHand, opponentSlots,
-					new CardProvider(players).getShuffledDeckOfCards());
+					new CardProvider(players).getShuffledDeckOfCards(), chances);
 		}
 
 		private Map<Integer, Double> predictionChances(SimulationState state, List<Card> botHand, int[] opponentSlots) {
-			return predictionChances(state, botHand, opponentSlots, deckOfCards);
+			return predictionChances(state, botHand, opponentSlots, deckOfCards, engine::predictionChances);
 		}
 
 		private Map<Integer, Double> predictionChances(SimulationState state, List<Card> botHand, int[] opponentSlots,
-													   List<Card> deck) {
+													   List<Card> deck, Chances chances) {
 			List<Card> unknownCards = new ArrayList<>(deck);
 			unknownCards.removeAll(botHand);
 
-			return engine.predictionChances(state, unknownCards, opponentSlots, Map.of(), Map.of());
+			return chances.of(state, unknownCards, opponentSlots, Map.of(), Map.of());
+		}
+	}
+
+	@Nested
+	class HintChanceTest {
+
+		@Test
+		void withinTheFirstCardLimit_isShownAsSimulated() {
+			assertThat(MctsEngine.hintChance(0.4, 5, 6)).isEqualTo(0.4);
+			assertThat(MctsEngine.hintChance(0.4, 4, 7)).isEqualTo(0.4);
+		}
+
+		@Test
+		void aboveTheLimit_withFivePlayers_isRaised() {
+			assertThat(MctsEngine.hintChance(0.5, 5, 7)).isCloseTo(0.582, within(0.001));
+		}
+
+		@Test
+		void aboveTheLimit_withThreePlayers_isLowered() {
+			assertThat(MctsEngine.hintChance(0.5, 3, 8)).isCloseTo(0.477, within(0.001));
+		}
+
+		@Test
+		void aboveTheLimit_unlikelyIsRaised_nearCertainIsLowered() {
+			assertThat(MctsEngine.hintChance(0.1, 3, 8)).isCloseTo(0.254, within(0.001));
+			assertThat(MctsEngine.hintChance(0.9, 3, 8)).isCloseTo(0.709, within(0.001));
+		}
+
+		@Test
+		void certainAndImpossible_stayAsTheyAre() {
+			assertThat(MctsEngine.hintChance(1.0, 5, 8)).isEqualTo(1.0);
+			assertThat(MctsEngine.hintChance(0.0, 5, 8)).isEqualTo(0.0);
+		}
+
+		@Test
+		void everyTableSizeTheGameAllows_isCalibrated() {
+			for (int players : PointProvider.NUMBER_OF_USERS_TO_WINNER_MAP.keySet()) {
+				assertThat(MctsEngine.hintChance(0.5, players, 10)).as(players + " players").isBetween(0.0, 1.0);
+			}
+		}
+
+		@Test
+		void higherChance_staysHigher() {
+			assertThat(MctsEngine.hintChance(0.3, 4, 9)).isLessThan(MctsEngine.hintChance(0.31, 4, 9));
 		}
 	}
 
@@ -647,5 +713,11 @@ class MctsEngineTest {
 				botHand.size(),
 				botIndex, predictionsDone
 		);
+	}
+
+	private interface Chances {
+
+		Map<Integer, Double> of(SimulationState state, List<Card> unknownCards, int[] opponentSlots,
+								Map<Integer, Set<Color>> colorVoids, Map<Integer, Set<Card>> excludedCards);
 	}
 }
