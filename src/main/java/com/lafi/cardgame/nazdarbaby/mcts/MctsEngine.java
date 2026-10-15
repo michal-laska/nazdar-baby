@@ -28,8 +28,11 @@ public final class MctsEngine {
 	private static final double EXPLORATION_CONSTANT = 1.2;
 	// About 2 points of noise in the chances; the card search's budget made a prediction cost as much as a card move
 	private static final int PREDICTION_CHANCE_WORLDS = 1000;
-	// A playout per card and world: at 0.1 CPU 6 cards stay under 3 s a prediction, 7 players with 7 cards took 4.2 s
+	// A playout per card and world: at 0.1 CPU a prediction stays under 3 s with 6 cards, or 7 cards with up to 4 players;
+	// 7 cards took 3.2 s with 5 players and 4.2 s with 7
 	private static final int MAX_HAND_TO_CHOOSE_FIRST_CARD = 6;
+	private static final int MAX_HAND_TO_CHOOSE_FIRST_CARD_WITH_FEW_PLAYERS = 7;
+	private static final int MAX_FEW_PLAYERS = 4;
 	private static final Comparator<Card> LOWEST_FIRST = Comparator.comparingInt(Card::getValue).thenComparing(Card::getColor);
 
 	public MctsEngine() {
@@ -106,7 +109,7 @@ public final class MctsEngine {
 
 		List<MctsAction> predictions = baseState.getLegalActions();
 		List<Card> hand = baseState.getHand(baseState.getBotPlayerIndex());
-		boolean choosesFirstCard = hand.size() > 1 && hand.size() <= MAX_HAND_TO_CHOOSE_FIRST_CARD;
+		boolean choosesFirstCard = hand.size() > 1 && hand.size() <= maxHandToChooseFirstCard(baseState.getTotalPlayers());
 
 		Map<Integer, double[]> hits = new TreeMap<>();
 		for (int w = 0; w < PREDICTION_CHANCE_WORLDS; w++) {
@@ -138,6 +141,10 @@ public final class MctsEngine {
 		}
 
 		return guess > takes || takes == 0 ? takes + 1 : takes - 1;
+	}
+
+	private static int maxHandToChooseFirstCard(int players) {
+		return players <= MAX_FEW_PLAYERS ? MAX_HAND_TO_CHOOSE_FIRST_CARD_WITH_FEW_PLAYERS : MAX_HAND_TO_CHOOSE_FIRST_CARD;
 	}
 
 	/**

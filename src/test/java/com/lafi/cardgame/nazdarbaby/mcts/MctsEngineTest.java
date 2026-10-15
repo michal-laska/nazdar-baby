@@ -251,25 +251,48 @@ class MctsEngineTest {
 		}
 
 		@Test
-		void sixCards_stillChooseTheirFirstCard() {
-			List<Card> botHand = List.of(getCard(9, Color.CLUBS), getCard(8, Color.CLUBS), getCard(7, Color.CLUBS),
-					getCard(8, Color.SPADES), getCard(7, Color.SPADES), getCard(7, Color.HEARTS));
+		void sixCards_withFivePlayers_stillChooseTheirFirstCard() {
+			List<Card> botHand = List.of(getCard(3, Color.HEARTS), getCard(13, Color.HEARTS), getCard(14, Color.HEARTS),
+					getCard(2, Color.SPADES), getCard(3, Color.DIAMONDS), getCard(4, Color.CLUBS));
 
-			Map<Integer, Double> chances = firstPredictorChances(botHand);
+			Map<Integer, Double> chances = firstPredictorChances(botHand, 5);
 
-			// 0.54 averaged over 100 runs; the policy's own first card gives 0.005
-			assertThat(chances.get(1)).isCloseTo(0.54, within(0.07));
+			// 0.996 averaged over 60 runs, never below 0.99; the policy's own first card gives 0.19
+			assertThat(chances.get(2)).isGreaterThan(0.9);
 		}
 
 		@Test
-		void largerHand_leavesItsFirstCardToThePolicy() {
-			List<Card> botHand = List.of(getCard(14, Color.HEARTS), getCard(13, Color.HEARTS), getCard(11, Color.HEARTS),
-					getCard(10, Color.HEARTS), getCard(14, Color.CLUBS), getCard(9, Color.DIAMONDS), getCard(7, Color.CLUBS));
+		void sevenCards_withFourPlayers_chooseTheirFirstCard() {
+			List<Card> botHand = List.of(getCard(5, Color.HEARTS), getCard(12, Color.HEARTS), getCard(13, Color.HEARTS),
+					getCard(4, Color.SPADES), getCard(2, Color.CLUBS), getCard(4, Color.CLUBS), getCard(7, Color.CLUBS));
+
+			Map<Integer, Double> chances = firstPredictorChances(botHand, 4);
+
+			// 0.83 averaged over 60 runs; the policy's own first card gives 0.29
+			assertThat(chances.get(2)).isCloseTo(0.83, within(0.07));
+		}
+
+		@Test
+		void sevenCards_withFivePlayers_leaveTheirFirstCardToThePolicy() {
+			List<Card> botHand = List.of(getCard(11, Color.HEARTS), getCard(2, Color.SPADES), getCard(4, Color.SPADES),
+					getCard(6, Color.SPADES), getCard(10, Color.SPADES), getCard(2, Color.DIAMONDS), getCard(5, Color.DIAMONDS));
+
+			Map<Integer, Double> chances = firstPredictorChances(botHand, 5);
+
+			// The best first card would take exactly one trick in about 61% of deals, the policy's in 12%
+			assertThat(chances.get(1)).isLessThan(0.25);
+		}
+
+		@Test
+		void eightCards_leaveTheirFirstCardToThePolicy() {
+			List<Card> botHand = List.of(getCard(7, Color.HEARTS), getCard(10, Color.HEARTS), getCard(12, Color.HEARTS),
+					getCard(13, Color.HEARTS), getCard(14, Color.HEARTS), getCard(7, Color.DIAMONDS), getCard(10, Color.CLUBS),
+					getCard(12, Color.CLUBS));
 
 			Map<Integer, Double> chances = firstPredictorChances(botHand);
 
-			// The best first card would take exactly six tricks in about 63% of deals, the policy's in 3.4%
-			assertThat(chances.get(6)).isLessThan(0.10);
+			// The best first card would take exactly four tricks in about 67% of deals, the policy's never
+			assertThat(chances.get(4)).isLessThan(0.10);
 		}
 
 		@Test
@@ -293,16 +316,30 @@ class MctsEngineTest {
 			return chancesInSeat(botHand, 0);
 		}
 
+		private Map<Integer, Double> firstPredictorChances(List<Card> botHand, int players) {
+			return chancesInSeat(botHand, 0, players);
+		}
+
 		private Map<Integer, Double> chancesInSeat(List<Card> botHand, int botIndex) {
-			int[] opponentSlots = new int[3];
+			return chancesInSeat(botHand, botIndex, 3);
+		}
+
+		private Map<Integer, Double> chancesInSeat(List<Card> botHand, int botIndex, int players) {
+			int[] opponentSlots = new int[players];
 			for (int i = 0; i < opponentSlots.length; i++) {
 				opponentSlots[i] = i == botIndex ? 0 : botHand.size();
 			}
-			return predictionChances(createPredictionState(botHand, botIndex, 0), botHand, opponentSlots);
+			return predictionChances(createPredictionState(botHand, botIndex, 0, players), botHand, opponentSlots,
+					new CardProvider(players).getShuffledDeckOfCards());
 		}
 
 		private Map<Integer, Double> predictionChances(SimulationState state, List<Card> botHand, int[] opponentSlots) {
-			List<Card> unknownCards = new ArrayList<>(deckOfCards);
+			return predictionChances(state, botHand, opponentSlots, deckOfCards);
+		}
+
+		private Map<Integer, Double> predictionChances(SimulationState state, List<Card> botHand, int[] opponentSlots,
+													   List<Card> deck) {
+			List<Card> unknownCards = new ArrayList<>(deck);
 			unknownCards.removeAll(botHand);
 
 			return engine.predictionChances(state, unknownCards, opponentSlots, Map.of(), Map.of());
@@ -590,15 +627,20 @@ class MctsEngineTest {
 
 	private SimulationState createPredictionState(List<Card> botHand, int botIndex,
 												  int predictionsDone) {
+		return createPredictionState(botHand, botIndex, predictionsDone, 3);
+	}
+
+	private SimulationState createPredictionState(List<Card> botHand, int botIndex,
+												  int predictionsDone, int players) {
 		List<List<Card>> hands = new ArrayList<>();
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < players; i++) {
 			hands.add(i == botIndex ? new ArrayList<>(botHand) : new ArrayList<>());
 		}
 
 		return new SimulationState(
 				hands,
-				new int[]{0, 0, 0},
-				new int[]{0, 0, 0},
+				new int[players],
+				new int[players],
 				new ArrayList<>(),
 				SimulationState.Phase.PREDICTING,
 				0, botIndex, 0,
