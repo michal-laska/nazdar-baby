@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Nested;
@@ -90,6 +91,89 @@ class GameTest {
 		}
 	}
 
+	@Nested
+	class BotMovesTest {
+
+		private final List<Runnable> botMoveSearches = new ArrayList<>();
+		private int appliedBotMoves;
+
+		@Test
+		void startedGame_leavesTheFirstBotMoveToTheExecutor() {
+			givenStartedGameWithQueuedBotMoves();
+
+			assertThat(botMoveSearches).hasSize(1);
+			assertThat(bots).allMatch(bot -> bot.getExpectedTakes() == null);
+		}
+
+		@Test
+		void appliedBotMove_isAnnounced_andTheNextOneIsQueued() {
+			givenStartedGameWithQueuedBotMoves();
+
+			botMoveSearches.removeFirst().run();
+
+			assertThat(appliedBotMoves).isOne();
+			assertThat(bots).filteredOn(bot -> bot.getExpectedTakes() != null).hasSize(1);
+			assertThat(botMoveSearches).hasSize(1);
+		}
+
+		@Test
+		void botsMove_untilTheTrickEnds() {
+			Game game = givenStartedGameWithQueuedBotMoves();
+
+			runBotMoves();
+
+			assertThat(game.isEndOfTrick()).isTrue();
+			assertThat(appliedBotMoves).as("three predictions and three cards").isEqualTo(6);
+		}
+
+		@Test
+		void nextTrick_searchesTheLeadersMoveOnce() {
+			Game game = givenStartedGameWithQueuedBotMoves();
+			runBotMoves();
+
+			game.changeActiveUser();
+
+			assertThat(botMoveSearches).hasSize(1);
+		}
+
+		@Test
+		void stoppedGame_dropsTheMoveBeingSearched() {
+			Game game = givenStartedGameWithQueuedBotMoves();
+
+			game.setGameInProgress(false);
+			botMoveSearches.removeFirst().run();
+
+			assertThat(appliedBotMoves).isZero();
+			assertThat(bots).allMatch(bot -> bot.getExpectedTakes() == null);
+			assertThat(botMoveSearches).isEmpty();
+		}
+
+		@Test
+		void restartedGame_dropsTheMoveSearchedForTheOldOne() {
+			Game game = givenStartedGameWithQueuedBotMoves();
+
+			game.startNewGame();
+			botMoveSearches.removeFirst().run();
+
+			assertThat(appliedBotMoves).isZero();
+			assertThat(botMoveSearches).hasSize(1);
+
+			botMoveSearches.removeFirst().run();
+
+			assertThat(appliedBotMoves).isOne();
+		}
+
+		private Game givenStartedGameWithQueuedBotMoves() {
+			return givenStartedGame(botMoveSearches::add, () -> appliedBotMoves++);
+		}
+
+		private void runBotMoves() {
+			while (!botMoveSearches.isEmpty()) {
+				botMoveSearches.removeFirst().run();
+			}
+		}
+	}
+
 	private static void givenTable(Game game, Card... cards) {
 		List<Card> table = game.getCardPlaceholders();
 		for (int i = 0; i < cards.length; i++) {
@@ -98,9 +182,13 @@ class GameTest {
 	}
 
 	private Game givenStartedGame() {
+		return givenStartedGame(Runnable::run, () -> {});
+	}
+
+	private Game givenStartedGame(Executor botMoveExecutor, Runnable afterBotMove) {
 		doReturn(new ArrayList<>(bots)).when(userProvider).getPlayingUsers();
 
-		Game game = new Game(userProvider, pointProvider);
+		Game game = new Game(userProvider, pointProvider, botMoveExecutor, afterBotMove);
 		game.setGameInProgress(true);
 
 		return game;

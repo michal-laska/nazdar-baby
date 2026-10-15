@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -64,50 +65,57 @@ public class BotSimulator {
 		this.deckOfCardsSize = deckOfCardsSize;
 	}
 
-	void tryBotMove() {
+	/**
+	 * The active bot's next move, or null when no bot is to move. Called under Game's monitor.
+	 */
+	BotMove prepareMove() {
 		collectKnownInfoAboutUsers();
 
 		if (activeUser == null || !activeUser.isBot()) {
-			return;
+			return null;
 		}
 
-		if (activeUser.getExpectedTakes() == null) {
-			var expectedTakes = guessExpectedTakes(activeUser);
-			activeUser.setExpectedTakes(
-					MctsEngine.allowedPrediction(expectedTakes, game::isLastUserWithInvalidExpectedTakes));
-
-			game.afterActiveUserSetExpectedTakes();
-		} else {
-			var activeUserCards = activeUser.getCards();
-
-			var activeUserIndex = getActiveUserIndex();
-			var selectedCard = selectCard(activeUserCards);
-			cardPlaceholders.set(activeUserIndex, selectedCard);
-
-			var cardIndex = activeUserCards.indexOf(selectedCard);
-			activeUserCards.set(cardIndex, CardProvider.CARD_PLACEHOLDER);
-
-			game.changeActiveUser();
+		User bot = activeUser;
+		if (bot.getExpectedTakes() == null) {
+			SearchInputs inputs = predictionInputs(bot);
+			return () -> {
+				int guess = inputs.run(mctsEngine::predictTakes);
+				return () -> predict(bot, guess);
+			};
 		}
+
+		Supplier<Card> cardChoice = prepareCardChoice(bot);
+		return () -> {
+			Card card = cardChoice.get();
+			return () -> playCard(bot, card);
+		};
 	}
 
 	public Map<Integer, Double> predictionChancesForCurrentUser() {
-		return simulatePrediction(game.getUserProvider().getCurrentUser(), mctsEngine::predictionChances);
-	}
-
-	private int guessExpectedTakes(User predictor) {
-		return simulatePrediction(predictor, mctsEngine::predictTakes);
-	}
-
-	private <T> T simulatePrediction(User predictor, Search<T> search) {
 		SearchInputs inputs;
-		// A human's hint runs outside Game's monitor, while bots move inside it
 		synchronized (game) {
-			List<Card> cardsInHand = predictor.getCardsInHand();
-			inputs = searchInputs(buildPredictionState(cardsInHand, predictor), cardsInHand, predictor);
+			inputs = predictionInputs(game.getUserProvider().getCurrentUser());
 		}
 
-		return inputs.run(search);
+		return inputs.run(mctsEngine::predictionChances);
+	}
+
+	private SearchInputs predictionInputs(User predictor) {
+		List<Card> cardsInHand = predictor.getCardsInHand();
+		return searchInputs(buildPredictionState(cardsInHand, predictor), cardsInHand, predictor);
+	}
+
+	private void predict(User bot, int guess) {
+		bot.setExpectedTakes(MctsEngine.allowedPrediction(guess, game::isLastUserWithInvalidExpectedTakes));
+		game.afterActiveUserSetExpectedTakes();
+	}
+
+	private void playCard(User bot, Card card) {
+		List<Card> cards = bot.getCards();
+		cardPlaceholders.set(users.indexOf(bot), card);
+		cards.set(cards.indexOf(card), CardProvider.CARD_PLACEHOLDER);
+
+		game.changeActiveUser();
 	}
 
 	void removeColorsForOtherUsers(List<Card> cards) {
@@ -123,28 +131,29 @@ public class BotSimulator {
 		}
 	}
 
-	private Card selectCard(List<Card> cards) {
-		removeColorsForOtherUsers(cards);
+	private Supplier<Card> prepareCardChoice(User bot) {
+		removeColorsForOtherUsers(bot.getCards());
 
-		List<Card> cardsInHand = activeUser.getCardsInHand();
+		List<Card> cardsInHand = bot.getCardsInHand();
 
 		List<Card> sortedPlayableCards = TrickEvaluator.getLegalPlays(cardsInHand, TrickEvaluator.playedCards(cardPlaceholders)).stream()
 				.sorted()
 				.toList();
-		int sortedPlayableCardsSize = sortedPlayableCards.size();
 
-		if (sortedPlayableCardsSize == 1) {
-			return sortedPlayableCards.getFirst();
+		if (sortedPlayableCards.size() == 1) {
+			return sortedPlayableCards::getFirst;
 		}
 
-		Card mctsCard = searchInputs(buildPlayingState(cardsInHand), cardsInHand, activeUser)
-				.run(mctsEngine::selectCard);
+		SearchInputs inputs = searchInputs(buildPlayingState(cardsInHand), cardsInHand, bot);
+		return () -> {
+			Card mctsCard = inputs.run(mctsEngine::selectCard);
 
-		// Fallback if MCTS returns null or an illegal card
-		if (mctsCard == null || !sortedPlayableCards.contains(mctsCard)) {
-			return sortedPlayableCards.getFirst();
-		}
-		return mctsCard;
+			// Fallback if MCTS returns null or an illegal card
+			if (mctsCard == null || !sortedPlayableCards.contains(mctsCard)) {
+				return sortedPlayableCards.getFirst();
+			}
+			return mctsCard;
+		};
 	}
 
 	private void rememberCardsFromTable() {
@@ -441,6 +450,14 @@ public class BotSimulator {
 		List<Card> unknownCards = computeUnknownCards(cardsInHand);
 		return new SearchInputs(state, unknownCards, computeOpponentSlots(cardsInHand.size(), self),
 				computeColorVoids(self), computeExcludedCards(unknownCards, self));
+	}
+
+	interface BotMove {
+
+		/**
+		 * Runs without Game's monitor and returns what to apply under it.
+		 */
+		Runnable search();
 	}
 
 	private interface Search<T> {

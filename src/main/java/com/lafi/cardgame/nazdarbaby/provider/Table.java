@@ -15,6 +15,7 @@ import com.vaadin.flow.component.checkbox.Checkbox;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 public class Table {
@@ -40,9 +41,18 @@ public class Table {
 		this.countdownService = countdownService;
 
 		userProvider = new UserProvider();
-		game = new Game(userProvider, pointProvider);
+		game = new Game(userProvider, pointProvider, botMoveExecutor(tableName),
+				() -> broadcaster.broadcast(BoardView.class, tableName));
 
 		resetLastNotificationTime();
+	}
+
+	/**
+	 * A platform thread per bot move: a search never yields, so on one CPU a virtual thread would hold
+	 * back the virtual threads that update the players' screens.
+	 */
+	static Executor botMoveExecutor(String tableName) {
+		return botMove -> Thread.ofPlatform().daemon().name("bot-move-" + tableName).start(botMove);
 	}
 
 	public Object getLock() {

@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 public class Game {
@@ -19,6 +20,8 @@ public class Game {
 	private final BotSimulator botSimulator = new BotSimulator(this);
 	private final UserProvider userProvider;
 	private final PointProvider pointProvider;
+	private final Executor botMoveExecutor;
+	private final Runnable afterBotMove;
 
 	private List<User> gameUsers;
 	private List<User> setUsers;
@@ -33,10 +36,16 @@ public class Game {
 	private User activeUser;
 	private boolean terminatorFlagsReset;
 	private boolean gameInProgress;
+	private BotSimulator.BotMove pendingBotMove;
 
-	Game(UserProvider userProvider, PointProvider pointProvider) {
+	/**
+	 * @param botMoveExecutor runs each bot's search, so the request of the player who acted does not wait for it
+	 */
+	Game(UserProvider userProvider, PointProvider pointProvider, Executor botMoveExecutor, Runnable afterBotMove) {
 		this.userProvider = userProvider;
 		this.pointProvider = pointProvider;
+		this.botMoveExecutor = botMoveExecutor;
+		this.afterBotMove = afterBotMove;
 	}
 
 	public synchronized List<User> getSetUsers() {
@@ -65,6 +74,7 @@ public class Game {
 
 	public synchronized void setGameInProgress(boolean gameInProgress) {
 		this.gameInProgress = gameInProgress;
+		pendingBotMove = null;
 
 		if (gameInProgress) {
 			gameUsers = userProvider.getPlayingUsers();
@@ -152,6 +162,8 @@ public class Game {
 	}
 
 	public synchronized void startNewGame() {
+		pendingBotMove = null;
+
 		if (tryResetTerminatorFlags()) {
 			Collections.rotate(gameUsers, -1);
 		}
@@ -268,7 +280,30 @@ public class Game {
 	}
 
 	private void tryBotMove() {
-		botSimulator.tryBotMove();
+		if (pendingBotMove != null) {
+			return;
+		}
+
+		BotSimulator.BotMove move = botSimulator.prepareMove();
+		if (move != null) {
+			pendingBotMove = move;
+			botMoveExecutor.execute(() -> playBotMove(move));
+		}
+	}
+
+	private void playBotMove(BotSimulator.BotMove move) {
+		Runnable apply = move.search();
+
+		synchronized (this) {
+			// A game stopped or restarted during the search has dropped this move
+			if (move != pendingBotMove) {
+				return;
+			}
+			pendingBotMove = null;
+			apply.run();
+		}
+
+		afterBotMove.run();
 	}
 
 	private void initUserCards() {

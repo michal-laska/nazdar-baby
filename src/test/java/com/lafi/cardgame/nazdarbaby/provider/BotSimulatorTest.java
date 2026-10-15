@@ -210,7 +210,40 @@ class BotSimulatorTest {
 	}
 
 	@Nested
-	class TryBotMoveTest {
+	class PrepareMoveTest {
+
+		@Test
+		void humanToMove_noBotMove() {
+			User human = new User("human", takeoverCodes);
+			botSimulator.setUsers(List.of(bots.get(0), human, bots.get(1)));
+			botSimulator.setActiveUser(human);
+
+			assertThat(botSimulator.prepareMove()).isNull();
+		}
+
+		@Test
+		void betweenTricks_noBotMove() {
+			botSimulator.setActiveUser(null);
+
+			assertThat(botSimulator.prepareMove()).isNull();
+		}
+
+		@Test
+		void botToMove_predictsForThatBot() {
+			User bot = bots.get(1);
+			bot.addCard(getCard(14, Color.HEARTS));
+			botSimulator.setCardPlaceholders(new CopyOnWriteArrayList<>(List.of(CARD_PLACEHOLDER, CARD_PLACEHOLDER, CARD_PLACEHOLDER)));
+			botSimulator.setActiveUser(bot);
+
+			playBotMove(botSimulator);
+
+			assertThat(bots).extracting(User::getExpectedTakes).containsExactly(null, 1, null);
+			verify(game).afterActiveUserSetExpectedTakes();
+		}
+	}
+
+	@Nested
+	class PlayBotMoveTest {
 
 		@Test
 		void lastToPlay_beatsTheCardAlreadyOnTheTable() {
@@ -243,7 +276,7 @@ class BotSimulatorTest {
 			simulator.setCardPlaceholders(placeholders);
 			simulator.setActiveUser(bot);
 
-			simulator.tryBotMove();
+			playBotMove(simulator);
 
 			return placeholders.get(2);
 		}
@@ -307,7 +340,7 @@ class BotSimulatorTest {
 			simulator.setCardPlaceholders(secondTrick);
 			simulator.setActiveUser(users.getFirst());
 
-			simulator.tryBotMove();
+			playBotMove(simulator);
 
 			return secondTrick.getFirst();
 		}
@@ -338,7 +371,7 @@ class BotSimulatorTest {
 			bot.addCard(getCard(7, Color.CLUBS));
 			botSimulator.setActiveUser(bot);
 
-			botSimulator.tryBotMove();
+			playBotMove(botSimulator);
 
 			// Predicting last for the one trick, 0 is forbidden, so even a lone 7♣ predicts 1
 			assertThat(bot.getExpectedTakes()).isEqualTo(1);
@@ -352,7 +385,7 @@ class BotSimulatorTest {
 			botSimulator.setActiveUser(bot);
 			doReturn(true).when(game).isLastUserWithInvalidExpectedTakes(1);
 
-			botSimulator.tryBotMove();
+			playBotMove(botSimulator);
 
 			// Single card — prediction 1 is forbidden, 0 is the only alternative
 			assertThat(bot.getExpectedTakes()).isZero();
@@ -368,7 +401,7 @@ class BotSimulatorTest {
 			bots.get(2).setExpectedTakes(0);
 			botSimulator.setActiveUser(bot);
 
-			botSimulator.tryBotMove();
+			playBotMove(botSimulator);
 
 			// Predicting last, 1 would make the sum 2 of 2 tricks; the ace of hearts always wins, so 0 is hopeless
 			assertThat(bot.getExpectedTakes()).isEqualTo(2);
@@ -397,4 +430,8 @@ class BotSimulatorTest {
 		return getCard(value, Color.HEARTS);
 	}
 
+
+	private static void playBotMove(BotSimulator simulator) {
+		simulator.prepareMove().search().run();
+	}
 }
