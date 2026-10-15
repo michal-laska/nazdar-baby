@@ -244,16 +244,7 @@ final class RolloutPolicy {
 	 * Following and need to win this trick.
 	 */
 	private static MctsAction selectToWin(List<MctsAction> actions, List<Card> currentTrick, boolean isLast) {
-		List<MctsAction> winners = new ArrayList<>();
-		List<MctsAction> losers = new ArrayList<>();
-
-		for (MctsAction action : actions) {
-			if (action instanceof MctsAction.PlayCard(Card card) && wouldWinTrick(card, currentTrick)) {
-				winners.add(action);
-			} else {
-				losers.add(action);
-			}
-		}
+		List<MctsAction> winners = playsThatTakeTheTrick(actions, currentTrick, true);
 
 		if (!winners.isEmpty()) {
 			if (isLast) {
@@ -269,23 +260,14 @@ final class RolloutPolicy {
 		}
 
 		// Can't win — dump lowest card to save strong cards for future tricks
-		return selectLowest(losers.isEmpty() ? actions : losers);
+		return selectLowest(actions);
 	}
 
 	/**
 	 * Following and don't want to win this trick.
 	 */
 	private static MctsAction selectToLose(List<MctsAction> actions, List<Card> currentTrick, boolean isLast) {
-		List<MctsAction> losers = new ArrayList<>();
-		List<MctsAction> winners = new ArrayList<>();
-
-		for (MctsAction action : actions) {
-			if (action instanceof MctsAction.PlayCard(Card card) && wouldWinTrick(card, currentTrick)) {
-				winners.add(action);
-			} else {
-				losers.add(action);
-			}
-		}
+		List<MctsAction> losers = playsThatTakeTheTrick(actions, currentTrick, false);
 
 		if (!losers.isEmpty()) {
 			if (isLast) {
@@ -297,17 +279,33 @@ final class RolloutPolicy {
 		}
 
 		// Forced to win — play highest to get rid of dangerous high cards
-		return selectHighest(winners.isEmpty() ? actions : winners);
+		return selectHighest(actions);
+	}
+
+	/**
+	 * The plays that take the trick from its current winner, or with {@code takes} false, the plays that do not.
+	 */
+	private static List<MctsAction> playsThatTakeTheTrick(List<MctsAction> actions, List<Card> currentTrick, boolean takes) {
+		Card winningCard = winningCard(currentTrick);
+		List<MctsAction> plays = new ArrayList<>(actions.size());
+		for (MctsAction action : actions) {
+			boolean wins = action instanceof MctsAction.PlayCard(Card card) && TrickEvaluator.beats(card, winningCard);
+			if (wins == takes) {
+				plays.add(action);
+			}
+		}
+		return plays;
 	}
 
 	/**
 	 * Check if playing this card would currently win the trick.
 	 */
 	private static boolean wouldWinTrick(Card card, List<Card> currentTrick) {
-		List<Card> testTrick = new ArrayList<>(currentTrick);
-		testTrick.add(card);
-		int winnerIndex = TrickEvaluator.getWinningIndex(testTrick);
-		return winnerIndex == testTrick.size() - 1;
+		return TrickEvaluator.beats(card, winningCard(currentTrick));
+	}
+
+	private static Card winningCard(List<Card> trick) {
+		return trick.get(TrickEvaluator.getWinningIndex(trick));
 	}
 
 	/**

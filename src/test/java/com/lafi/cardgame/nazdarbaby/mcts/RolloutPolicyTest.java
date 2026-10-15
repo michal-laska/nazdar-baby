@@ -38,6 +38,38 @@ class RolloutPolicyTest {
 		);
 	}
 
+	/**
+	 * A single-trick 3-player state where the bot, player 2, plays last to the given trick.
+	 */
+	private SimulationState createLastToFollow(List<Card> trick, List<Card> botHand, int botExpectedTakes) {
+		List<List<Card>> hands = new ArrayList<>();
+		hands.add(new ArrayList<>());
+		hands.add(new ArrayList<>());
+		hands.add(new ArrayList<>(botHand));
+
+		return new SimulationState(
+				hands,
+				new int[]{0, 0, botExpectedTakes},
+				new int[]{0, 0, 0},
+				new ArrayList<>(trick),
+				SimulationState.Phase.PLAYING,
+				0, 2, 0,
+				1,
+				2, 3
+		);
+	}
+
+	private final Card tenOfSpades = getCard(10, Color.SPADES);
+	private final Card queenOfSpades = getCard(12, Color.SPADES);
+
+	/**
+	 * 9♠ led and raised by J♠; the bot holds 10♠, which beats only the led card, and Q♠.
+	 */
+	private SimulationState createLastToFollowRaisedTrick(int botExpectedTakes) {
+		return createLastToFollow(List.of(getCard(9, Color.SPADES), getCard(11, Color.SPADES)),
+				List.of(tenOfSpades, queenOfSpades), botExpectedTakes);
+	}
+
 	@Nested
 	class SelectLeadCardTest {
 
@@ -107,6 +139,81 @@ class RolloutPolicyTest {
 
 			// With only hearts, should lead A♥ (strongest)
 			assertThat(state.getHand(0)).doesNotContain(aceHearts);
+		}
+	}
+
+	@Nested
+	class FollowTest {
+
+		private final Card eightOfSpades = getCard(8, Color.SPADES);
+
+		@Test
+		void needsTheTrick_playsTheLowestCardThatTakesIt() {
+			Card kingOfSpades = getCard(13, Color.SPADES);
+			SimulationState state = createLastToFollow(List.of(getCard(9, Color.SPADES), getCard(11, Color.SPADES)),
+					List.of(tenOfSpades, queenOfSpades, kingOfSpades), 1);
+
+			RolloutPolicy.rollout(state);
+
+			assertThat(state.getHand(2)).containsExactly(tenOfSpades, kingOfSpades);
+		}
+
+		@Test
+		void needsTheTrick_cannotBeatTheTrump_dumpsTheLowestCard() {
+			SimulationState state = createLastToFollowTrumpedTrick(1);
+
+			RolloutPolicy.rollout(state);
+
+			assertThat(state.getHand(2)).containsExactly(queenOfSpades);
+		}
+
+		@Test
+		void avoidsTheTrick_belowTheTrump_shedsTheHighestCard() {
+			SimulationState state = createLastToFollowTrumpedTrick(0);
+
+			RolloutPolicy.rollout(state);
+
+			assertThat(state.getHand(2)).containsExactly(eightOfSpades);
+		}
+
+		@Test
+		void avoidsTheTrick_butEveryCardTakesIt_shedsTheHighestCard() {
+			SimulationState state = createLastToFollow(List.of(getCard(7, Color.SPADES), getCard(8, Color.SPADES)),
+					List.of(tenOfSpades, queenOfSpades), 0);
+
+			RolloutPolicy.rollout(state);
+
+			assertThat(state.getHand(2)).containsExactly(tenOfSpades);
+		}
+
+		/**
+		 * 10♠ led and trumped by A♥; Q♠ and 8♠ beat only the led card.
+		 */
+		private SimulationState createLastToFollowTrumpedTrick(int botExpectedTakes) {
+			return createLastToFollow(List.of(getCard(10, Color.SPADES), getCard(14, Color.HEARTS)),
+					List.of(queenOfSpades, eightOfSpades), botExpectedTakes);
+		}
+	}
+
+	@Nested
+	class PrioritizeActionsTest {
+
+		@Test
+		void needsTheTrick_triesTheCardAboveTheWinnerFirst() {
+			SimulationState state = createLastToFollowRaisedTrick(1);
+
+			List<MctsAction> prioritized = RolloutPolicy.prioritizeActions(state, state.getLegalActions());
+
+			assertThat(prioritized.getLast()).isEqualTo(new MctsAction.PlayCard(queenOfSpades));
+		}
+
+		@Test
+		void avoidsTheTrick_triesTheCardBelowTheWinnerFirst() {
+			SimulationState state = createLastToFollowRaisedTrick(0);
+
+			List<MctsAction> prioritized = RolloutPolicy.prioritizeActions(state, state.getLegalActions());
+
+			assertThat(prioritized.getLast()).isEqualTo(new MctsAction.PlayCard(tenOfSpades));
 		}
 	}
 

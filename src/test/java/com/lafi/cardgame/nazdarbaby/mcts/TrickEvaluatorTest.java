@@ -120,6 +120,17 @@ class TrickEvaluatorTest {
 		}
 
 		@Test
+		void mustFollowSuit_keepsEveryCardOfIt() {
+			Card sevenOfSpades = getCard(7, Color.SPADES);
+			Card aceOfHearts = getCard(14, Color.HEARTS);
+			Card kingOfSpades = getCard(13, Color.SPADES);
+			List<Card> hand = List.of(sevenOfSpades, aceOfHearts, kingOfSpades);
+
+			List<Card> legalPlays = TrickEvaluator.getLegalPlays(hand, List.of(getCard(10, Color.SPADES)));
+			assertThat(legalPlays).containsExactly(sevenOfSpades, kingOfSpades);
+		}
+
+		@Test
 		void mustPlayHearts_whenCantFollowSuit() {
 			Card aceOfSpades = getCard(14, Color.SPADES);
 			Card sevenOfHearts = getCard(7, Color.HEARTS);
@@ -139,6 +150,75 @@ class TrickEvaluatorTest {
 			Card leadCard = getCard(10, Color.DIAMONDS);
 			List<Card> legalPlays = TrickEvaluator.getLegalPlays(hand, List.of(leadCard));
 			assertThat(legalPlays).containsExactlyInAnyOrder(aceOfSpades, kingOfClubs);
+		}
+	}
+
+	@Nested
+	class GetLegalColorTest {
+
+		@Test
+		void leading_anyCard() {
+			List<Card> hand = List.of(getCard(14, Color.SPADES), getCard(7, Color.HEARTS));
+
+			assertThat(TrickEvaluator.getLegalColor(hand, List.of())).isNull();
+		}
+
+		@Test
+		void holdingTheLedColor_mustFollow() {
+			List<Card> hand = List.of(getCard(14, Color.SPADES), getCard(7, Color.HEARTS));
+
+			assertThat(TrickEvaluator.getLegalColor(hand, List.of(getCard(10, Color.SPADES)))).isEqualTo(Color.SPADES);
+		}
+
+		@Test
+		void voidInTheLedColor_mustTrump() {
+			List<Card> hand = List.of(getCard(14, Color.SPADES), getCard(7, Color.HEARTS));
+
+			assertThat(TrickEvaluator.getLegalColor(hand, List.of(getCard(10, Color.DIAMONDS)))).isEqualTo(Color.HEARTS);
+		}
+
+		@Test
+		void voidInTheLedColorAndHearts_anyCard() {
+			List<Card> hand = List.of(getCard(14, Color.SPADES), getCard(13, Color.CLUBS));
+
+			assertThat(TrickEvaluator.getLegalColor(hand, List.of(getCard(10, Color.DIAMONDS)))).isNull();
+		}
+
+		@Test
+		void onlyTheFirstCardOfTheTrickSetsTheColor() {
+			List<Card> hand = List.of(getCard(14, Color.SPADES), getCard(13, Color.DIAMONDS));
+
+			assertThat(TrickEvaluator.getLegalColor(hand, List.of(getCard(10, Color.DIAMONDS), getCard(8, Color.SPADES))))
+					.isEqualTo(Color.DIAMONDS);
+		}
+	}
+
+	@Nested
+	class BeatsTest {
+
+		@Test
+		void higherCardOfTheSameColor_beats() {
+			assertThat(TrickEvaluator.beats(getCard(13, Color.SPADES), getCard(12, Color.SPADES))).isTrue();
+		}
+
+		@Test
+		void lowerCardOfTheSameColor_doesNotBeat() {
+			assertThat(TrickEvaluator.beats(getCard(12, Color.SPADES), getCard(13, Color.SPADES))).isFalse();
+		}
+
+		@Test
+		void anyHeart_beatsAnotherColor() {
+			assertThat(TrickEvaluator.beats(getCard(7, Color.HEARTS), getCard(14, Color.SPADES))).isTrue();
+		}
+
+		@Test
+		void anotherColor_doesNotBeat_evenWhenHigher() {
+			assertThat(TrickEvaluator.beats(getCard(14, Color.CLUBS), getCard(7, Color.SPADES))).isFalse();
+		}
+
+		@Test
+		void nonHeart_doesNotBeatAHeart() {
+			assertThat(TrickEvaluator.beats(getCard(14, Color.SPADES), getCard(7, Color.HEARTS))).isFalse();
 		}
 	}
 

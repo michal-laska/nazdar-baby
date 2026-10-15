@@ -35,15 +35,7 @@ public final class TrickEvaluator {
 
 		for (int i = 0; i < trick.size(); i++) {
 			Card card = trick.get(i);
-			if (winningCard == null) {
-				winningCard = card;
-				winningIndex = i;
-			} else if (winningCard.getColor() == card.getColor()) {
-				if (card.getValue() > winningCard.getValue()) {
-					winningCard = card;
-					winningIndex = i;
-				}
-			} else if (card.getColor() == Color.HEARTS) {
+			if (winningCard == null || beats(card, winningCard)) {
 				winningCard = card;
 				winningIndex = i;
 			}
@@ -53,32 +45,60 @@ public final class TrickEvaluator {
 	}
 
 	/**
+	 * Whether a card played after the trick's winning card takes the trick from it.
+	 */
+	static boolean beats(Card card, Card winningCard) {
+		if (card.getColor() == winningCard.getColor()) {
+			return card.getValue() > winningCard.getValue();
+		}
+		return card.getColor() == Color.HEARTS;
+	}
+
+	/**
 	 * Returns legal cards that can be played from hand given the current trick.
 	 *
 	 * @param hand         non-placeholder cards in player's hand
 	 * @param currentTrick cards played so far in current trick (may be empty)
 	 */
 	public static List<Card> getLegalPlays(List<Card> hand, List<Card> currentTrick) {
-		if (currentTrick.isEmpty()) {
+		Color legalColor = getLegalColor(hand, currentTrick);
+		if (legalColor == null) {
 			return hand;
 		}
 
+		List<Card> legalPlays = new ArrayList<>(hand.size());
+		for (Card card : hand) {
+			if (card.getColor() == legalColor) {
+				legalPlays.add(card);
+			}
+		}
+		return legalPlays;
+	}
+
+	/**
+	 * The color the player has to play, or null when any card in hand may be played.
+	 */
+	static Color getLegalColor(List<Card> hand, List<Card> currentTrick) {
+		if (currentTrick.isEmpty()) {
+			return null;
+		}
+
 		Color leadingColor = currentTrick.getFirst().getColor();
-
-		boolean hasLeadingColor = hand.stream().anyMatch(card -> card.getColor() == leadingColor);
-		if (hasLeadingColor) {
-			return hand.stream()
-					.filter(card -> card.getColor() == leadingColor)
-					.toList();
+		if (hasColor(hand, leadingColor)) {
+			return leadingColor;
 		}
-
-		boolean hasHearts = hand.stream().anyMatch(card -> card.getColor() == Color.HEARTS);
-		if (hasHearts) {
-			return hand.stream()
-					.filter(card -> card.getColor() == Color.HEARTS)
-					.toList();
+		if (hasColor(hand, Color.HEARTS)) {
+			return Color.HEARTS;
 		}
+		return null;
+	}
 
-		return hand;
+	private static boolean hasColor(List<Card> hand, Color color) {
+		for (Card card : hand) {
+			if (card.getColor() == color) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

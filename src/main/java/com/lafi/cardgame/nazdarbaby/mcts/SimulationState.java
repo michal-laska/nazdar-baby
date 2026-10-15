@@ -1,6 +1,7 @@
 package com.lafi.cardgame.nazdarbaby.mcts;
 
 import com.lafi.cardgame.nazdarbaby.card.Card;
+import com.lafi.cardgame.nazdarbaby.card.Color;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -125,11 +126,13 @@ public final class SimulationState {
 		}
 
 		List<Card> hand = hands.get(currentPlayerIndex);
-		List<Card> legalPlays = TrickEvaluator.getLegalPlays(hand, currentTrick);
+		Color legalColor = TrickEvaluator.getLegalColor(hand, currentTrick);
 
-		List<MctsAction> actions = new ArrayList<>(legalPlays.size());
-		for (Card card : legalPlays) {
-			actions.add(new MctsAction.PlayCard(card));
+		List<MctsAction> actions = new ArrayList<>(hand.size());
+		for (Card card : hand) {
+			if (legalColor == null || card.getColor() == legalColor) {
+				actions.add(new MctsAction.PlayCard(card));
+			}
 		}
 		return actions;
 	}
