@@ -251,25 +251,25 @@ class MctsEngineTest {
 		}
 
 		@Test
-		void fiveCards_stillChooseTheirFirstCard() {
-			List<Card> botHand = List.of(getCard(14, Color.HEARTS), getCard(13, Color.HEARTS), getCard(12, Color.HEARTS),
-					getCard(9, Color.DIAMONDS), getCard(7, Color.DIAMONDS));
-
-			Map<Integer, Double> chances = firstPredictorChances(botHand);
-
-			// 0.68 averaged over 100 runs; the policy's own first card gives 0.001
-			assertThat(chances.get(4)).isCloseTo(0.68, within(0.07));
-		}
-
-		@Test
-		void largerHand_leavesItsFirstCardToThePolicy() {
+		void sixCards_stillChooseTheirFirstCard() {
 			List<Card> botHand = List.of(getCard(9, Color.CLUBS), getCard(8, Color.CLUBS), getCard(7, Color.CLUBS),
 					getCard(8, Color.SPADES), getCard(7, Color.SPADES), getCard(7, Color.HEARTS));
 
 			Map<Integer, Double> chances = firstPredictorChances(botHand);
 
-			// The best first card would take exactly one trick in about 52% of deals, the policy's in 0.5%
-			assertThat(chances.get(1)).isLessThan(0.10);
+			// 0.54 averaged over 100 runs; the policy's own first card gives 0.005
+			assertThat(chances.get(1)).isCloseTo(0.54, within(0.07));
+		}
+
+		@Test
+		void largerHand_leavesItsFirstCardToThePolicy() {
+			List<Card> botHand = List.of(getCard(14, Color.HEARTS), getCard(13, Color.HEARTS), getCard(11, Color.HEARTS),
+					getCard(10, Color.HEARTS), getCard(14, Color.CLUBS), getCard(9, Color.DIAMONDS), getCard(7, Color.CLUBS));
+
+			Map<Integer, Double> chances = firstPredictorChances(botHand);
+
+			// The best first card would take exactly six tricks in about 63% of deals, the policy's in 3.4%
+			assertThat(chances.get(6)).isLessThan(0.10);
 		}
 
 		@Test
