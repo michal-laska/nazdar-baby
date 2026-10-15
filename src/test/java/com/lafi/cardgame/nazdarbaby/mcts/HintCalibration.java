@@ -22,11 +22,11 @@ import java.util.function.ToDoubleFunction;
 import java.util.stream.Collectors;
 
 /**
- * Re-fits {@code HINT_CALIBRATION_BY_PLAYERS} in {@link MctsEngine} after a change to how the bots play.
+ * Re-fits the hint calibrations in {@link MctsEngine} after a change to how the bots play.
  *
- * <p>Run it with {@code ./gradlew hintCalibration --args="<deals per table> <threads>"}. Every hand size the hint
- * calibrates is played with bots in every seat, also with each seat predicting its second-likeliest option half the
- * time, since the hint shows both. 200 deals per table take about 20 minutes on 10 threads.
+ * <p>Run it with {@code ./gradlew hintCalibration --args="<deals per table> <threads>"}. Every hand size the game
+ * deals is played with bots in every seat, also with each seat predicting its second-likeliest option half the time,
+ * since the hint shows both. The default 200 deals per table take about 40 minutes on 10 threads.
  */
 public final class HintCalibration {
 
@@ -40,7 +40,7 @@ public final class HintCalibration {
 		List<String> arguments = Arrays.asList(args);
 		BotArena.Options.require(arguments.size() <= 2,
 				"Expected <deals per table> <threads>, got " + String.join(" ", args));
-		int deals = BotArena.Options.number(arguments, 0, "deals per table", 400);
+		int deals = BotArena.Options.number(arguments, 0, "deals per table", 200);
 		int threads = BotArena.Options.number(arguments, 1, "threads", Runtime.getRuntime().availableProcessors());
 		BotArena.Options.require(deals >= 1, "deals per table must be at least 1, got " + deals);
 		BotArena.Options.require(threads >= 1, "threads must be at least 1, got " + threads);
@@ -52,7 +52,7 @@ public final class HintCalibration {
 	record HandTable(int players, int handSize) {
 	}
 
-	record Prediction(int players, int handSize, int deal, double chance, boolean matched) {
+	record Prediction(int players, int handSize, int deal, boolean secondOption, double chance, boolean matched) {
 	}
 
 	static List<HandTable> tables() {
@@ -60,9 +60,7 @@ public final class HintCalibration {
 		for (int players = Table.MINIMUM_USERS; players <= Table.MAXIMUM_USERS; players++) {
 			int maxHand = Math.min(new CardProvider(players).getDeckOfCardsSize() / players, Game.MAX_CARDS_IN_HAND);
 			for (int handSize = 1; handSize <= maxHand; handSize++) {
-				if (MctsEngine.calibratesHint(players, handSize)) {
-					tables.add(new HandTable(players, handSize));
-				}
+				tables.add(new HandTable(players, handSize));
 			}
 		}
 		return tables;
@@ -94,37 +92,56 @@ public final class HintCalibration {
 
 		List<Prediction> predictions = new ArrayList<>(seats.length);
 		for (CalibrationBot seat : seats) {
-			predictions.add(new Prediction(table.players(), table.handSize(), deal, seat.shownChance, seat.matched));
+			predictions.add(new Prediction(table.players(), table.handSize(), deal, seat.shownSecondOption,
+					seat.shownChance, seat.matched));
 		}
 		return predictions;
 	}
 
 	static String report(List<Prediction> predictions) {
-		StringBuilder report = new StringBuilder();
-		report.append("Held-out deals (fit on even deals, scored on odd), |mean gap| / calibration error in points:\n");
+		Map<Boolean, Map<Integer, List<Prediction>>> byHandAndPlayers = predictions.stream()
+				.collect(Collectors.partitioningBy(p -> MctsEngine.exceedsFirstCardLimit(p.players(), p.handSize()),
+						Collectors.groupingBy(Prediction::players, TreeMap::new, Collectors.toList())));
 
-		Map<Integer, List<Prediction>> byPlayers = predictions.stream()
-				.collect(Collectors.groupingBy(Prediction::players, TreeMap::new, Collectors.toList()));
+		StringBuilder report = new StringBuilder();
+		byHandAndPlayers.forEach((largeHands, byPlayers) -> {
+			if (!byPlayers.isEmpty()) {
+				appendCalibration(report, largeHands ? "LARGE" : "SMALL", byPlayers);
+			}
+		});
+		report.append("\nThen update the values MctsEngineTest.HintChanceTest and BotSimulatorTest expect.\n");
+		return report.toString();
+	}
+
+	private static void appendCalibration(StringBuilder report, String hands,
+										  Map<Integer, List<Prediction>> byPlayers) {
+		report.append("\nMctsEngine.").append(hands).append("_HAND_HINT_CALIBRATION_BY_PLAYERS\n");
+		report.append("Held-out deals (fit on even deals, scored on odd), |mean gap| / calibration error in points:\n");
 		byPlayers.forEach((players, all) -> {
 			List<Prediction> even = all.stream().filter(p -> p.deal() % 2 == 0).toList();
 			List<Prediction> odd = all.stream().filter(p -> p.deal() % 2 == 1).toList();
 			LogOddsCalibration heldOut = fit(even);
 
-			report.append(String.format(Locale.ROOT,
-					"  %d players, %5d predictions:  uncorrected %s   current %s   refit %s%n", players, odd.size(),
-					score(odd, Prediction::chance),
-					score(odd, p -> MctsEngine.hintChance(p.chance(), p.players(), p.handSize())),
-					score(odd, p -> heldOut.apply(p.chance()))));
+			for (boolean secondOption : new boolean[]{false, true}) {
+				List<Prediction> shown = odd.stream().filter(p -> p.secondOption() == secondOption).toList();
+				if (shown.isEmpty()) {
+					continue;
+				}
+				report.append(String.format(Locale.ROOT,
+						"  %d players, %-6s option, %5d predictions:  uncorrected %s   current %s   refit %s%n",
+						players, secondOption ? "second" : "first", shown.size(),
+						score(shown, Prediction::chance),
+						score(shown, p -> MctsEngine.hintChance(p.chance(), p.players(), p.handSize())),
+						score(shown, p -> heldOut.apply(p.chance()))));
+			}
 		});
 
-		report.append("\nRefit on all deals, for MctsEngine.HINT_CALIBRATION_BY_PLAYERS (then update the values"
-				+ " MctsEngineTest.HintChanceTest expects):\n");
+		report.append("Refit on all deals, to paste:\n");
 		byPlayers.forEach((players, all) -> {
 			LogOddsCalibration refit = fit(all);
 			report.append(String.format(Locale.ROOT, "\t\t\t%d, new LogOddsCalibration(%.3f, %.3f),%n",
 					players, refit.shift(), refit.scale()));
 		});
-		return report.toString();
 	}
 
 	/**
@@ -197,6 +214,7 @@ public final class HintCalibration {
 		private final MctsArenaBot player = new MctsArenaBot("calibration", new MctsEngine());
 		private final double secondOptionShare;
 
+		boolean shownSecondOption;
 		double shownChance;
 		boolean matched;
 
@@ -222,6 +240,7 @@ public final class HintCalibration {
 					.toList();
 			boolean second = options.size() > 1 && ThreadLocalRandom.current().nextDouble() < secondOptionShare;
 			Map.Entry<Integer, Double> chosen = second ? options.get(1) : options.getFirst();
+			shownSecondOption = second;
 			shownChance = chosen.getValue();
 			return chosen.getKey();
 		}

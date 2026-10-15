@@ -33,10 +33,18 @@ public final class MctsEngine {
 	private static final int MAX_HAND_TO_CHOOSE_FIRST_CARD = 6;
 	private static final int MAX_HAND_TO_CHOOSE_FIRST_CARD_WITH_FEW_PLAYERS = 7;
 	private static final int MAX_FEW_PLAYERS = 4;
-	// Above the first-card limit the policy plays the first card and the hint's chances are too flat: with bots in every
-	// seat a shown 15% was matched about 30% of the time and, with 3 players, a shown 84% about 64%.
-	// ./gradlew hintCalibration re-fits these.
-	private static final Map<Integer, LogOddsCalibration> HINT_CALIBRATION_BY_PLAYERS = Map.of(
+	// ./gradlew hintCalibration re-fits both calibrations.
+	// Within the first-card limit the hint's second option was matched about 2 points more often than shown, up to 6
+	// with 6 or 7 cards
+	private static final Map<Integer, LogOddsCalibration> SMALL_HAND_HINT_CALIBRATION_BY_PLAYERS = Map.of(
+			3, new LogOddsCalibration(-0.055, 0.916),
+			4, new LogOddsCalibration(-0.002, 0.945),
+			5, new LogOddsCalibration(0.037, 0.955),
+			6, new LogOddsCalibration(0.088, 0.894),
+			7, new LogOddsCalibration(0.061, 0.865));
+	// Above the limit the policy plays the first card and the hint's chances are too flat: with bots in every seat a
+	// shown 15% was matched about 30% of the time and, with 3 players, a shown 84% about 64%
+	private static final Map<Integer, LogOddsCalibration> LARGE_HAND_HINT_CALIBRATION_BY_PLAYERS = Map.of(
 			3, new LogOddsCalibration(-0.092, 0.448),
 			4, new LogOddsCalibration(0.172, 0.715),
 			5, new LogOddsCalibration(0.332, 0.678),
@@ -141,8 +149,7 @@ public final class MctsEngine {
 	}
 
 	/**
-	 * The chances as the hint shows them: for hands above the first-card limit, moved toward how often bots in every
-	 * seat match them.
+	 * The chances as the hint shows them: moved toward how often bots in every seat match them.
 	 */
 	public Map<Integer, Double> hintChances(SimulationState baseState, List<Card> unknownCards,
 											int[] opponentSlots, Map<Integer, Set<Color>> colorVoids,
@@ -156,11 +163,10 @@ public final class MctsEngine {
 	}
 
 	static double hintChance(double chance, int players, int handSize) {
-		if (!calibratesHint(players, handSize)) {
-			return chance;
-		}
-
-		return HINT_CALIBRATION_BY_PLAYERS.get(players).apply(chance);
+		Map<Integer, LogOddsCalibration> calibrations = exceedsFirstCardLimit(players, handSize)
+				? LARGE_HAND_HINT_CALIBRATION_BY_PLAYERS
+				: SMALL_HAND_HINT_CALIBRATION_BY_PLAYERS;
+		return calibrations.get(players).apply(chance);
 	}
 
 	record LogOddsCalibration(double shift, double scale) {
@@ -182,7 +188,7 @@ public final class MctsEngine {
 		return guess > takes || takes == 0 ? takes + 1 : takes - 1;
 	}
 
-	static boolean calibratesHint(int players, int handSize) {
+	static boolean exceedsFirstCardLimit(int players, int handSize) {
 		return handSize > maxHandToChooseFirstCard(players);
 	}
 

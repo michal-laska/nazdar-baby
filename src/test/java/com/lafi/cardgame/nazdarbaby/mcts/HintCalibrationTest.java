@@ -27,13 +27,12 @@ class HintCalibrationTest {
 	class TablesTest {
 
 		@Test
-		void everyDealtHandAboveTheFirstCardLimit() {
-			assertThat(HintCalibration.tables()).containsExactly(
-					new HandTable(3, 8), new HandTable(3, 9), new HandTable(3, 10),
-					new HandTable(4, 8), new HandTable(4, 9), new HandTable(4, 10),
-					new HandTable(5, 7), new HandTable(5, 8), new HandTable(5, 9), new HandTable(5, 10),
-					new HandTable(6, 7), new HandTable(6, 8),
-					new HandTable(7, 7));
+		void everyHandSizeTheGameDeals() {
+			assertThat(HintCalibration.tables())
+					.hasSize(10 + 10 + 10 + 8 + 7)
+					.doesNotHaveDuplicates()
+					.contains(new HandTable(3, 1), new HandTable(3, 10), new HandTable(6, 8), new HandTable(7, 7))
+					.doesNotContain(new HandTable(3, 11), new HandTable(6, 9), new HandTable(7, 8));
 		}
 	}
 
@@ -62,8 +61,8 @@ class HintCalibrationTest {
 			List<Prediction> predictions = predictionsFrom(new LogOddsCalibration(0.3, 0.7), new Random(1));
 			List<Prediction> withExtremes = new ArrayList<>(predictions);
 			for (int i = 0; i < 1000; i++) {
-				withExtremes.add(new Prediction(5, 8, i, 1, false));
-				withExtremes.add(new Prediction(5, 8, i, 0, true));
+				withExtremes.add(new Prediction(5, 8, i, false, 1, false));
+				withExtremes.add(new Prediction(5, 8, i, false, 0, true));
 			}
 
 			assertThat(HintCalibration.fit(withExtremes)).isEqualTo(HintCalibration.fit(predictions));
@@ -73,7 +72,7 @@ class HintCalibrationTest {
 			List<Prediction> predictions = new ArrayList<>();
 			for (int i = 0; i < 20_000; i++) {
 				double chance = 0.05 + 0.9 * random.nextDouble();
-				predictions.add(new Prediction(5, 8, i, chance, random.nextDouble() < truth.apply(chance)));
+				predictions.add(new Prediction(5, 8, i, false, chance, random.nextDouble() < truth.apply(chance)));
 			}
 			return predictions;
 		}
@@ -85,7 +84,7 @@ class HintCalibrationTest {
 		@Test
 		void matchedAsShown_scoresZero() {
 			List<Prediction> predictions =
-					List.of(new Prediction(3, 8, 0, 0.5, true), new Prediction(3, 8, 1, 0.5, false));
+					List.of(new Prediction(3, 8, 0, false, 0.5, true), new Prediction(3, 8, 1, false, 0.5, false));
 
 			assertThat(HintCalibration.score(predictions, Prediction::chance)).isEqualTo(" 0.0 /  0.0");
 		}
@@ -93,7 +92,7 @@ class HintCalibrationTest {
 		@Test
 		void gapsOfOppositeSign_cancelInTheMeanButNotInTheCalibrationError() {
 			List<Prediction> predictions =
-					List.of(new Prediction(3, 8, 0, 0.1, true), new Prediction(3, 8, 1, 0.9, false));
+					List.of(new Prediction(3, 8, 0, false, 0.1, true), new Prediction(3, 8, 1, false, 0.9, false));
 
 			assertThat(HintCalibration.score(predictions, Prediction::chance)).isEqualTo(" 0.0 / 90.0");
 		}
@@ -111,32 +110,72 @@ class HintCalibrationTest {
 
 			assertThat(predictions).hasSize(2 * 2 * 3 + 2 * 2 * 7);
 			assertThat(predictions).allMatch(prediction -> prediction.chance() >= 0 && prediction.chance() <= 1);
+			// About 16 seats with two allowed predictions pick the second half the time: none does once in 65,000 runs
+			assertThat(predictions).anyMatch(Prediction::secondOption);
 			assertThat(report)
-					.contains("3 players", "7 players", "3, new LogOddsCalibration(", "7, new LogOddsCalibration(")
-					.doesNotContain("4 players", "5 players", "6 players");
+					.contains("SMALL_HAND_HINT_CALIBRATION_BY_PLAYERS", "3 players", "7 players",
+							"3, new LogOddsCalibration(", "7, new LogOddsCalibration(")
+					.doesNotContain("LARGE_HAND_HINT_CALIBRATION_BY_PLAYERS", "4 players", "5 players", "6 players");
+		}
+
+		@Test
+		void handsWithinAndAboveTheFirstCardLimit_areFittedApart() {
+			List<Prediction> predictions = new ArrayList<>(evenDealsMatchedAsShownOddOnesHalfTheTime(1));
+			predictions.addAll(matchedAsShown(8));
+
+			String report = HintCalibration.report(predictions);
+			String smallHands = report.substring(report.indexOf("SMALL_HAND"), report.indexOf("LARGE_HAND"));
+			String largeHands = report.substring(report.indexOf("LARGE_HAND"));
+
+			assertThat(smallHands).containsPattern("3, new LogOddsCalibration\\(-?0\\.000, 0\\.447\\),");
+			assertThat(largeHands).containsPattern("3, new LogOddsCalibration\\(-?0\\.000, 1\\.000\\),")
+					.endsWith("Then update the values MctsEngineTest.HintChanceTest and BotSimulatorTest expect.\n");
 		}
 
 		@Test
 		void refit_isScoredOnDealsItWasNotFittedOn() {
-			assertThat(HintCalibration.report(evenDealsMatchedAsShownOddOnesHalfTheTime()))
-					.contains("3 players,    20 predictions:",
-							"uncorrected  0.0 / 30.0   current  0.0 / 30.0   refit  0.0 / 30.0");
+			assertThat(HintCalibration.report(evenDealsMatchedAsShownOddOnesHalfTheTime(1)))
+					.containsPattern("3 players, first  option, {4}20 predictions: {2}uncorrected  0\\.0 / 30\\.0   "
+							+ "current .{11}   refit  0\\.0 / 30\\.0");
+		}
+
+		@Test
+		void firstAndSecondOptions_areScoredApart() {
+			List<Prediction> predictions = new ArrayList<>();
+			for (int deal = 0; deal < 20; deal++) {
+				predictions.add(new Prediction(3, 1, deal, false, 0.8, deal % 10 != 9));
+				predictions.add(new Prediction(3, 1, deal, true, 0.2, deal % 4 == 1));
+			}
+
+			// On odd deals the first option is matched 8 times in 10 as shown, the second 5 times instead of 2
+			assertThat(HintCalibration.report(predictions))
+					.contains("3 players, first  option,    10 predictions:  uncorrected  0.0 /  0.0",
+							"3 players, second option,    10 predictions:  uncorrected 30.0 / 30.0");
 		}
 
 		@Test
 		void refitToPaste_isFittedOnAllDeals() {
 			// Over all deals a shown 20% is matched 35% of the time: logit(0.35) / logit(0.2) = 0.447
-			assertThat(HintCalibration.report(evenDealsMatchedAsShownOddOnesHalfTheTime()))
+			assertThat(HintCalibration.report(evenDealsMatchedAsShownOddOnesHalfTheTime(1)))
 					.containsPattern("3, new LogOddsCalibration\\(-?0\\.000, 0\\.447\\),");
 		}
 
-		private static List<Prediction> evenDealsMatchedAsShownOddOnesHalfTheTime() {
+		private static List<Prediction> evenDealsMatchedAsShownOddOnesHalfTheTime(int handSize) {
 			List<Prediction> predictions = new ArrayList<>();
 			for (int i = 0; i < 10; i++) {
-				predictions.add(new Prediction(3, 1, 2 * i, 0.2, i < 2));
-				predictions.add(new Prediction(3, 1, 2 * i, 0.8, i < 8));
-				predictions.add(new Prediction(3, 1, 2 * i + 1, 0.2, i < 5));
-				predictions.add(new Prediction(3, 1, 2 * i + 1, 0.8, i < 5));
+				predictions.add(new Prediction(3, handSize, 2 * i, false, 0.2, i < 2));
+				predictions.add(new Prediction(3, handSize, 2 * i, false, 0.8, i < 8));
+				predictions.add(new Prediction(3, handSize, 2 * i + 1, false, 0.2, i < 5));
+				predictions.add(new Prediction(3, handSize, 2 * i + 1, false, 0.8, i < 5));
+			}
+			return predictions;
+		}
+
+		private static List<Prediction> matchedAsShown(int handSize) {
+			List<Prediction> predictions = new ArrayList<>();
+			for (int i = 0; i < 10; i++) {
+				predictions.add(new Prediction(3, handSize, i, false, 0.2, i < 2));
+				predictions.add(new Prediction(3, handSize, i, false, 0.8, i < 8));
 			}
 			return predictions;
 		}
@@ -152,6 +191,7 @@ class HintCalibrationTest {
 			CalibrationBot bot = new CalibrationBot(0);
 
 			assertThat(predictFirst(bot)).isEqualTo(1);
+			assertThat(bot.shownSecondOption).isFalse();
 			assertThat(bot.shownChance).isEqualTo(1);
 		}
 
@@ -160,6 +200,7 @@ class HintCalibrationTest {
 			CalibrationBot bot = new CalibrationBot(1);
 
 			assertThat(predictFirst(bot)).isZero();
+			assertThat(bot.shownSecondOption).isTrue();
 			assertThat(bot.shownChance).isZero();
 		}
 
@@ -170,6 +211,7 @@ class HintCalibrationTest {
 			// The others predicted 1 trick of 1 between them, so the last seat must not predict 0
 			assertThat(bot.predict(ACE_OF_HEARTS, 2, 3, 1, new Integer[]{1, 0, null}, unknownCards(), Map.of()))
 					.isEqualTo(1);
+			assertThat(bot.shownSecondOption).isFalse();
 			assertThat(bot.shownChance).isEqualTo(1);
 		}
 

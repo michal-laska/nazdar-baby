@@ -309,7 +309,8 @@ class MctsEngineTest {
 					.average()
 					.orElseThrow();
 
-			// Simulated at 0.45 on average over 20 runs, never above 0.48; the 5-player calibration shows it as 0.55
+			// Simulated at 0.45 on average over 20 runs, never above 0.48; the 5-player large-hand calibration
+			// shows it as 0.55
 			assertThat(hintChance).isCloseTo(0.55, within(0.03));
 		}
 
@@ -372,9 +373,15 @@ class MctsEngineTest {
 	class HintChanceTest {
 
 		@Test
-		void withinTheFirstCardLimit_isShownAsSimulated() {
-			assertThat(MctsEngine.hintChance(0.4, 5, 6)).isEqualTo(0.4);
-			assertThat(MctsEngine.hintChance(0.4, 4, 7)).isEqualTo(0.4);
+		void withinTheFirstCardLimit_unlikelyIsRaisedSlightly() {
+			assertThat(MctsEngine.hintChance(0.2, 5, 6)).isCloseTo(0.216, within(0.001));
+			assertThat(MctsEngine.hintChance(0.2, 4, 7)).isCloseTo(0.212, within(0.001));
+		}
+
+		@Test
+		void oneCard_unlikelyIsRaised_nearCertainIsLowered() {
+			assertThat(MctsEngine.hintChance(0.2, 7, 1)).isCloseTo(0.243, within(0.001));
+			assertThat(MctsEngine.hintChance(0.9, 7, 1)).isCloseTo(0.877, within(0.001));
 		}
 
 		@Test
@@ -397,12 +404,17 @@ class MctsEngineTest {
 		void certainAndImpossible_stayAsTheyAre() {
 			assertThat(MctsEngine.hintChance(1.0, 5, 8)).isEqualTo(1.0);
 			assertThat(MctsEngine.hintChance(0.0, 5, 8)).isEqualTo(0.0);
+			assertThat(MctsEngine.hintChance(1.0, 3, 1)).isEqualTo(1.0);
+			assertThat(MctsEngine.hintChance(0.0, 3, 1)).isEqualTo(0.0);
 		}
 
 		@Test
 		void everyTableSizeTheGameAllows_isCalibrated() {
 			for (int players : PointProvider.NUMBER_OF_USERS_TO_WINNER_MAP.keySet()) {
-				assertThat(MctsEngine.hintChance(0.5, players, 10)).as(players + " players").isBetween(0.0, 1.0);
+				assertThat(MctsEngine.hintChance(0.5, players, 1)).as(players + " players, 1 card")
+						.isBetween(0.0, 1.0);
+				assertThat(MctsEngine.hintChance(0.5, players, 10)).as(players + " players, 10 cards")
+						.isBetween(0.0, 1.0);
 			}
 		}
 
