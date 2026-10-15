@@ -2,6 +2,7 @@ package com.lafi.cardgame.nazdarbaby.provider;
 
 import static com.lafi.cardgame.nazdarbaby.card.TestCards.getCard;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.Mockito.doReturn;
@@ -230,15 +231,81 @@ class BotSimulatorTest {
 
 		@Test
 		void botToMove_predictsForThatBot() {
-			User bot = bots.get(1);
-			bot.addCard(getCard(14, Color.HEARTS));
-			botSimulator.setCardPlaceholders(new CopyOnWriteArrayList<>(List.of(CARD_PLACEHOLDER, CARD_PLACEHOLDER, CARD_PLACEHOLDER)));
-			botSimulator.setActiveUser(bot);
+			givenBotToPredict();
 
 			playBotMove(botSimulator);
 
 			assertThat(bots).extracting(User::getExpectedTakes).containsExactly(null, 1, null);
 			verify(game).afterActiveUserSetExpectedTakes();
+		}
+	}
+
+	@Nested
+	class BotMoveTest {
+
+		private final Runnable searched = () -> {};
+		private final Runnable fallback = () -> {};
+
+		@Test
+		void search_returnsTheSearchedMove() {
+			assertThat(new BotSimulator.BotMove(() -> searched, fallback).search()).isSameAs(searched);
+		}
+
+		@Test
+		void failedSearch_returnsTheFallback() {
+			BotSimulator.BotMove move = new BotSimulator.BotMove(() -> {
+				throw new IllegalStateException("search failed");
+			}, fallback);
+
+			assertThat(move.search()).isSameAs(fallback);
+		}
+
+		@Test
+		void error_isNotSwallowed() {
+			BotSimulator.BotMove move = new BotSimulator.BotMove(() -> {
+				throw new StackOverflowError();
+			}, fallback);
+
+			assertThatThrownBy(move::search).isInstanceOf(StackOverflowError.class);
+		}
+	}
+
+	@Nested
+	class FallbackTest {
+
+		@Test
+		void prediction_fallsBackToZero() {
+			User bot = givenBotToPredict();
+
+			botSimulator.prepareMove().fallback().run();
+
+			assertThat(bot.getExpectedTakes()).isZero();
+			verify(game).afterActiveUserSetExpectedTakes();
+		}
+
+		@Test
+		void forbiddenZero_fallsBackToOne() {
+			User bot = givenBotToPredict();
+			doReturn(true).when(game).isLastUserWithInvalidExpectedTakes(0);
+
+			botSimulator.prepareMove().fallback().run();
+
+			assertThat(bot.getExpectedTakes()).isOne();
+		}
+
+		@Test
+		void cardPlay_fallsBackToTheLowestLegalCard() {
+			User bot = bots.get(1);
+			bot.setExpectedTakes(1);
+			List.of(getCard(14, Color.HEARTS), getCard(9, Color.SPADES), getCard(7, Color.SPADES)).forEach(bot::addCard);
+			List<Card> table = new CopyOnWriteArrayList<>(List.of(getCard(10, Color.SPADES), CARD_PLACEHOLDER, CARD_PLACEHOLDER));
+			botSimulator.setCardPlaceholders(table);
+			botSimulator.setActiveUser(bot);
+
+			botSimulator.prepareMove().fallback().run();
+
+			assertThat(table.get(1)).isEqualTo(getCard(7, Color.SPADES));
+			verify(game).changeActiveUser();
 		}
 	}
 
@@ -410,6 +477,17 @@ class BotSimulatorTest {
 
 	private void givenEmptyTable() {
 		botSimulator.setCardPlaceholders(List.of(CARD_PLACEHOLDER, CARD_PLACEHOLDER, CARD_PLACEHOLDER));
+	}
+
+	/**
+	 * The second bot, holding only the A♥, is to predict at an empty table.
+	 */
+	private User givenBotToPredict() {
+		User bot = bots.get(1);
+		bot.addCard(getCard(14, Color.HEARTS));
+		givenEmptyTable();
+		botSimulator.setActiveUser(bot);
+		return bot;
 	}
 
 	private void givenCurrentUser(User user) {

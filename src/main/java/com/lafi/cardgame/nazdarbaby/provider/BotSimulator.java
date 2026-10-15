@@ -20,7 +20,12 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class BotSimulator {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(BotSimulator.class);
 
 	private final Set<Card> playedOutCards = new HashSet<>();
 	private final Map<User, Map<User, UserInfo>> botToOtherUsersInfo = new HashMap<>();
@@ -78,17 +83,13 @@ public class BotSimulator {
 		User bot = activeUser;
 		if (bot.getExpectedTakes() == null) {
 			SearchInputs inputs = predictionInputs(bot);
-			return () -> {
+			return new BotMove(() -> {
 				int guess = inputs.run(mctsEngine::predictTakes);
 				return () -> predict(bot, guess);
-			};
+			}, () -> predict(bot, 0));
 		}
 
-		Supplier<Card> cardChoice = prepareCardChoice(bot);
-		return () -> {
-			Card card = cardChoice.get();
-			return () -> playCard(bot, card);
-		};
+		return prepareCardPlay(bot);
 	}
 
 	public Map<Integer, Double> predictionChancesForCurrentUser() {
@@ -131,7 +132,7 @@ public class BotSimulator {
 		}
 	}
 
-	private Supplier<Card> prepareCardChoice(User bot) {
+	private BotMove prepareCardPlay(User bot) {
 		removeColorsForOtherUsers(bot.getCards());
 
 		List<Card> cardsInHand = bot.getCardsInHand();
@@ -139,21 +140,22 @@ public class BotSimulator {
 		List<Card> sortedPlayableCards = TrickEvaluator.getLegalPlays(cardsInHand, TrickEvaluator.playedCards(cardPlaceholders)).stream()
 				.sorted()
 				.toList();
+		Runnable playFirstLegalCard = () -> playCard(bot, sortedPlayableCards.getFirst());
 
 		if (sortedPlayableCards.size() == 1) {
-			return sortedPlayableCards::getFirst;
+			return new BotMove(() -> playFirstLegalCard, playFirstLegalCard);
 		}
 
 		SearchInputs inputs = searchInputs(buildPlayingState(cardsInHand), cardsInHand, bot);
-		return () -> {
+		return new BotMove(() -> {
 			Card mctsCard = inputs.run(mctsEngine::selectCard);
 
 			// Fallback if MCTS returns null or an illegal card
 			if (mctsCard == null || !sortedPlayableCards.contains(mctsCard)) {
-				return sortedPlayableCards.getFirst();
+				return playFirstLegalCard;
 			}
-			return mctsCard;
-		};
+			return () -> playCard(bot, mctsCard);
+		}, playFirstLegalCard);
 	}
 
 	private void rememberCardsFromTable() {
@@ -452,12 +454,22 @@ public class BotSimulator {
 				computeColorVoids(self), computeExcludedCards(unknownCards, self));
 	}
 
-	interface BotMove {
+	/**
+	 * @param fallback a legal move that needs no search, applied when the search fails
+	 */
+	record BotMove(Supplier<Runnable> searcher, Runnable fallback) {
 
 		/**
 		 * Runs without Game's monitor and returns what to apply under it.
 		 */
-		Runnable search();
+		Runnable search() {
+			try {
+				return searcher.get();
+			} catch (RuntimeException e) {
+				LOGGER.error("Bot move search failed, playing the fallback move", e);
+				return fallback;
+			}
+		}
 	}
 
 	private interface Search<T> {
