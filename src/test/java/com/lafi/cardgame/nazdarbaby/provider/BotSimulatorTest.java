@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -261,6 +262,14 @@ class BotSimulatorTest {
 		}
 
 		@Test
+		void withoutSearch_isItsOwnFallback() {
+			BotSimulator.BotMove move = BotSimulator.BotMove.withoutSearch(fallback);
+
+			assertThat(move.search()).isSameAs(fallback);
+			assertThat(move.fallback()).isSameAs(fallback);
+		}
+
+		@Test
 		void error_isNotSwallowed() {
 			BotSimulator.BotMove move = new BotSimulator.BotMove(() -> {
 				throw new StackOverflowError();
@@ -295,17 +304,57 @@ class BotSimulatorTest {
 
 		@Test
 		void cardPlay_fallsBackToTheLowestLegalCard() {
+			List<Card> table = givenBotToFollowTheTenOfSpades();
+
+			botSimulator.prepareMove().fallback().run();
+
+			assertThat(table.get(1)).isEqualTo(getCard(7, Color.SPADES));
+			verify(game).changeActiveUser();
+		}
+
+		@Test
+		void preparingThePredictionFails_predictsZero() {
+			User bot = givenBotToPredict();
+			givenPreparingTheSearchFails();
+
+			playBotMove(botSimulator);
+
+			assertThat(bot.getExpectedTakes()).isZero();
+		}
+
+		@Test
+		void preparingTheCardPlayFails_playsTheLowestLegalCard() {
+			List<Card> table = givenBotToFollowTheTenOfSpades();
+			givenPreparingTheSearchFails();
+
+			playBotMove(botSimulator);
+
+			assertThat(table.get(1)).isEqualTo(getCard(7, Color.SPADES));
+		}
+
+		@Test
+		void errorWhilePreparing_isNotSwallowed() {
+			givenBotToPredict();
+			doThrow(new StackOverflowError()).when(game).getCardProvider();
+
+			assertThatThrownBy(botSimulator::prepareMove).isInstanceOf(StackOverflowError.class);
+		}
+
+		private void givenPreparingTheSearchFails() {
+			doThrow(new IllegalStateException("no deck")).when(game).getCardProvider();
+		}
+
+		/**
+		 * The second bot holds A♥ 9♠ 7♠ against the 10♠ led, so it has to follow with a spade.
+		 */
+		private List<Card> givenBotToFollowTheTenOfSpades() {
 			User bot = bots.get(1);
 			bot.setExpectedTakes(1);
 			List.of(getCard(14, Color.HEARTS), getCard(9, Color.SPADES), getCard(7, Color.SPADES)).forEach(bot::addCard);
 			List<Card> table = new CopyOnWriteArrayList<>(List.of(getCard(10, Color.SPADES), CARD_PLACEHOLDER, CARD_PLACEHOLDER));
 			botSimulator.setCardPlaceholders(table);
 			botSimulator.setActiveUser(bot);
-
-			botSimulator.prepareMove().fallback().run();
-
-			assertThat(table.get(1)).isEqualTo(getCard(7, Color.SPADES));
-			verify(game).changeActiveUser();
+			return table;
 		}
 	}
 

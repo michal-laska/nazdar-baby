@@ -18,11 +18,16 @@ import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class Table {
 
 	public static final int MINIMUM_USERS = Collections.min(PointProvider.NUMBER_OF_USERS_TO_WINNER_MAP.keySet());
 	public static final int MAXIMUM_USERS = Collections.max(PointProvider.NUMBER_OF_USERS_TO_WINNER_MAP.keySet());
 	public static final int NOTIFICATION_DELAY_IN_MINUTES = 5;
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(Table.class);
 
 	private final Object lock = new Object();
 	private final String tableName;
@@ -52,7 +57,11 @@ public class Table {
 	 * back the virtual threads that update the players' screens.
 	 */
 	static Executor botMoveExecutor(String tableName) {
-		return botMove -> Thread.ofPlatform().daemon().name("bot-move-" + tableName).start(botMove);
+		return botMove -> Thread.ofPlatform()
+				.daemon()
+				.name("bot-move-" + tableName)
+				.uncaughtExceptionHandler((thread, e) -> LOGGER.error("Bot move failed on {}", thread.getName(), e))
+				.start(botMove);
 	}
 
 	public Object getLock() {

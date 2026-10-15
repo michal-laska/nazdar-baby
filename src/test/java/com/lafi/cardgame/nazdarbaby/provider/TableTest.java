@@ -5,6 +5,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.AppenderBase;
 import com.lafi.cardgame.nazdarbaby.broadcast.Broadcaster;
 import com.lafi.cardgame.nazdarbaby.countdown.CountdownService;
 import com.lafi.cardgame.nazdarbaby.point.PointProvider;
@@ -15,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 class TableTest {
 
@@ -49,6 +54,32 @@ class TableTest {
 			assertThat(thread.isDaemon()).isTrue();
 			assertThat(thread.getName()).isEqualTo("bot-move-lounge");
 			assertThat(thread).isNotSameAs(Thread.currentThread());
+		}
+
+		@Test
+		void failedBotMove_isLogged() throws Exception {
+			CompletableFuture<ILoggingEvent> logged = new CompletableFuture<>();
+			AppenderBase<ILoggingEvent> appender = new AppenderBase<>() {
+				@Override
+				protected void append(ILoggingEvent event) {
+					logged.complete(event);
+				}
+			};
+			Logger logger = (Logger) LoggerFactory.getLogger(Table.class);
+			appender.start();
+			logger.addAppender(appender);
+			try {
+				Table.botMoveExecutor("lounge").execute(() -> {
+					throw new IllegalStateException("move failed");
+				});
+
+				ILoggingEvent event = logged.get(10, TimeUnit.SECONDS);
+				assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+				assertThat(event.getFormattedMessage()).isEqualTo("Bot move failed on bot-move-lounge");
+				assertThat(event.getThrowableProxy().getMessage()).isEqualTo("move failed");
+			} finally {
+				logger.detachAppender(appender);
+			}
 		}
 	}
 }

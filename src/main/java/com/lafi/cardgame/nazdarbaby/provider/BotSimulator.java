@@ -82,14 +82,30 @@ public class BotSimulator {
 
 		User bot = activeUser;
 		if (bot.getExpectedTakes() == null) {
-			SearchInputs inputs = predictionInputs(bot);
-			return new BotMove(() -> {
-				int guess = inputs.run(mctsEngine::predictTakes);
-				return () -> predict(bot, guess);
-			}, () -> predict(bot, 0));
+			return searchedOrFallback(() -> predictionSearch(bot), () -> predict(bot, 0));
 		}
 
 		return prepareCardPlay(bot);
+	}
+
+	/**
+	 * The search {@code prepareSearch} prepares from the game, or only the fallback when preparing it fails.
+	 */
+	private BotMove searchedOrFallback(Supplier<BotSearch> prepareSearch, Runnable fallback) {
+		try {
+			return new BotMove(prepareSearch.get(), fallback);
+		} catch (RuntimeException e) {
+			LOGGER.error("Preparing a bot move failed, playing the fallback move", e);
+			return BotMove.withoutSearch(fallback);
+		}
+	}
+
+	private BotSearch predictionSearch(User bot) {
+		SearchInputs inputs = predictionInputs(bot);
+		return () -> {
+			int guess = inputs.run(mctsEngine::predictTakes);
+			return () -> predict(bot, guess);
+		};
 	}
 
 	public Map<Integer, Double> predictionChancesForCurrentUser() {
@@ -143,11 +159,16 @@ public class BotSimulator {
 		Runnable playFirstLegalCard = () -> playCard(bot, sortedPlayableCards.getFirst());
 
 		if (sortedPlayableCards.size() == 1) {
-			return new BotMove(() -> playFirstLegalCard, playFirstLegalCard);
+			return BotMove.withoutSearch(playFirstLegalCard);
 		}
 
+		return searchedOrFallback(() -> cardSearch(bot, cardsInHand, sortedPlayableCards, playFirstLegalCard), playFirstLegalCard);
+	}
+
+	private BotSearch cardSearch(User bot, List<Card> cardsInHand, List<Card> sortedPlayableCards,
+										  Runnable playFirstLegalCard) {
 		SearchInputs inputs = searchInputs(buildPlayingState(cardsInHand), cardsInHand, bot);
-		return new BotMove(() -> {
+		return () -> {
 			Card mctsCard = inputs.run(mctsEngine::selectCard);
 
 			// Fallback if MCTS returns null or an illegal card
@@ -155,7 +176,7 @@ public class BotSimulator {
 				return playFirstLegalCard;
 			}
 			return () -> playCard(bot, mctsCard);
-		}, playFirstLegalCard);
+		};
 	}
 
 	private void rememberCardsFromTable() {
@@ -454,17 +475,29 @@ public class BotSimulator {
 				computeColorVoids(self), computeExcludedCards(unknownCards, self));
 	}
 
-	/**
-	 * @param fallback a legal move that needs no search, applied when the search fails
-	 */
-	record BotMove(Supplier<Runnable> searcher, Runnable fallback) {
+	interface BotSearch {
 
 		/**
 		 * Runs without Game's monitor and returns what to apply under it.
 		 */
+		Runnable search();
+	}
+
+	/**
+	 * @param fallback a legal move that needs no search, applied when the search or its preparation fails
+	 */
+	record BotMove(BotSearch searcher, Runnable fallback) {
+
+		static BotMove withoutSearch(Runnable move) {
+			return new BotMove(() -> move, move);
+		}
+
+		/**
+		 * {@link BotSearch#search()}, or the fallback when it fails.
+		 */
 		Runnable search() {
 			try {
-				return searcher.get();
+				return searcher.search();
 			} catch (RuntimeException e) {
 				LOGGER.error("Bot move search failed, playing the fallback move", e);
 				return fallback;
