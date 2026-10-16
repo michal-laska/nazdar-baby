@@ -36,8 +36,8 @@ final class BaselineBots {
 
 	static final String BASELINE_PACKAGE = "com.lafi.cardgame.nazdarbaby.mcts.baseline";
 
-	private static final String ENGINE_SOURCES = "src/main/java/com/lafi/cardgame/nazdarbaby/mcts/";
-	private static final Path ADAPTER_SOURCE = Path.of("src/test/java/com/lafi/cardgame/nazdarbaby/mcts/MctsArenaBot.java");
+	static final String ENGINE_SOURCES = "src/main/java/com/lafi/cardgame/nazdarbaby/mcts/";
+	static final Path ADAPTER_SOURCE = Path.of("src/test/java/com/lafi/cardgame/nazdarbaby/mcts/MctsArenaBot.java");
 	private static final Pattern PACKAGE_DECLARATION =
 			Pattern.compile("^package com\\.lafi\\.cardgame\\.nazdarbaby\\.mcts;$", Pattern.MULTILINE);
 
@@ -140,7 +140,7 @@ final class BaselineBots {
 		}
 	}
 
-	private static String git(String... arguments) throws IOException, InterruptedException {
+	static String git(String... arguments) throws IOException, InterruptedException {
 		List<String> command = new ArrayList<>(List.of("git"));
 		command.addAll(List.of(arguments));
 

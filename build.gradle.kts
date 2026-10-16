@@ -47,7 +47,7 @@ tasks.register<JavaExec>("botArena") {
     mainClass = "com.lafi.cardgame.nazdarbaby.mcts.BotArena"
 }
 
-// ./gradlew hintCalibration --args="<deals per table> <threads> [--dump <file>]"
+// ./gradlew hintCalibration --args="<deals per table> <threads> [--dump <file>]" or --args="--from <file>[,<file>...] [--score <file>[,<file>...]]"
 tasks.register<JavaExec>("hintCalibration") {
     group = "verification"
     description = "Re-fit the hint's calibration in MctsEngine against bots playing in every seat."
