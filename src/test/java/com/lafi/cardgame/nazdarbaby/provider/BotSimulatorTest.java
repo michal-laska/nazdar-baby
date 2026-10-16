@@ -71,8 +71,8 @@ class BotSimulatorTest {
 		void othersCanHaveHigherHeart_onlyUnseenCardsCount() {
 			givenBotAsking(getHearts(10, 11, 12, 13, 14), getHeart(7), getHeart(8));
 
-			// The 8♥ loses only to the 9♥, the one higher heart among the 25 unseen cards: 23/25, shown as 0.90
-			assertThat(botSimulator.predictionChancesForCurrentUser().get(1)).isCloseTo(0.90, within(0.07));
+			// The 8♥ loses only to the 9♥, the one higher heart among the 25 unseen cards: 23/25, shown as 0.93
+			assertThat(botSimulator.predictionChancesForCurrentUser().get(1)).isCloseTo(0.93, within(0.07));
 		}
 
 		@Test
@@ -97,8 +97,8 @@ class BotSimulatorTest {
 			givenHumanAsking(me, List.of(me, new User("other", takeoverCodes), bots.getFirst()), me);
 			me.addCard(getCard(14, Color.DIAMONDS));
 
-			// Led, the ace loses only if one of the 2 cards dealt from the 31 unseen is a heart: 253/465, shown as 0.53
-			assertThat(botSimulator.predictionChancesForCurrentUser().get(1)).isCloseTo(0.53, within(0.07));
+			// Led, the ace loses only if one of the 2 cards dealt from the 31 unseen is a heart: 253/465, shown as 0.51
+			assertThat(botSimulator.predictionChancesForCurrentUser().get(1)).isCloseTo(0.51, within(0.07));
 		}
 
 		@Test
@@ -109,8 +109,8 @@ class BotSimulatorTest {
 			me.addCard(getCard(14, Color.DIAMONDS));
 
 			// Second to play, the ace wins only if a diamond is led and the last player has no heart: 7/31 × 22/30,
-			// shown as 0.18
-			assertThat(botSimulator.predictionChancesForCurrentUser().get(1)).isCloseTo(0.18, within(0.07));
+			// shown as 0.12
+			assertThat(botSimulator.predictionChancesForCurrentUser().get(1)).isCloseTo(0.12, within(0.07));
 		}
 
 		@Test
@@ -155,8 +155,8 @@ class BotSimulatorTest {
 			me.addCard(getHeart(7));
 
 			// The lone 7♥ wins unless one of the 2 cards dealt from the 31 unseen is a higher heart: 276/465,
-			// shown as 0.57
-			assertThat(botSimulator.predictionChancesForCurrentUser().get(1)).isCloseTo(0.57, within(0.07));
+			// shown as 0.56
+			assertThat(botSimulator.predictionChancesForCurrentUser().get(1)).isCloseTo(0.56, within(0.07));
 		}
 
 		@Test

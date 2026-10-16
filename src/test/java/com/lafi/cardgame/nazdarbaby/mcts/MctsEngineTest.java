@@ -373,15 +373,27 @@ class MctsEngineTest {
 	class HintChanceTest {
 
 		@Test
-		void withinTheFirstCardLimit_unlikelyIsRaisedSlightly() {
-			assertThat(MctsEngine.hintChance(0.2, 5, 6)).isCloseTo(0.216, within(0.001));
-			assertThat(MctsEngine.hintChance(0.2, 4, 7)).isCloseTo(0.212, within(0.001));
+		void largestHandWithinTheFirstCardLimit_unlikelyIsRaised() {
+			assertThat(MctsEngine.hintChance(0.2, 5, 6)).isCloseTo(0.259, within(0.001));
+			assertThat(MctsEngine.hintChance(0.2, 4, 7)).isCloseTo(0.252, within(0.001));
 		}
 
 		@Test
-		void oneCard_unlikelyIsRaised_nearCertainIsLowered() {
-			assertThat(MctsEngine.hintChance(0.2, 7, 1)).isCloseTo(0.243, within(0.001));
-			assertThat(MctsEngine.hintChance(0.9, 7, 1)).isCloseTo(0.877, within(0.001));
+		void oneCard_withSevenPlayers_isLowered() {
+			assertThat(MctsEngine.hintChance(0.2, 7, 1)).isCloseTo(0.182, within(0.001));
+			assertThat(MctsEngine.hintChance(0.9, 7, 1)).isCloseTo(0.888, within(0.001));
+		}
+
+		@Test
+		void withinTheFirstCardLimit_unlikelyIsRaisedMoreTheLargerTheHand() {
+			assertThat(MctsEngine.hintChance(0.2, 6, 1)).isCloseTo(0.178, within(0.001));
+			assertThat(MctsEngine.hintChance(0.2, 6, 3)).isCloseTo(0.214, within(0.001));
+			assertThat(MctsEngine.hintChance(0.2, 6, 6)).isCloseTo(0.278, within(0.001));
+		}
+
+		@Test
+		void aboveTheFirstCardLimit_handSizeDoesNotMatter() {
+			assertThat(MctsEngine.hintChance(0.3, 5, 7)).isEqualTo(MctsEngine.hintChance(0.3, 5, 10));
 		}
 
 		@Test
@@ -419,8 +431,14 @@ class MctsEngineTest {
 		}
 
 		@Test
-		void higherChance_staysHigher() {
-			assertThat(MctsEngine.hintChance(0.3, 4, 9)).isLessThan(MctsEngine.hintChance(0.31, 4, 9));
+		void higherChance_staysHigher_atEveryTableSize() {
+			for (int players : PointProvider.NUMBER_OF_USERS_TO_WINNER_MAP.keySet()) {
+				for (int handSize = 1; handSize <= 10; handSize++) {
+					assertThat(MctsEngine.hintChance(0.3, players, handSize))
+							.as(players + " players, " + handSize + " cards")
+							.isLessThan(MctsEngine.hintChance(0.31, players, handSize));
+				}
+			}
 		}
 	}
 

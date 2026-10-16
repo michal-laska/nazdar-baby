@@ -106,21 +106,22 @@ public final class HintCalibration {
 		StringBuilder report = new StringBuilder();
 		byHandAndPlayers.forEach((largeHands, byPlayers) -> {
 			if (!byPlayers.isEmpty()) {
-				appendCalibration(report, largeHands ? "LARGE" : "SMALL", byPlayers);
+				// Above the limit per-card terms scored worse on held-out deals
+				appendCalibration(report, largeHands ? "LARGE" : "SMALL", !largeHands, byPlayers);
 			}
 		});
 		report.append("\nThen update the values MctsEngineTest.HintChanceTest and BotSimulatorTest expect.\n");
 		return report.toString();
 	}
 
-	private static void appendCalibration(StringBuilder report, String hands,
+	private static void appendCalibration(StringBuilder report, String hands, boolean perCard,
 										  Map<Integer, List<Prediction>> byPlayers) {
 		report.append("\nMctsEngine.").append(hands).append("_HAND_HINT_CALIBRATION_BY_PLAYERS\n");
 		report.append("Held-out deals (fit on even deals, scored on odd), |mean gap| / calibration error in points:\n");
 		byPlayers.forEach((players, all) -> {
 			List<Prediction> even = all.stream().filter(p -> p.deal() % 2 == 0).toList();
 			List<Prediction> odd = all.stream().filter(p -> p.deal() % 2 == 1).toList();
-			LogOddsCalibration heldOut = fit(even);
+			LogOddsCalibration heldOut = fit(even, perCard);
 
 			for (boolean secondOption : new boolean[]{false, true}) {
 				List<Prediction> shown = odd.stream().filter(p -> p.secondOption() == secondOption).toList();
@@ -132,53 +133,88 @@ public final class HintCalibration {
 						players, secondOption ? "second" : "first", shown.size(),
 						score(shown, Prediction::chance),
 						score(shown, p -> MctsEngine.hintChance(p.chance(), p.players(), p.handSize())),
-						score(shown, p -> heldOut.apply(p.chance()))));
+						score(shown, p -> heldOut.apply(p.chance(), p.handSize()))));
 			}
 		});
 
 		report.append("Refit on all deals, to paste:\n");
 		byPlayers.forEach((players, all) -> {
-			LogOddsCalibration refit = fit(all);
-			report.append(String.format(Locale.ROOT, "\t\t\t%d, new LogOddsCalibration(%.3f, %.3f),%n",
-					players, refit.shift(), refit.scale()));
+			LogOddsCalibration refit = fit(all, perCard);
+			String perCardTerms = perCard
+					? String.format(Locale.ROOT, ", %.3f, %.3f", refit.shiftPerCard(), refit.scalePerCard())
+					: "";
+			report.append(String.format(Locale.ROOT, "\t\t\t%d, new LogOddsCalibration(%.3f, %.3f%s),%n",
+					players, refit.shift(), refit.scale(), perCardTerms));
 		});
 	}
 
 	/**
-	 * Logistic regression of matched on the chance's log-odds. Chances of 0 and 1 are left out, since the calibration
-	 * keeps them as they are.
+	 * Logistic regression of matched on the chance's log-odds, per card also on the hand size. Chances of 0 and 1 are
+	 * left out, since the calibration keeps them as they are.
 	 */
-	static LogOddsCalibration fit(List<Prediction> predictions) {
-		LogOddsCalibration calibration = new LogOddsCalibration(0, 1);
+	static LogOddsCalibration fit(List<Prediction> predictions, boolean perCard) {
+		List<Prediction> uncertain = predictions.stream().filter(p -> p.chance() > 0 && p.chance() < 1).toList();
+		// With one hand size a per-card term cannot be told apart from the constant one
+		int parameters = perCard && uncertain.stream().mapToInt(Prediction::handSize).distinct().count() > 1 ? 4 : 2;
+		double[] coefficients = {0, 1, 0, 0};
 		for (int iteration = 0; iteration < 100; iteration++) {
-			double gradientShift = 0;
-			double gradientScale = 0;
-			double hessianShiftShift = 0;
-			double hessianShiftScale = 0;
-			double hessianScaleScale = 0;
-			for (Prediction prediction : predictions) {
-				if (prediction.chance() <= 0 || prediction.chance() >= 1) {
-					continue;
-				}
+			LogOddsCalibration calibration = calibration(coefficients);
+			double[] gradient = new double[parameters];
+			double[][] hessian = new double[parameters][parameters];
+			for (Prediction prediction : uncertain) {
 				double logOdds = Math.log(prediction.chance() / (1 - prediction.chance()));
-				double fitted = calibration.apply(prediction.chance());
+				double[] features = {1, logOdds, prediction.handSize(), prediction.handSize() * logOdds};
+				double fitted = calibration.apply(prediction.chance(), prediction.handSize());
 				double residual = (prediction.matched() ? 1 : 0) - fitted;
 				double weight = fitted * (1 - fitted);
-				gradientShift += residual;
-				gradientScale += residual * logOdds;
-				hessianShiftShift += weight;
-				hessianShiftScale += weight * logOdds;
-				hessianScaleScale += weight * logOdds * logOdds;
+				for (int i = 0; i < parameters; i++) {
+					gradient[i] += residual * features[i];
+					for (int j = 0; j < parameters; j++) {
+						hessian[i][j] += weight * features[i] * features[j];
+					}
+				}
 			}
-			double determinant = hessianShiftShift * hessianScaleScale - hessianShiftScale * hessianShiftScale;
-			double stepShift = (hessianScaleScale * gradientShift - hessianShiftScale * gradientScale) / determinant;
-			double stepScale = (hessianShiftShift * gradientScale - hessianShiftScale * gradientShift) / determinant;
-			calibration = new LogOddsCalibration(calibration.shift() + stepShift, calibration.scale() + stepScale);
-			if (Math.abs(stepShift) + Math.abs(stepScale) < 1e-9) {
+			double[] step = solve(hessian, gradient);
+			double stepSize = 0;
+			for (int i = 0; i < parameters; i++) {
+				coefficients[i] += step[i];
+				stepSize += Math.abs(step[i]);
+			}
+			if (stepSize < 1e-9) {
 				break;
 			}
 		}
-		return calibration;
+		return calibration(coefficients);
+	}
+
+	private static LogOddsCalibration calibration(double[] coefficients) {
+		return new LogOddsCalibration(coefficients[0], coefficients[1], coefficients[2], coefficients[3]);
+	}
+
+	// Gauss-Jordan without pivoting: the Hessian is positive definite
+	private static double[] solve(double[][] matrix, double[] vector) {
+		int size = vector.length;
+		double[][] augmented = new double[size][];
+		for (int row = 0; row < size; row++) {
+			augmented[row] = Arrays.copyOf(matrix[row], size + 1);
+			augmented[row][size] = vector[row];
+		}
+		for (int column = 0; column < size; column++) {
+			double[] pivotRow = augmented[column];
+			for (int row = 0; row < size; row++) {
+				if (row != column) {
+					double factor = augmented[row][column] / pivotRow[column];
+					for (int k = column; k <= size; k++) {
+						augmented[row][k] -= factor * pivotRow[k];
+					}
+				}
+			}
+		}
+		double[] solution = new double[size];
+		for (int row = 0; row < size; row++) {
+			solution[row] = augmented[row][size] / augmented[row][row];
+		}
+		return solution;
 	}
 
 	/**

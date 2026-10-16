@@ -34,14 +34,14 @@ public final class MctsEngine {
 	private static final int MAX_HAND_TO_CHOOSE_FIRST_CARD_WITH_FEW_PLAYERS = 7;
 	private static final int MAX_FEW_PLAYERS = 4;
 	// ./gradlew hintCalibration re-fits both calibrations.
-	// Within the first-card limit the hint's second option was matched about 2 points more often than shown, up to 6
-	// with 6 or 7 cards
+	// Within the first-card limit an unlikely option is matched more often the larger the hand: with 7 players a
+	// simulated 20% is shown as 18% with 1 card and 30% with 6
 	private static final Map<Integer, LogOddsCalibration> SMALL_HAND_HINT_CALIBRATION_BY_PLAYERS = Map.of(
-			3, new LogOddsCalibration(-0.055, 0.916),
-			4, new LogOddsCalibration(-0.002, 0.945),
-			5, new LogOddsCalibration(0.037, 0.955),
-			6, new LogOddsCalibration(0.088, 0.894),
-			7, new LogOddsCalibration(0.061, 0.865));
+			3, new LogOddsCalibration(-0.185, 1.156, 0.023, -0.052),
+			4, new LogOddsCalibration(-0.171, 1.077, 0.035, -0.034),
+			5, new LogOddsCalibration(-0.165, 1.027, 0.045, -0.032),
+			6, new LogOddsCalibration(-0.208, 1.036, 0.064, -0.037),
+			7, new LogOddsCalibration(-0.191, 1.043, 0.070, -0.044));
 	// Above the limit the policy plays the first card and the hint's chances are too flat: with bots in every seat a
 	// shown 15% was matched about 30% of the time and, with 3 players, a shown 84% about 64%
 	private static final Map<Integer, LogOddsCalibration> LARGE_HAND_HINT_CALIBRATION_BY_PLAYERS = Map.of(
@@ -166,13 +166,18 @@ public final class MctsEngine {
 		Map<Integer, LogOddsCalibration> calibrations = exceedsFirstCardLimit(players, handSize)
 				? LARGE_HAND_HINT_CALIBRATION_BY_PLAYERS
 				: SMALL_HAND_HINT_CALIBRATION_BY_PLAYERS;
-		return calibrations.get(players).apply(chance);
+		return calibrations.get(players).apply(chance, handSize);
 	}
 
-	record LogOddsCalibration(double shift, double scale) {
+	record LogOddsCalibration(double shift, double scale, double shiftPerCard, double scalePerCard) {
 
-		double apply(double chance) {
-			return 1 / (1 + Math.exp(-(shift + scale * Math.log(chance / (1 - chance)))));
+		LogOddsCalibration(double shift, double scale) {
+			this(shift, scale, 0, 0);
+		}
+
+		double apply(double chance, int handSize) {
+			double logOdds = Math.log(chance / (1 - chance));
+			return 1 / (1 + Math.exp(-(shift + shiftPerCard * handSize + (scale + scalePerCard * handSize) * logOdds)));
 		}
 	}
 
