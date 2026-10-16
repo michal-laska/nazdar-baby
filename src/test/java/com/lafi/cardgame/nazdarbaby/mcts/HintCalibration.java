@@ -8,6 +8,10 @@ import com.lafi.cardgame.nazdarbaby.mcts.MctsEngine.LogOddsCalibration;
 import com.lafi.cardgame.nazdarbaby.provider.Game;
 import com.lafi.cardgame.nazdarbaby.provider.Table;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -24,9 +28,10 @@ import java.util.stream.Collectors;
 /**
  * Re-fits the hint calibrations in {@link MctsEngine} after a change to how the bots play.
  *
- * <p>Run it with {@code ./gradlew hintCalibration --args="<deals per table> <threads>"}. Every hand size the game
- * deals is played with bots in every seat, also with each seat predicting its second-likeliest option half the time,
- * since the hint shows both. The default 200 deals per table take about 40 minutes on 10 threads.
+ * <p>Run it with {@code ./gradlew hintCalibration --args="<deals per table> <threads> [--dump <file>]"}. Every hand
+ * size the game deals is played with bots in every seat, also with each seat predicting its second-likeliest option
+ * half the time, since the hint shows both. The default 200 deals per table take 30 to 40 minutes on 10 threads.
+ * {@code --dump} also writes every prediction to a CSV file, so later questions need no new run.
  */
 public final class HintCalibration {
 
@@ -37,22 +42,49 @@ public final class HintCalibration {
 	}
 
 	public static void main(String[] args) throws Exception {
-		List<String> arguments = Arrays.asList(args);
+		List<String> arguments = new ArrayList<>(Arrays.asList(args));
+		String dump = BotArena.Options.takeFlag(arguments, "--dump", "a file");
 		BotArena.Options.require(arguments.size() <= 2,
-				"Expected <deals per table> <threads>, got " + String.join(" ", args));
+				"Expected <deals per table> <threads> [--dump <file>], got " + String.join(" ", args));
 		int deals = BotArena.Options.number(arguments, 0, "deals per table", 200);
 		int threads = BotArena.Options.number(arguments, 1, "threads", Runtime.getRuntime().availableProcessors());
 		BotArena.Options.require(deals >= 1, "deals per table must be at least 1, got " + deals);
 		BotArena.Options.require(threads >= 1, "threads must be at least 1, got " + threads);
+		Path dumpFile = dump == null ? null : Path.of(dump);
+		if (dumpFile != null) {
+			ensureWritable(dumpFile);
+		}
 
 		List<Prediction> predictions = play(tables(), deals, threads);
+		if (dumpFile != null) {
+			Files.write(dumpFile, csv(predictions));
+		}
 		System.out.print(report(predictions));
 	}
 
 	record HandTable(int players, int handSize) {
 	}
 
-	record Prediction(int players, int handSize, int deal, boolean secondOption, double chance, boolean matched) {
+	record Prediction(int players, int handSize, int deal, double secondOptionShare, boolean secondOption,
+					  double chance, boolean matched) {
+	}
+
+	/**
+	 * Fails now rather than after the run, and leaves an existing file as it is.
+	 */
+	static void ensureWritable(Path file) throws IOException {
+		Files.newOutputStream(file, StandardOpenOption.CREATE, StandardOpenOption.APPEND).close();
+	}
+
+	static List<String> csv(List<Prediction> predictions) {
+		List<String> lines = new ArrayList<>(predictions.size() + 1);
+		lines.add("players,handSize,deal,secondOptionShare,secondOption,chance,matched");
+		for (Prediction prediction : predictions) {
+			lines.add(prediction.players() + "," + prediction.handSize() + "," + prediction.deal() + ","
+					+ prediction.secondOptionShare() + "," + prediction.secondOption() + "," + prediction.chance() + ","
+					+ prediction.matched());
+		}
+		return lines;
 	}
 
 	static List<HandTable> tables() {
@@ -92,8 +124,8 @@ public final class HintCalibration {
 
 		List<Prediction> predictions = new ArrayList<>(seats.length);
 		for (CalibrationBot seat : seats) {
-			predictions.add(new Prediction(table.players(), table.handSize(), deal, seat.shownSecondOption,
-					seat.shownChance, seat.matched));
+			predictions.add(new Prediction(table.players(), table.handSize(), deal, secondOptionShare,
+					seat.shownSecondOption, seat.shownChance, seat.matched));
 		}
 		return predictions;
 	}

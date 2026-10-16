@@ -13,6 +13,10 @@ import com.lafi.cardgame.nazdarbaby.mcts.HintCalibration.HandTable;
 import com.lafi.cardgame.nazdarbaby.mcts.HintCalibration.Prediction;
 import com.lafi.cardgame.nazdarbaby.mcts.MctsEngine.LogOddsCalibration;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +24,8 @@ import java.util.Random;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 
 class HintCalibrationTest {
 
@@ -88,8 +94,8 @@ class HintCalibrationTest {
 		void perCard_withAnotherHandSizeOnlyAtCertainChances_fitsLikeWithout() {
 			List<Prediction> predictions = new ArrayList<>(
 					predictionsFrom(new LogOddsCalibration(0.3, 0.7), new Random(1), 8, 8));
-			predictions.add(new Prediction(5, 3, 0, false, 1, true));
-			predictions.add(new Prediction(5, 3, 1, false, 0, false));
+			predictions.add(new Prediction(5, 3, 0, 0.0, false, 1, true));
+			predictions.add(new Prediction(5, 3, 1, 0.0, false, 0, false));
 
 			assertThat(HintCalibration.fit(predictions, true)).isEqualTo(HintCalibration.fit(predictions, false));
 		}
@@ -99,8 +105,8 @@ class HintCalibrationTest {
 			List<Prediction> predictions = predictionsFrom(PER_CARD, new Random(1), 1, 7);
 			List<Prediction> withExtremes = new ArrayList<>(predictions);
 			for (int i = 0; i < 1000; i++) {
-				withExtremes.add(new Prediction(5, 1 + i % 7, i, false, 1, false));
-				withExtremes.add(new Prediction(5, 1 + i % 7, i, false, 0, true));
+				withExtremes.add(new Prediction(5, 1 + i % 7, i, 0.0, false, 1, false));
+				withExtremes.add(new Prediction(5, 1 + i % 7, i, 0.0, false, 0, true));
 			}
 
 			assertThat(HintCalibration.fit(withExtremes, true)).isEqualTo(HintCalibration.fit(predictions, true));
@@ -113,9 +119,57 @@ class HintCalibrationTest {
 				int handSize = minHandSize + random.nextInt(maxHandSize - minHandSize + 1);
 				double chance = 0.05 + 0.9 * random.nextDouble();
 				boolean matched = random.nextDouble() < truth.apply(chance, handSize);
-				predictions.add(new Prediction(5, handSize, i, false, chance, matched));
+				predictions.add(new Prediction(5, handSize, i, 0.0, false, chance, matched));
 			}
 			return predictions;
+		}
+	}
+
+	@Nested
+	class EnsureWritableTest {
+
+		@Test
+		void existingFile_keepsItsContent(@TempDir Path directory) throws IOException {
+			Path file = Files.writeString(directory.resolve("predictions.csv"), "earlier run");
+
+			HintCalibration.ensureWritable(file);
+
+			assertThat(file).hasContent("earlier run");
+		}
+
+		@Test
+		void missingFile_isCreated(@TempDir Path directory) throws IOException {
+			Path file = directory.resolve("predictions.csv");
+
+			HintCalibration.ensureWritable(file);
+
+			assertThat(file).isEmptyFile();
+		}
+
+		@Test
+		void missingDirectory_isRejected(@TempDir Path directory) {
+			assertThatThrownBy(() -> HintCalibration.ensureWritable(directory.resolve("missing").resolve("x.csv")))
+					.isInstanceOf(NoSuchFileException.class);
+		}
+
+		@Test
+		void directory_isRejected(@TempDir Path directory) {
+			assertThatThrownBy(() -> HintCalibration.ensureWritable(directory)).isInstanceOf(IOException.class);
+		}
+	}
+
+	@Nested
+	class CsvTest {
+
+		@Test
+		void headerThenOneLinePerPrediction() {
+			List<Prediction> predictions = List.of(new Prediction(3, 2, 7, 0.5, true, 0.25, false),
+					new Prediction(7, 6, 0, 0.0, false, 1.0, true));
+
+			assertThat(HintCalibration.csv(predictions)).containsExactly(
+					"players,handSize,deal,secondOptionShare,secondOption,chance,matched",
+					"3,2,7,0.5,true,0.25,false",
+					"7,6,0,0.0,false,1.0,true");
 		}
 	}
 
@@ -125,8 +179,8 @@ class HintCalibrationTest {
 		@Test
 		void matchedAsShown_scoresZero() {
 			List<Prediction> predictions =
-					List.of(new Prediction(3, 8, 0, false, 0.5, true),
-							new Prediction(3, 8, 1, false, 0.5, false));
+					List.of(new Prediction(3, 8, 0, 0.0, false, 0.5, true),
+							new Prediction(3, 8, 1, 0.0, false, 0.5, false));
 
 			assertThat(HintCalibration.score(predictions, Prediction::chance)).isEqualTo(" 0.0 /  0.0");
 		}
@@ -134,8 +188,8 @@ class HintCalibrationTest {
 		@Test
 		void gapsOfOppositeSign_cancelInTheMeanButNotInTheCalibrationError() {
 			List<Prediction> predictions =
-					List.of(new Prediction(3, 8, 0, false, 0.1, true),
-							new Prediction(3, 8, 1, false, 0.9, false));
+					List.of(new Prediction(3, 8, 0, 0.0, false, 0.1, true),
+							new Prediction(3, 8, 1, 0.0, false, 0.9, false));
 
 			assertThat(HintCalibration.score(predictions, Prediction::chance)).isEqualTo(" 0.0 / 90.0");
 		}
@@ -155,6 +209,11 @@ class HintCalibrationTest {
 			assertThat(predictions).allMatch(prediction -> prediction.chance() >= 0 && prediction.chance() <= 1);
 			// About 16 seats with two allowed predictions pick the second half the time: none does once in 65,000 runs
 			assertThat(predictions).anyMatch(Prediction::secondOption);
+			assertThat(predictions).filteredOn(prediction -> prediction.secondOptionShare() == 0.0)
+					.hasSize(2 * 3 + 2 * 7)
+					.noneMatch(Prediction::secondOption);
+			assertThat(predictions).filteredOn(prediction -> prediction.secondOptionShare() == 0.5)
+					.hasSize(2 * 3 + 2 * 7);
 			assertThat(report)
 					.contains("SMALL_HAND_HINT_CALIBRATION_BY_PLAYERS", "3 players", "7 players",
 							"3, new LogOddsCalibration(", "7, new LogOddsCalibration(")
@@ -185,8 +244,8 @@ class HintCalibrationTest {
 		void firstAndSecondOptions_areScoredApart() {
 			List<Prediction> predictions = new ArrayList<>();
 			for (int deal = 0; deal < 20; deal++) {
-				predictions.add(new Prediction(3, 1, deal, false, 0.8, deal % 10 != 9));
-				predictions.add(new Prediction(3, 1, deal, true, 0.2, deal % 4 == 1));
+				predictions.add(new Prediction(3, 1, deal, 0.0, false, 0.8, deal % 10 != 9));
+				predictions.add(new Prediction(3, 1, deal, 0.5, true, 0.2, deal % 4 == 1));
 			}
 
 			// On odd deals the first option is matched 8 times in 10 as shown, the second 5 times instead of 2
@@ -230,10 +289,10 @@ class HintCalibrationTest {
 		private static List<Prediction> evenDealsMatchedAsShownOddOnesHalfTheTime(int handSize) {
 			List<Prediction> predictions = new ArrayList<>();
 			for (int i = 0; i < 10; i++) {
-				predictions.add(new Prediction(3, handSize, 2 * i, false, 0.2, i < 2));
-				predictions.add(new Prediction(3, handSize, 2 * i, false, 0.8, i < 8));
-				predictions.add(new Prediction(3, handSize, 2 * i + 1, false, 0.2, i < 5));
-				predictions.add(new Prediction(3, handSize, 2 * i + 1, false, 0.8, i < 5));
+				predictions.add(new Prediction(3, handSize, 2 * i, 0.0, false, 0.2, i < 2));
+				predictions.add(new Prediction(3, handSize, 2 * i, 0.0, false, 0.8, i < 8));
+				predictions.add(new Prediction(3, handSize, 2 * i + 1, 0.0, false, 0.2, i < 5));
+				predictions.add(new Prediction(3, handSize, 2 * i + 1, 0.0, false, 0.8, i < 5));
 			}
 			return predictions;
 		}
@@ -241,8 +300,8 @@ class HintCalibrationTest {
 		private static List<Prediction> matchedFlatterThanShown(int handSize) {
 			List<Prediction> predictions = new ArrayList<>();
 			for (int i = 0; i < 40; i++) {
-				predictions.add(new Prediction(3, handSize, i, false, 0.3, i / 2 < 8));
-				predictions.add(new Prediction(3, handSize, i, false, 0.7, i / 2 < 12));
+				predictions.add(new Prediction(3, handSize, i, 0.0, false, 0.3, i / 2 < 8));
+				predictions.add(new Prediction(3, handSize, i, 0.0, false, 0.7, i / 2 < 12));
 			}
 			return predictions;
 		}
@@ -250,8 +309,8 @@ class HintCalibrationTest {
 		private static List<Prediction> matchedAsShown(int handSize) {
 			List<Prediction> predictions = new ArrayList<>();
 			for (int i = 0; i < 10; i++) {
-				predictions.add(new Prediction(3, handSize, i, false, 0.2, i < 2));
-				predictions.add(new Prediction(3, handSize, i, false, 0.8, i < 8));
+				predictions.add(new Prediction(3, handSize, i, 0.0, false, 0.2, i < 2));
+				predictions.add(new Prediction(3, handSize, i, 0.0, false, 0.8, i < 8));
 			}
 			return predictions;
 		}
@@ -335,7 +394,41 @@ class HintCalibrationTest {
 		void thirdArgument_isRejected() {
 			assertThatThrownBy(() -> HintCalibration.main(new String[]{"10", "2", "9"}))
 					.isInstanceOf(IllegalArgumentException.class)
-					.hasMessage("Expected <deals per table> <threads>, got 10 2 9");
+					.hasMessage("Expected <deals per table> <threads> [--dump <file>], got 10 2 9");
+		}
+
+		@Test
+		void dump_isTakenOutBeforeTheNumbers(@TempDir Path directory) {
+			String file = directory.resolve("predictions.csv").toString();
+
+			assertThatThrownBy(() -> HintCalibration.main(new String[]{"--dump", file, "0"}))
+					.isInstanceOf(IllegalArgumentException.class)
+					.hasMessage("deals per table must be at least 1, got 0");
+		}
+
+		@Test
+		void dumpWithoutFile_isRejected() {
+			assertThatThrownBy(() -> HintCalibration.main(new String[]{"10", "2", "--dump"}))
+					.isInstanceOf(IllegalArgumentException.class)
+					.hasMessage("--dump needs a file");
+		}
+
+		@Test
+		void repeatedDump_isRejected(@TempDir Path directory) {
+			String file = directory.resolve("predictions.csv").toString();
+
+			assertThatThrownBy(() -> HintCalibration.main(new String[]{"10", "2", "--dump", file, "--dump", file}))
+					.isInstanceOf(IllegalArgumentException.class)
+					.hasMessage("--dump given twice");
+		}
+
+		@Test
+		@Timeout(5)
+		void dumpIntoMissingDirectory_isRejectedBeforePlaying(@TempDir Path directory) {
+			String file = directory.resolve("missing").resolve("predictions.csv").toString();
+
+			assertThatThrownBy(() -> HintCalibration.main(new String[]{"10", "2", "--dump", file}))
+					.isInstanceOf(NoSuchFileException.class);
 		}
 
 		@Test

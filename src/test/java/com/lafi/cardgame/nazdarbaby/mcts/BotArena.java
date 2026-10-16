@@ -7,6 +7,7 @@ import com.lafi.cardgame.nazdarbaby.point.PointProvider;
 import com.lafi.cardgame.nazdarbaby.provider.Table;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -97,18 +98,8 @@ public final class BotArena {
 	record Options(int deals, int players, int tricks, int threads, String baseline) {
 
 		static Options parse(String[] args) {
-			List<String> positional = new ArrayList<>();
-			String baseline = null;
-			for (int i = 0; i < args.length; i++) {
-				if (args[i].equals("--baseline")) {
-					if (i + 1 == args.length) {
-						throw new IllegalArgumentException("--baseline needs a git ref");
-					}
-					baseline = args[++i];
-				} else {
-					positional.add(args[i]);
-				}
-			}
+			List<String> positional = new ArrayList<>(Arrays.asList(args));
+			String baseline = takeFlag(positional, "--baseline", "a git ref");
 			if (positional.size() > 4) {
 				throw new IllegalArgumentException("Expected <deals> <players> <tricks> <threads> [--baseline <git-ref>], got "
 						+ String.join(" ", args));
@@ -128,6 +119,21 @@ public final class BotArena {
 			require(threads >= 1, "threads must be at least 1, got " + threads);
 
 			return new Options(deals, players, tricks, threads, baseline);
+		}
+
+		/**
+		 * Removes the flag and its value from the arguments and returns the value, or null without the flag.
+		 */
+		static String takeFlag(List<String> arguments, String flag, String valueName) {
+			int index = arguments.indexOf(flag);
+			if (index < 0) {
+				return null;
+			}
+			require(index + 1 < arguments.size(), flag + " needs " + valueName);
+			arguments.remove(index);
+			String value = arguments.remove(index);
+			require(!arguments.contains(flag), flag + " given twice");
+			return value;
 		}
 
 		static int number(List<String> positional, int index, String name, int fallback) {

@@ -126,6 +126,15 @@ class BotArenaTest {
 		}
 
 		@Test
+		void baselineGivenTwice_isRejected() {
+			String[] args = {"--baseline", "main", "600", "--baseline", "dev"};
+
+			assertThatThrownBy(() -> BotArena.Options.parse(args))
+					.isInstanceOf(IllegalArgumentException.class)
+					.hasMessage("--baseline given twice");
+		}
+
+		@Test
 		void limits_areAcceptedAtTheirBoundaries() {
 			assertThat(BotArena.Options.parse(new String[]{"1", "3", "10", "1"})).isEqualTo(new BotArena.Options(1, 3, 10, 1, null));
 			assertThat(BotArena.Options.parse(new String[]{"1", "7", "7", "1"})).isEqualTo(new BotArena.Options(1, 7, 7, 1, null));
