@@ -1,7 +1,7 @@
 [versions]
 commonsLang3 = "3.21.0"
 commonsRng = "1.7"
-springBoot = "4.1.1"
+springBoot = "4.1.2"
 vaadin = "25.3.3"
 
 [libraries]
